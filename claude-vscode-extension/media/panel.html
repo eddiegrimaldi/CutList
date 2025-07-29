@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src {{cspSource}}; script-src 'nonce-{{nonce}}';">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="{{styleUri}}" rel="stylesheet">
+    <title>Opus Chat</title>
+</head>
+<body>
+    <input type="file" id="file-input" multiple style="display: none;">
+
+    <div class="tab-bar">
+        <button class="tab" id="vision-tab">Vision</button>
+        <button class="tab" id="task-tab">Task</button>
+        <button class="tab active" id="prompt-tab">Prompt</button>
+    </div>
+
+    <div class="mode-header">
+        <h2 id="mode-title">Prompt</h2>
+        <p id="mode-description">Your message to Opus...</p>
+    </div>
+
+    <div id="vision-content" class="tab-content">
+        <textarea id="vision-text" placeholder="High-level goals, concepts, and ideas..."></textarea>
+    </div>
+
+    <div id="task-content" class="tab-content">
+        <textarea id="task-text" placeholder="The specific task you are currently working on..."></textarea>
+    </div>
+
+    <div id="prompt-content" class="tab-content active">
+        <textarea id="prompt-text" placeholder="Your message to Opus..."></textarea>
+    </div>
+
+    <div id="file-attachment-bar">
+        <span id="file-list"></span>
+    </div>
+
+    <div id="token-status-bar">
+        <div class="token-group">
+            <span class="token-label">Prompt:</span>
+            <span id="prompt-tokens-value" class="token-value">0</span>
+        </div>
+        <div class="token-group-column">
+            <div class="token-group">
+                <span class="token-label">Last Reply:</span>
+                <span id="last-reply-tokens-value" class="token-value">0</span>
+            </div>
+             <div class="token-group">
+                <span class="token-label">Outbound (Day):</span>
+                <span id="total-outbound-value" class="token-value">0</span>
+            </div>
+        </div>
+        <div class="token-group-column">
+            <div class="token-group">
+                <span class="token-label">Inbound (Day):</span>
+                <span id="total-inbound-value" class="token-value">0</span>
+            </div>
+            <div class="token-group">
+                <span class="token-label">Total (Day):</span>
+                <span id="grand-total-value" class="token-value">0</span>
+            </div>
+        </div>
+        <div class="token-group">
+            <button id="reset-tokens-btn" class="action-button">Reset</button>
+        </div>
+    </div>
+
+    <div id="chat-container">
+        <!-- Chat messages will be appended here -->
+    </div>
+
+    <div class="button-bar">
+        <button id="attach-files-btn" class="action-button">Attach Files</button>
+        <button id="send-all-btn" class="send-button">Send All</button>
+        <button id="send-chat-btn" class="send-button">Chat</button>
+        <button id="send-with-files-btn" class="send-button">Chat w/ Files</button>
+        <button id="continue-btn" class="action-button">Continue</button>
+        <button id="copy-btn" class="action-button">Copy Last</button>
+        <button id="clear-btn" class="action-button">Clear Chat</button>
+    </div>
+
+    <script nonce="{{nonce}}" src="{{scriptUri}}"></script>
+</body>
+</html>

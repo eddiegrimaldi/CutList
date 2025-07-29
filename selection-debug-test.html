@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Selection Debug Test - CutList</title>
+    <style>
+        body { margin: 0; padding: 20px; background: #f5f5f5; font-family: Arial, sans-serif; }
+        canvas { border: 3px solid #000; background: white; display: block; margin: 20px 0; }
+        .controls { margin: 10px 0; }
+        button { margin: 5px; padding: 12px 20px; background: #007acc; color: white; border: none; font-size: 14px; }
+        button:hover { background: #005999; }
+        #debug { background: #fff; padding: 15px; margin: 10px 0; border: 1px solid #ccc; font-family: monospace; font-size: 12px; max-height: 400px; overflow-y: auto; }
+        .status { font-weight: bold; color: #d00; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Selection Debug Test - CutList</h1>
+    
+    <div class="controls">
+        <button onclick="switchMode('sketch')" id="sketch-btn">Sketch Mode</button>
+        <button onclick="switchMode('modeling')" id="modeling-btn">Modeling Mode</button>
+        |
+        <button onclick="selectTool('select')" id="select-btn" class="active">Select</button>
+        <button onclick="selectTool('rectangle')" id="rect-btn">Rectangle</button>
+        <button onclick="selectTool('circle')" id="circle-btn">Circle</button>
+        <button onclick="selectTool('line')" id="line-btn">Line</button>
+        |
+        <button onclick="clearCanvas()">Clear</button>
+        <button onclick="resetCamera()">Reset View</button>
+        <button onclick="testSelection()">Test Selection</button>
+    </div>
+
+    <canvas id="drawingCanvas" width="800" height="600"></canvas>
+    
+    <div id="debug">
+        <div class="status">Debug Output:</div>
+        <div>- Draw some shapes first (rectangle, circle, line)</div>
+        <div>- Switch to Select tool and click on shapes</div>
+        <div>- Watch console output for selection debugging</div>
+    </div>
+
+    <!-- Three.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <!-- Include the main fixed app -->
+    <script src="src/main-fixed.js"></script>
+    
+    <script>
+        let app;
+        
+        function updateDebug(message, isSuccess = false) {
+            const debug = document.getElementById('debug');
+            const div = document.createElement('div');
+            div.textContent = new Date().toLocaleTimeString() + ': ' + message;
+            if (isSuccess) div.style.color = '#0a0';
+            debug.appendChild(div);
+            debug.scrollTop = debug.scrollHeight;
+        }
+
+        function switchMode(mode) {
+            if (app) {
+                app.switchMode(mode);
+                updateDebug(`Switched to ${mode} mode`);
+                
+                // Update button states
+                document.querySelectorAll('button[id$="-btn"]').forEach(btn => btn.classList.remove('active'));
+                document.getElementById(mode + '-btn').classList.add('active');
+            }
+        }
+
+        function selectTool(tool) {
+            if (app) {
+                app.selectTool(tool);
+                updateDebug(`Selected ${tool} tool`);
+                
+                // Update button states  
+                document.querySelectorAll('button[id$="-btn"]').forEach(btn => btn.classList.remove('active'));
+                document.getElementById(tool === 'select' ? 'select-btn' : 
+                                      tool === 'rectangle' ? 'rect-btn' :
+                                      tool === 'circle' ? 'circle-btn' : 
+                                      tool === 'line' ? 'line-btn' : 'select-btn').classList.add('active');
+            }
+        }
+
+        function clearCanvas() {
+            if (app) {
+                app.clearCanvas();
+                updateDebug('Canvas cleared');
+            }
+        }
+
+        function resetCamera() {
+            if (app) {
+                app.resetCamera();
+                updateDebug('Camera reset');
+            }
+        }
+
+        function testSelection() {
+            if (app) {
+                updateDebug('=== SELECTION TEST ===');
+                updateDebug(`Current mode: ${app.currentMode}`);
+                updateDebug(`Current tool: ${app.currentTool}`);
+                updateDebug(`Drawn objects: ${app.drawnObjects.length}`);
+                updateDebug(`Selected objects: ${app.selectedObjects.length}`);
+                
+                // List all drawn objects
+                app.drawnObjects.forEach((obj, index) => {
+                    const userData = obj.userData;
+                    updateDebug(`Object ${index}: ${userData.type} from (${userData.startPoint?.x}, ${userData.startPoint?.y}) to (${userData.endPoint?.x}, ${userData.endPoint?.y})`);
+                });
+                
+                if (app.drawnObjects.length === 0) {
+                    updateDebug('No objects to select - draw some shapes first!', false);
+                } else {
+                    updateDebug('Objects available for selection - try clicking on them!', true);
+                }
+            }
+        }
+
+        // Enhanced console logging
+        const originalLog = console.log;
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            updateDebug(args.join(' '));
+        };
+
+        // Initialize
+        window.addEventListener('load', () => {
+            updateDebug('Initializing CutList app...');
+            
+            // Create app instance
+            app = new CutListApp();
+            app.init();
+            
+            // Set initial mode and tool
+            switchMode('sketch');
+            selectTool('select');
+            
+            updateDebug('App initialized successfully!', true);
+            updateDebug('Instructions: Draw shapes, then switch to Select tool and click on them');
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,50 @@
+<\!DOCTYPE html>
+<html>
+<head>
+    <title>Materials Debug</title>
+    <script src="MaterialsLibrary.js"></script>
+</head>
+<body>
+    <h1>Materials Debug</h1>
+    <div id="debug-output"></div>
+    <script>
+        async function debugMaterials() {
+            const debugDiv = document.getElementById("debug-output");
+            debugDiv.innerHTML += "<p>Starting debug...</p>";
+            
+            try {
+                console.log("Creating MaterialsLibrary...");
+                debugDiv.innerHTML += "<p>✅ Creating MaterialsLibrary...</p>";
+                
+                const materialsLibrary = new MaterialsLibrary();
+                debugDiv.innerHTML += "<p>✅ MaterialsLibrary created</p>";
+                
+                console.log("Loading database...");
+                debugDiv.innerHTML += "<p>⏳ Loading database...</p>";
+                
+                const success = await materialsLibrary.loadDatabase();
+                
+                if (success) {
+                    debugDiv.innerHTML += "<p>✅ Database loaded successfully</p>";
+                    debugDiv.innerHTML += "<p>Materials count: " + Object.keys(materialsLibrary.materials).length + "</p>";
+                    
+                    debugDiv.innerHTML += "<h3>Materials found:</h3><ul>";
+                    for (const [id, material] of Object.entries(materialsLibrary.materials)) {
+                        debugDiv.innerHTML += "<li>" + id + ": " + material.name + " (" + material.category + ")</li>";
+                    }
+                    debugDiv.innerHTML += "</ul>";
+                    
+                } else {
+                    debugDiv.innerHTML += "<p>❌ Failed to load database</p>";
+                }
+                
+            } catch (error) {
+                console.error("Debug error:", error);
+                debugDiv.innerHTML += "<p>❌ Error: " + error.message + "</p>";
+            }
+        }
+        
+        debugMaterials();
+    </script>
+</body>
+</html>

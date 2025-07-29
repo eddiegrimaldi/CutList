@@ -1,0 +1,51 @@
+<\!DOCTYPE html>
+<html>
+<head>
+    <title>Texture Test</title>
+    <script src="MaterialsLibrary.js"></script>
+</head>
+<body>
+    <h1>Wood Texture Test</h1>
+    <div id="test-results"></div>
+    <script>
+        async function testTextures() {
+            console.log("Testing texture loading...");
+            const resultsDiv = document.getElementById("test-results");
+            
+            try {
+                const materialsLib = new MaterialsLibrary();
+                const loaded = await materialsLib.loadDatabase();
+                
+                if (loaded) {
+                    resultsDiv.innerHTML += "<p>✅ Materials database loaded successfully</p>";
+                    
+                    const walnutPaths = materialsLib.getTexturePaths("walnut_001");
+                    if (walnutPaths) {
+                        resultsDiv.innerHTML += "<p>✅ Walnut texture path: " + walnutPaths.texture_diffuse + "</p>";
+                        
+                        // Test if texture file exists by creating an image
+                        const img = new Image();
+                        img.onload = function() {
+                            resultsDiv.innerHTML += "<p>✅ Walnut texture loaded successfully</p>";
+                            resultsDiv.innerHTML += "<img src=\"" + walnutPaths.texture_diffuse + "\" width=\"200\" height=\"200\" style=\"border: 1px solid black;\">";
+                        };
+                        img.onerror = function() {
+                            resultsDiv.innerHTML += "<p>❌ Failed to load walnut texture</p>";
+                        };
+                        img.src = walnutPaths.texture_diffuse;
+                    } else {
+                        resultsDiv.innerHTML += "<p>❌ No texture paths found for walnut</p>";
+                    }
+                } else {
+                    resultsDiv.innerHTML += "<p>❌ Failed to load materials database</p>";
+                }
+            } catch (error) {
+                resultsDiv.innerHTML += "<p>❌ Error: " + error.message + "</p>";
+                console.error("Texture test error:", error);
+            }
+        }
+        
+        testTextures();
+    </script>
+</body>
+</html>

@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Rectangle Selection Test for Assclown</title>
+    <style>
+        body { margin: 0; padding: 20px; background: #000; color: #fff; font-family: Arial; }
+        canvas { background: #fff; border: 2px solid #f00; display: block; margin-top: 20px; }
+        .controls { margin-bottom: 20px; }
+        button { padding: 10px; margin: 5px; font-size: 16px; }
+        .info { margin: 10px 0; padding: 10px; background: #333; }
+    </style>
+</head>
+<body>
+    <h1>Selection Debug Test for Assclown by Spanky</h1>
+    <div class="controls">
+        <button onclick="drawTestRect()">Draw Test Rectangle</button>
+        <button onclick="switchMode()">Switch Mode: <span id="modeText">Sketch</span></button>
+        <button onclick="clearCanvas()">Clear</button>
+    </div>
+    <div class="info">
+        <div>Current Mode: <span id="currentMode">sketch</span></div>
+        <div>Mouse Position: <span id="mousePos">-</span></div>
+        <div>World Coordinates: <span id="worldCoords">-</span></div>
+        <div>Selected Object: <span id="selectedObj">None</span></div>
+        <div>Last Click Result: <span id="clickResult">-</span></div>
+    </div>
+    <canvas id="canvas" width="800" height="600"></canvas>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Simple camera system
+        const camera = {
+            mode: 'sketch',
+            zoom: 1,
+            x: 0,
+            y: 0,
+            position: { x: 0, y: 0, z: 500 },
+            rotation: { x: 0, y: 0 }
+        };
+        
+        // Objects array
+        let objects = [];
+        let selectedObject = null;
+        
+        // Add mouse tracking
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const screenX = e.clientX - rect.left;
+            const screenY = e.clientY - rect.top;
+            const worldPos = getWorldCoords(screenX, screenY);
+            
+            document.getElementById('mousePos').textContent = `${screenX}, ${screenY}`;
+            document.getElementById('worldCoords').textContent = `${worldPos.x.toFixed(1)}, ${worldPos.y.toFixed(1)}`;
+        });
+        
+        // Add click tracking
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const screenX = e.clientX - rect.left;
+            const screenY = e.clientY - rect.top;
+            
+            console.log(`🎯 CLICK DEBUG: Screen(${screenX}, ${screenY}) Mode(${camera.mode})`);
+            
+            const result = selectObjectAt(screenX, screenY);
+            document.getElementById('clickResult').textContent = result ? 'Selected!' : 'Nothing selected';
+            document.getElementById('selectedObj').textContent = selectedObject ? selectedObject.type : 'None';
+            
+            redrawCanvas();
+        });
+        
+        function drawTestRect() {
+            console.log('🟦 Drawing test rectangle');
+            objects = [{
+                type: 'rectangle',
+                startX: -100,
+                startY: -50,
+                startZ: -50,
+                endX: 100,
+                endY: 50,
+                endZ: 50
+            }];
+            redrawCanvas();
+        }
+        
+        function switchMode() {
+            camera.mode = camera.mode === 'sketch' ? 'modeling' : 'sketch';
+            document.getElementById('modeText').textContent = camera.mode === 'sketch' ? 'Sketch' : 'Modeling';
+            document.getElementById('currentMode').textContent = camera.mode;
+            console.log(`🔄 Switched to ${camera.mode} mode`);
+            redrawCanvas();
+        }
+        
+        function clearCanvas() {
+            objects = [];
+            selectedObject = null;
+            document.getElementById('selectedObj').textContent = 'None';
+            redrawCanvas();
+        }
+        
+        // EXACT COPY of functions from main file
+        function getWorldCoords(screenX, screenY) {
+            if (camera.mode === 'modeling') {
+                // Spanky: FIXED for Assclown - proper 3D hit testing in modeling mode
+                // Convert screen coordinates to projected 2D coordinates for hit testing
+                const projectedX = screenX - canvas.width/2;
+                const projectedY = screenY - canvas.height/2;
+                console.log(`🎯 3D WorldCoords: Screen(${screenX}, ${screenY}) -> Projected(${projectedX}, ${projectedY})`);
+                return { x: projectedX, y: projectedY };
+            } else {
+                const worldX = (screenX - canvas.width / 2) / camera.zoom + camera.x;
+                const worldY = (screenY - canvas.height / 2) / camera.zoom + camera.y;
+                console.log(`🎯 2D WorldCoords: Screen(${screenX}, ${screenY}) -> World(${worldX}, ${worldY})`);
+                return { x: worldX, y: worldY };
+            }
+        }
+        
+        function project3D(x, y, z) {
+            // Simple 3D projection
+            const dx = x - camera.position.x;
+            const dy = y - camera.position.y;
+            const dz = z - camera.position.z;
+            
+            if (dz >= 0) return null; // Behind camera
+            
+            const scale = 300;
+            const screenX = (dx * scale) / -dz;
+            const screenY = -(dy * scale) / -dz;
+            
+            return {
+                x: screenX + canvas.width/2,
+                y: screenY + canvas.height/2,
+                depth: -dz
+            };
+        }
+        
+        function selectObjectAt(x, y) {
+            const worldPos = getWorldCoords(x, y);
+            const tolerance = 10;
+            
+            console.log(`🎯 SELECT DEBUG: WorldPos(${worldPos.x}, ${worldPos.y}) Tolerance(${tolerance})`);
+            
+            // Check objects in reverse order (last drawn = topmost)
+            for (let i = objects.length - 1; i >= 0; i--) {
+                const obj = objects[i];
+                console.log(`🎯 Checking object ${i}:`, obj);
+                
+                if (isPointNearObject(worldPos.x, worldPos.y, obj, tolerance)) {
+                    selectedObject = obj;
+                    console.log(`🎯 Selected ${obj.type} object!`);
+                    return true;
+                }
+            }
+            
+            // No object selected
+            selectedObject = null;
+            console.log(`🎯 No object selected`);
+            return false;
+        }
+        
+        function isPointNearObject(x, y, obj, tolerance) {
+            console.log(`🎯 CHECKING: Point(${x}, ${y}) vs ${obj.type} Mode(${camera.mode})`);
+            
+            switch (obj.type) {
+                case 'rectangle':
+                    if (camera.mode === 'modeling') {
+                        console.log('🎯 3D Rectangle check...');
+                        // Spanky: FIXED 3D rectangle selection for Assclown - use projected coordinates
+                        const corners = [
+                            project3D(obj.startX, 0, obj.startZ || 0),
+                            project3D(obj.endX, 0, obj.startZ || 0),
+                            project3D(obj.endX, 0, obj.endZ || 0),
+                            project3D(obj.startX, 0, obj.endZ || 0)
+                        ];
+                        
+                        console.log('🎯 Projected corners:', corners);
+                        
+                        // Check if all corners are valid
+                        if (corners.every(c => c !== null)) {
+                            // Check if point is inside the projected rectangle using polygon hit test
+                            const result = isPointInsidePolygon(x, y, corners);
+                            console.log(`🎯 Polygon test result: ${result}`);
+                            return result;
+                        }
+                        console.log('🎯 Some corners are null, can\'t test');
+                        return false;
+                    } else {
+                        console.log('🎯 2D Rectangle check...');
+                        // 2D mode - original logic
+                        if (isPointInsideRectangle(x, y, obj.startX, obj.startZ || obj.startY || 0, obj.endX, obj.endZ || obj.endY || 0)) {
+                            console.log('🎯 Inside 2D rectangle!');
+                            return true;
+                        }
+                        const nearResult = isPointNearRectangle(x, y, obj.startX, obj.startZ || obj.startY || 0, obj.endX, obj.endZ || obj.endY || 0, tolerance);
+                        console.log(`🎯 Near 2D rectangle: ${nearResult}`);
+                        return nearResult;
+                    }
+            }
+            return false;
+        }
+        
+        // Helper functions
+        function isPointInsideRectangle(x, y, x1, y1, x2, y2) {
+            const minX = Math.min(x1, x2);
+            const maxX = Math.max(x1, x2);
+            const minY = Math.min(y1, y2);
+            const maxY = Math.max(y1, y2);
+            const result = (x >= minX && x <= maxX && y >= minY && y <= maxY);
+            console.log(`🎯 isPointInsideRectangle: Point(${x}, ${y}) Rect(${minX}, ${minY}, ${maxX}, ${maxY}) = ${result}`);
+            return result;
+        }
+        
+        function isPointInsidePolygon(x, y, corners) {
+            let inside = false;
+            const n = corners.length;
+            
+            console.log(`🎯 Polygon test: Point(${x}, ${y}) vs ${n} corners`);
+            
+            for (let i = 0, j = n - 1; i < n; j = i++) {
+                const xi = corners[i].x, yi = corners[i].y;
+                const xj = corners[j].x, yj = corners[j].y;
+                
+                if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) {
+                    inside = !inside;
+                }
+            }
+            
+            console.log(`🎯 Polygon result: ${inside}`);
+            return inside;
+        }
+        
+        function isPointNearRectangle(x, y, x1, y1, x2, y2, tolerance) {
+            // Simplified version - just return false for now
+            return false;
+        }
+        
+        function redrawCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#f0f0f0';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw center cross
+            ctx.strokeStyle = '#ccc';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(canvas.width/2 - 20, canvas.height/2);
+            ctx.lineTo(canvas.width/2 + 20, canvas.height/2);
+            ctx.moveTo(canvas.width/2, canvas.height/2 - 20);
+            ctx.lineTo(canvas.width/2, canvas.height/2 + 20);
+            ctx.stroke();
+            
+            // Draw objects
+            objects.forEach(obj => {
+                const isSelected = (obj === selectedObject);
+                ctx.strokeStyle = isSelected ? '#ff0000' : '#333333';
+                ctx.lineWidth = isSelected ? 3 : 2;
+                
+                if (camera.mode === 'modeling') {
+                    // 3D mode
+                    if (obj.type === 'rectangle') {
+                        const corners = [
+                            project3D(obj.startX, 0, obj.startZ || 0),
+                            project3D(obj.endX, 0, obj.startZ || 0),
+                            project3D(obj.endX, 0, obj.endZ || 0),
+                            project3D(obj.startX, 0, obj.endZ || 0)
+                        ];
+                        
+                        if (corners.every(c => c !== null)) {
+                            ctx.beginPath();
+                            ctx.moveTo(corners[0].x, corners[0].y);
+                            for (let i = 1; i < corners.length; i++) {
+                                ctx.lineTo(corners[i].x, corners[i].y);
+                            }
+                            ctx.closePath();
+                            ctx.stroke();
+                            
+                            if (isSelected) {
+                                ctx.fillStyle = 'rgba(255,0,0,0.2)';
+                                ctx.fill();
+                            }
+                        }
+                    }
+                } else {
+                    // 2D mode
+                    if (obj.type === 'rectangle') {
+                        const startX = obj.startX;
+                        const startY = obj.startZ || obj.startY || 0;
+                        const endX = obj.endX;
+                        const endY = obj.endZ || obj.endY || 0;
+                        
+                        ctx.beginPath();
+                        ctx.rect(startX, startY, endX - startX, endY - startY);
+                        ctx.stroke();
+                        
+                        if (isSelected) {
+                            ctx.fillStyle = 'rgba(255,0,0,0.2)';
+                            ctx.fill();
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Initialize
+        drawTestRect();
+        redrawCanvas();
+    </script>
+</body>
+</html>

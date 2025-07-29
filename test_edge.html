@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+</head>
+<body>
+    <canvas id="canvas" style="width:100%;height:600px;"></canvas>
+    <button onclick="createBoard()">Create Board</button>
+    <script>
+        const canvas = document.getElementById("canvas");
+        const engine = new BABYLON.Engine(canvas, true);
+        const scene = new BABYLON.Scene(engine);
+        
+        const camera = new BABYLON.ArcRotateCamera("camera", 0, 0, 10, BABYLON.Vector3.Zero(), scene);
+        camera.setPosition(new BABYLON.Vector3(0, 10, -10));
+        camera.attachControl(canvas, true);
+        
+        const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
+        
+        let edgePreview = null;
+        
+        function createBoard() {
+            const board = BABYLON.MeshBuilder.CreateBox('board', {
+                width: 5.08,
+                height: 5.08,
+                depth: 76.2
+            }, scene);
+            
+            const mat = new BABYLON.StandardMaterial('boardMat', scene);
+            mat.diffuseColor = new BABYLON.Color3(0.9, 0.7, 0.5);
+            board.material = mat;
+            
+            scene.registerBeforeRender(() => {
+                const pickInfo = scene.pick(scene.pointerX, scene.pointerY);
+                
+                if (pickInfo.hit && pickInfo.pickedMesh === board) {
+                    const p = pickInfo.pickedPoint;
+                    const b = board.getBoundingInfo().boundingBox;
+                    const min = b.minimumWorld;
+                    const max = b.maximumWorld;
+                    
+                    // All 12 edges
+                    const edges = [
+                        [new BABYLON.Vector3(min.x, max.y, min.z), new BABYLON.Vector3(max.x, max.y, min.z)],
+                        [new BABYLON.Vector3(max.x, max.y, min.z), new BABYLON.Vector3(max.x, max.y, max.z)],
+                        [new BABYLON.Vector3(max.x, max.y, max.z), new BABYLON.Vector3(min.x, max.y, max.z)],
+                        [new BABYLON.Vector3(min.x, max.y, max.z), new BABYLON.Vector3(min.x, max.y, min.z)],
+                        [new BABYLON.Vector3(min.x, min.y, min.z), new BABYLON.Vector3(max.x, min.y, min.z)],
+                        [new BABYLON.Vector3(max.x, min.y, min.z), new BABYLON.Vector3(max.x, min.y, max.z)],
+                        [new BABYLON.Vector3(max.x, min.y, max.z), new BABYLON.Vector3(min.x, min.y, max.z)],
+                        [new BABYLON.Vector3(min.x, min.y, max.z), new BABYLON.Vector3(min.x, min.y, min.z)],
+                        [new BABYLON.Vector3(min.x, min.y, min.z), new BABYLON.Vector3(min.x, max.y, min.z)],
+                        [new BABYLON.Vector3(max.x, min.y, min.z), new BABYLON.Vector3(max.x, max.y, min.z)],
+                        [new BABYLON.Vector3(max.x, min.y, max.z), new BABYLON.Vector3(max.x, max.y, max.z)],
+                        [new BABYLON.Vector3(min.x, min.y, max.z), new BABYLON.Vector3(min.x, max.y, max.z)]
+                    ];
+                    
+                    let closest = null;
+                    let minDist = 999;
+                    
+                    edges.forEach(edge => {
+                        const [start, end] = edge;
+                        const line = end.subtract(start);
+                        const len = line.length();
+                        line.normalize();
+                        const v = p.subtract(start);
+                        const d = BABYLON.Vector3.Dot(v, line);
+                        const t = Math.max(0, Math.min(len, d));
+                        const pt = start.add(line.scale(t));
+                        const dist = BABYLON.Vector3.Distance(p, pt);
+                        
+                        if (dist < minDist) {
+                            minDist = dist;
+                            closest = edge;
+                        }
+                    });
+                    
+                    if (minDist < 2) {
+                        if (edgePreview) edgePreview.dispose();
+                        
+                        edgePreview = BABYLON.MeshBuilder.CreateTube('edge', {
+                            path: closest,
+                            radius: 0.3,
+                            tessellation: 16
+                        }, scene);
+                        
+                        const eMat = new BABYLON.StandardMaterial('eMat', scene);
+                        eMat.diffuseColor = new BABYLON.Color3(1, 0.5, 0);
+                        eMat.emissiveColor = new BABYLON.Color3(1, 0.5, 0);
+                        edgePreview.material = eMat;
+                    } else if (edgePreview) {
+                        edgePreview.dispose();
+                        edgePreview = null;
+                    }
+                } else if (edgePreview) {
+                    edgePreview.dispose();
+                    edgePreview = null;
+                }
+            });
+        }
+        
+        engine.runRenderLoop(() => {
+            scene.render();
+        });
+        
+        window.addEventListener("resize", () => {
+            engine.resize();
+        });
+    </script>
+</body>
+</html>

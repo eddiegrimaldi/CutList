@@ -1,0 +1,548 @@
+{
+  "database_info": {
+    "version": "1.0.0",
+    "last_updated": "2025-01-13",
+    "schema_version": "1.0",
+    "migration_ready": true,
+    "sql_server_ready": true
+  },
+  "categories": {
+    "hardwood": {
+      "id": "hardwood",
+      "name": "Hardwoods",
+      "description": "Deciduous tree lumber for fine woodworking",
+      "icon": "hardwood-icon.svg",
+      "sort_order": 1
+    },
+    "sheet_goods": {
+      "id": "sheet_goods", 
+      "name": "Sheet Goods",
+      "description": "Plywood, MDF, and engineered lumber products",
+      "icon": "sheet-goods-icon.svg",
+      "sort_order": 2
+    },
+    "softwood": {
+      "id": "softwood",
+      "name": "Softwoods", 
+      "description": "Coniferous tree lumber for construction and general use",
+      "icon": "softwood-icon.svg",
+      "sort_order": 3,
+      "enabled": false
+    },
+    "exotic": {
+      "id": "exotic",
+      "name": "Exotic Woods",
+      "description": "Premium imported and specialty lumber",
+      "icon": "exotic-icon.svg", 
+      "sort_order": 4,
+      "enabled": false
+    }
+  },
+  "materials": {
+    "walnut_001": {
+      "material_id": "walnut_001",
+      "category": "hardwood",
+      "enabled": true,
+      "basic_info": {
+        "common_name": "Black Walnut",
+        "scientific_name": "Juglans nigra",
+        "origin": "North America",
+        "description": "Premium hardwood prized for its rich chocolate brown color and excellent workability"
+      },
+      "physical_properties": {
+        "length_inches": 84,
+        "width_inches": 4,
+        "thickness_inches": 0.75,
+        "grain_direction": "length_grain",
+        "weight_per_cubic_foot": 38.0,
+        "density_lbs_per_cubic_inch": 0.022,
+        "hardness_janka": 1010,
+        "moisture_content_percent": 8.5
+      },
+      "visual_properties": {
+        "color_profile": {
+          "primary_color": "#5D4037",
+          "secondary_colors": ["#3E2723", "#6D4C41", "#8D6E63"],
+          "sapwood_color": "#D7CCC8"
+        },
+        "grain_pattern": "straight",
+        "figure_type": "plain",
+        "texture": "medium_to_coarse",
+        "luster": "medium"
+      },
+      "mechanical_properties": {
+        "workability_rating": "excellent",
+        "stability_rating": "good", 
+        "finish_properties": "excellent",
+        "glue_compatibility": "excellent",
+        "screw_holding": "excellent",
+        "nail_holding": "good"
+      },
+      "economic_properties": {
+        "price_per_board_foot": 8.50,
+        "lumber_grade": "select",
+        "availability": "readily_available",
+        "sustainability_rating": "good"
+      },
+      "standard_dimensions": {
+        "available_lengths": [72, 84, 96, 120, 144],
+        "available_widths": [2, 3, 4, 6, 8, 10, 12],
+        "available_thicknesses": [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0]
+      },
+      "default_configuration": {
+        "length_inches": 84,
+        "width_inches": 4,
+        "thickness_inches": 0.75,
+        "grade": "select"
+      },
+      "visual_assets": {
+        "thumbnail": "materials/walnut/walnut_thumbnail.jpg",
+        "texture_diffuse": "materials/walnut/walnut_diffuse_4k.jpg",
+        "texture_normal": "materials/walnut/walnut_normal_4k.jpg",
+        "texture_roughness": "materials/walnut/walnut_roughness_4k.jpg",
+        "texture_specular": "materials/walnut/walnut_specular_4k.jpg"
+      },
+      "metadata": {
+        "created_date": "2025-01-13",
+        "last_modified": "2025-01-13",
+        "version": "1.0"
+      }
+    },
+    "maple_001": {
+      "material_id": "maple_001",
+      "category": "hardwood",
+      "enabled": true,
+      "basic_info": {
+        "common_name": "Hard Maple",
+        "scientific_name": "Acer saccharum",
+        "origin": "North America",
+        "description": "Dense, light-colored hardwood excellent for furniture and cutting boards"
+      },
+      "physical_properties": {
+        "length_inches": 96,
+        "width_inches": 6,
+        "thickness_inches": 0.75,
+        "grain_direction": "length_grain",
+        "weight_per_cubic_foot": 44.0,
+        "density_lbs_per_cubic_inch": 0.025,
+        "hardness_janka": 1450,
+        "moisture_content_percent": 8.0
+      },
+      "visual_properties": {
+        "color_profile": {
+          "primary_color": "#F5F5DC",
+          "secondary_colors": ["#FFF8DC", "#F0E68C", "#DDBF94"],
+          "sapwood_color": "#FFFACD"
+        },
+        "grain_pattern": "straight",
+        "figure_type": "plain",
+        "texture": "fine_uniform",
+        "luster": "medium"
+      },
+      "mechanical_properties": {
+        "workability_rating": "good",
+        "stability_rating": "excellent",
+        "finish_properties": "excellent",
+        "glue_compatibility": "excellent",
+        "screw_holding": "excellent",
+        "nail_holding": "good"
+      },
+      "economic_properties": {
+        "price_per_board_foot": 4.25,
+        "lumber_grade": "select",
+        "availability": "readily_available",
+        "sustainability_rating": "excellent"
+      },
+      "standard_dimensions": {
+        "available_lengths": [72, 84, 96, 120, 144],
+        "available_widths": [2, 3, 4, 6, 8, 10, 12],
+        "available_thicknesses": [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 2.5]
+      },
+      "default_configuration": {
+        "length_inches": 96,
+        "width_inches": 6,
+        "thickness_inches": 0.75,
+        "grade": "select"
+      },
+      "visual_assets": {
+        "thumbnail": "materials/maple/maple_thumbnail.jpg",
+        "texture_diffuse": "materials/maple/maple_diffuse_4k.jpg",
+        "texture_normal": "materials/maple/maple_normal_4k.jpg",
+        "texture_roughness": "materials/maple/maple_roughness_4k.jpg",
+        "texture_specular": "materials/maple/maple_specular_4k.jpg"
+      },
+      "metadata": {
+        "created_date": "2025-01-13",
+        "last_modified": "2025-01-13",
+        "version": "1.0"
+      }
+    },
+    "oak_red_001": {
+      "material_id": "oak_red_001",
+      "category": "hardwood",
+      "enabled": true,
+      "basic_info": {
+        "common_name": "Red Oak",
+        "scientific_name": "Quercus rubra",
+        "origin": "Eastern North America",
+        "description": "Classic furniture wood with prominent grain pattern and excellent strength"
+      },
+      "physical_properties": {
+        "length_inches": 96,
+        "width_inches": 8,
+        "thickness_inches": 0.75,
+        "grain_direction": "length_grain",
+        "weight_per_cubic_foot": 44.0,
+        "density_lbs_per_cubic_inch": 0.025,
+        "hardness_janka": 1290,
+        "moisture_content_percent": 9.0
+      },
+      "visual_properties": {
+        "color_profile": {
+          "primary_color": "#C19A6B",
+          "secondary_colors": ["#D2B48C", "#DEB887", "#F4A460"],
+          "sapwood_color": "#F5DEB3"
+        },
+        "grain_pattern": "prominent_open",
+        "figure_type": "plain",
+        "texture": "coarse_open",
+        "luster": "medium"
+      },
+      "mechanical_properties": {
+        "workability_rating": "good",
+        "stability_rating": "good",
+        "finish_properties": "good",
+        "glue_compatibility": "excellent",
+        "screw_holding": "excellent",
+        "nail_holding": "excellent"
+      },
+      "economic_properties": {
+        "price_per_board_foot": 3.75,
+        "lumber_grade": "select",
+        "availability": "readily_available",
+        "sustainability_rating": "excellent"
+      },
+      "standard_dimensions": {
+        "available_lengths": [72, 84, 96, 120, 144, 192],
+        "available_widths": [2, 3, 4, 6, 8, 10, 12],
+        "available_thicknesses": [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 3.0]
+      },
+      "default_configuration": {
+        "length_inches": 96,
+        "width_inches": 8,
+        "thickness_inches": 0.75,
+        "grade": "select"
+      },
+      "visual_assets": {
+        "thumbnail": "materials/oak_red/oak_red_thumbnail.jpg",
+        "texture_diffuse": "materials/oak_red/oak_red_diffuse_4k.jpg",
+        "texture_normal": "materials/oak_red/oak_red_normal_4k.jpg",
+        "texture_roughness": "materials/oak_red/oak_red_roughness_4k.jpg",
+        "texture_specular": "materials/oak_red/oak_red_specular_4k.jpg"
+      },
+      "metadata": {
+        "created_date": "2025-01-13",
+        "last_modified": "2025-01-13",
+        "version": "1.0"
+      }
+    },
+    "poplar_001": {
+      "material_id": "poplar_001",
+      "category": "hardwood",
+      "enabled": true,
+      "basic_info": {
+        "common_name": "Poplar",
+        "scientific_name": "Liriodendron tulipifera",
+        "origin": "Eastern North America",
+        "description": "Affordable utility hardwood excellent for painted projects and practice work"
+      },
+      "physical_properties": {
+        "length_inches": 96,
+        "width_inches": 6,
+        "thickness_inches": 0.75,
+        "grain_direction": "length_grain",
+        "weight_per_cubic_foot": 28.0,
+        "density_lbs_per_cubic_inch": 0.016,
+        "hardness_janka": 540,
+        "moisture_content_percent": 10.0
+      },
+      "visual_properties": {
+        "color_profile": {
+          "primary_color": "#DDD3B0",
+          "secondary_colors": ["#E6D3A3", "#D4C4A8", "#C7B377"],
+          "sapwood_color": "#F5F5DC"
+        },
+        "grain_pattern": "straight_subtle",
+        "figure_type": "plain",
+        "texture": "fine_uniform",
+        "luster": "low"
+      },
+      "mechanical_properties": {
+        "workability_rating": "excellent",
+        "stability_rating": "good",
+        "finish_properties": "good",
+        "glue_compatibility": "excellent",
+        "screw_holding": "fair",
+        "nail_holding": "fair"
+      },
+      "economic_properties": {
+        "price_per_board_foot": 2.50,
+        "lumber_grade": "select",
+        "availability": "readily_available",
+        "sustainability_rating": "excellent"
+      },
+      "standard_dimensions": {
+        "available_lengths": [72, 84, 96, 120, 144],
+        "available_widths": [2, 3, 4, 6, 8, 10, 12],
+        "available_thicknesses": [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0]
+      },
+      "default_configuration": {
+        "length_inches": 96,
+        "width_inches": 6,
+        "thickness_inches": 0.75,
+        "grade": "select"
+      },
+      "visual_assets": {
+        "thumbnail": "materials/poplar/poplar_thumbnail.jpg",
+        "texture_diffuse": "materials/poplar/poplar_diffuse_4k.jpg",
+        "texture_normal": "materials/poplar/poplar_normal_4k.jpg",
+        "texture_roughness": "materials/poplar/poplar_roughness_4k.jpg",
+        "texture_specular": "materials/poplar/poplar_specular_4k.jpg"
+      },
+      "metadata": {
+        "created_date": "2025-01-13",
+        "last_modified": "2025-01-13",
+        "version": "1.0"
+      }
+    },
+    "birch_ply_001": {
+      "material_id": "birch_ply_001",
+      "category": "sheet_goods",
+      "enabled": true,
+      "basic_info": {
+        "common_name": "Birch Plywood",
+        "scientific_name": "Betula spp.",
+        "origin": "Northern Hemisphere",
+        "description": "High-quality hardwood plywood with consistent grain and excellent finish properties"
+      },
+      "physical_properties": {
+        "length_inches": 96,
+        "width_inches": 48,
+        "thickness_inches": 0.75,
+        "grain_direction": "face_grain",
+        "weight_per_cubic_foot": 40.0,
+        "density_lbs_per_cubic_inch": 0.023,
+        "hardness_janka": 910,
+        "moisture_content_percent": 8.0
+      },
+      "visual_properties": {
+        "color_profile": {
+          "primary_color": "#F5E6D3",
+          "secondary_colors": ["#E8D5B7", "#F0E6D2", "#DDD3B0"],
+          "sapwood_color": "#FFFACD"
+        },
+        "grain_pattern": "uniform_subtle",
+        "figure_type": "plain",
+        "texture": "fine_smooth",
+        "luster": "medium"
+      },
+      "mechanical_properties": {
+        "workability_rating": "excellent",
+        "stability_rating": "excellent",
+        "finish_properties": "excellent",
+        "glue_compatibility": "excellent",
+        "screw_holding": "excellent",
+        "nail_holding": "good"
+      },
+      "economic_properties": {
+        "price_per_board_foot": 6.25,
+        "lumber_grade": "a_grade",
+        "availability": "readily_available",
+        "sustainability_rating": "good"
+      },
+      "standard_dimensions": {
+        "available_lengths": [96],
+        "available_widths": [48],
+        "available_thicknesses": [0.125, 0.25, 0.375, 0.5, 0.75, 1.0]
+      },
+      "default_configuration": {
+        "length_inches": 96,
+        "width_inches": 48,
+        "thickness_inches": 0.75,
+        "grade": "a_grade"
+      },
+      "visual_assets": {
+        "thumbnail": "materials/birch_ply/birch_ply_thumbnail.jpg",
+        "texture_diffuse": "materials/birch_ply/birch_ply_diffuse_4k.jpg",
+        "texture_normal": "materials/birch_ply/birch_ply_normal_4k.jpg",
+        "texture_roughness": "materials/birch_ply/birch_ply_roughness_4k.jpg",
+        "texture_specular": "materials/birch_ply/birch_ply_specular_4k.jpg"
+      },
+      "metadata": {
+        "created_date": "2025-01-13",
+        "last_modified": "2025-01-13",
+        "version": "1.0"
+      }
+    },
+    "baltic_birch_001": {
+      "material_id": "baltic_birch_001",
+      "category": "sheet_goods",
+      "enabled": true,
+      "basic_info": {
+        "common_name": "Baltic Birch Plywood",
+        "scientific_name": "Betula pendula",
+        "origin": "Baltic Region",
+        "description": "Premium multi-ply birch plywood with void-free construction and beautiful edge appearance"
+      },
+      "physical_properties": {
+        "length_inches": 60,
+        "width_inches": 30,
+        "thickness_inches": 0.75,
+        "grain_direction": "face_grain",
+        "weight_per_cubic_foot": 42.0,
+        "density_lbs_per_cubic_inch": 0.024,
+        "hardness_janka": 910,
+        "moisture_content_percent": 7.0
+      },
+      "visual_properties": {
+        "color_profile": {
+          "primary_color": "#F8F0E3",
+          "secondary_colors": ["#F5E6D3", "#E8D5B7", "#F0E6D2"],
+          "sapwood_color": "#FFFEFA"
+        },
+        "grain_pattern": "layered_consistent",
+        "figure_type": "void_free",
+        "texture": "fine_smooth",
+        "luster": "medium"
+      },
+      "mechanical_properties": {
+        "workability_rating": "excellent",
+        "stability_rating": "excellent",
+        "finish_properties": "excellent",
+        "glue_compatibility": "excellent",
+        "screw_holding": "excellent",
+        "nail_holding": "excellent"
+      },
+      "economic_properties": {
+        "price_per_board_foot": 8.75,
+        "lumber_grade": "premium",
+        "availability": "specialty_order",
+        "sustainability_rating": "good"
+      },
+      "standard_dimensions": {
+        "available_lengths": [60],
+        "available_widths": [30],
+        "available_thicknesses": [0.125, 0.25, 0.375, 0.5, 0.75, 1.0, 1.5]
+      },
+      "default_configuration": {
+        "length_inches": 60,
+        "width_inches": 30,
+        "thickness_inches": 0.75,
+        "grade": "premium"
+      },
+      "visual_assets": {
+        "thumbnail": "materials/baltic_birch/baltic_birch_thumbnail.jpg",
+        "texture_diffuse": "materials/baltic_birch/baltic_birch_diffuse_4k.jpg",
+        "texture_normal": "materials/baltic_birch/baltic_birch_normal_4k.jpg",
+        "texture_roughness": "materials/baltic_birch/baltic_birch_roughness_4k.jpg",
+        "texture_specular": "materials/baltic_birch/baltic_birch_specular_4k.jpg"
+      },
+      "metadata": {
+        "created_date": "2025-01-13",
+        "last_modified": "2025-01-13",
+        "version": "1.0"
+      }
+    },
+    "sande_ply_001": {
+      "material_id": "sande_ply_001",
+      "category": "sheet_goods",
+      "enabled": true,
+      "basic_info": {
+        "common_name": "Sande Plywood",
+        "scientific_name": "Brosimum utile",
+        "origin": "Central/South America",
+        "description": "Affordable tropical hardwood plywood with good stability and paintability"
+      },
+      "physical_properties": {
+        "length_inches": 96,
+        "width_inches": 48,
+        "thickness_inches": 0.75,
+        "grain_direction": "face_grain",
+        "weight_per_cubic_foot": 35.0,
+        "density_lbs_per_cubic_inch": 0.020,
+        "hardness_janka": 650,
+        "moisture_content_percent": 9.0
+      },
+      "visual_properties": {
+        "color_profile": {
+          "primary_color": "#E6D7B8",
+          "secondary_colors": ["#D4C4A8", "#DDD3B0", "#C7B377"],
+          "sapwood_color": "#F0E68C"
+        },
+        "grain_pattern": "subtle_consistent",
+        "figure_type": "plain",
+        "texture": "medium_uniform",
+        "luster": "low"
+      },
+      "mechanical_properties": {
+        "workability_rating": "good",
+        "stability_rating": "good",
+        "finish_properties": "good",
+        "glue_compatibility": "excellent",
+        "screw_holding": "good",
+        "nail_holding": "good"
+      },
+      "economic_properties": {
+        "price_per_board_foot": 3.25,
+        "lumber_grade": "b_grade",
+        "availability": "readily_available",
+        "sustainability_rating": "fair"
+      },
+      "standard_dimensions": {
+        "available_lengths": [96],
+        "available_widths": [48],
+        "available_thicknesses": [0.25, 0.375, 0.5, 0.75, 1.0]
+      },
+      "default_configuration": {
+        "length_inches": 96,
+        "width_inches": 48,
+        "thickness_inches": 0.75,
+        "grade": "b_grade"
+      },
+      "visual_assets": {
+        "thumbnail": "materials/sande_ply/sande_ply_thumbnail.jpg",
+        "texture_diffuse": "materials/sande_ply/sande_ply_diffuse_4k.jpg",
+        "texture_normal": "materials/sande_ply/sande_ply_normal_4k.jpg",
+        "texture_roughness": "materials/sande_ply/sande_ply_roughness_4k.jpg",
+        "texture_specular": "materials/sande_ply/sande_ply_specular_4k.jpg"
+      },
+      "metadata": {
+        "created_date": "2025-01-13",
+        "last_modified": "2025-01-13",
+        "version": "1.0"
+      }
+    }
+  },
+  "lumber_grades": {
+    "select": {
+      "name": "Select",
+      "description": "Highest grade with minimal defects",
+      "price_multiplier": 1.0
+    },
+    "a_grade": {
+      "name": "A Grade",
+      "description": "High quality with minor defects allowed",
+      "price_multiplier": 0.95
+    },
+    "b_grade": {
+      "name": "B Grade", 
+      "description": "Good quality with some defects allowed",
+      "price_multiplier": 0.85
+    },
+    "premium": {
+      "name": "Premium",
+      "description": "Highest quality specialty grade",
+      "price_multiplier": 1.25
+    }
+  }
+}

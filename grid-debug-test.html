@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Grid Debug Test</title>
+    <style>
+        body { margin: 0; padding: 20px; font-family: Arial, sans-serif; }
+        canvas { border: 1px solid #ccc; display: block; margin: 20px 0; }
+        .controls { margin: 10px 0; }
+        button { margin: 5px; padding: 10px; }
+        #debug { background: #f0f0f0; padding: 10px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>Grid Debug Test</h1>
+    <div class="controls">
+        <button onclick="testCamera()">Test Camera Position</button>
+        <button onclick="testProjection()">Test Projection</button>
+        <button onclick="drawSimpleGrid()">Draw Simple Grid</button>
+        <button onclick="resetToDefault()">Reset to Default</button>
+    </div>
+    <canvas id="canvas" width="800" height="600"></canvas>
+    <div id="debug"></div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const debug = document.getElementById('debug');
+
+        // Simplified camera system
+        let camera = {
+            position: { x: 500, y: 400, z: 800 },
+            rotation: { x: -0.3, y: 0.8 },
+            fov: 60,
+            near: 1,
+            far: 3000
+        };
+
+        function log(message) {
+            debug.innerHTML += message + '<br>';
+            console.log(message);
+        }
+
+        function clearLog() {
+            debug.innerHTML = '';
+        }
+
+        function project3D(x, y, z) {
+            // Translate to camera space
+            const dx = x - camera.position.x;
+            const dy = y - camera.position.y;
+            const dz = z - camera.position.z;
+            
+            // Apply camera rotation
+            const cos_pitch = Math.cos(camera.rotation.x);
+            const sin_pitch = Math.sin(camera.rotation.x);
+            const cos_yaw = Math.cos(camera.rotation.y);
+            const sin_yaw = Math.sin(camera.rotation.y);
+            
+            // Rotate around Y-axis (yaw)
+            const x1 = dx * cos_yaw - dz * sin_yaw;
+            const z1 = dx * sin_yaw + dz * cos_yaw;
+            
+            // Rotate around X-axis (pitch)
+            const y2 = dy * cos_pitch - z1 * sin_pitch;
+            const z2 = dy * sin_pitch + z1 * cos_pitch;
+            
+            // Perspective projection - check for valid depth
+            if (z2 <= camera.near) {
+                return null; // Behind camera or too close
+            }
+            
+            const fovScale = (canvas.height / 2) / Math.tan((camera.fov * Math.PI / 180) / 2);
+            const screenX = (x1 * fovScale) / z2;
+            const screenY = (y2 * fovScale) / z2;
+            
+            return { 
+                x: screenX + canvas.width / 2, 
+                y: -screenY + canvas.height / 2, 
+                depth: z2 
+            };
+        }
+
+        function testCamera() {
+            clearLog();
+            log('Camera Position: ' + JSON.stringify(camera.position));
+            log('Camera Rotation: ' + JSON.stringify(camera.rotation));
+        }
+
+        function testProjection() {
+            clearLog();
+            const testPoints = [
+                [0, 0, 0],      // Origin
+                [100, 0, 0],    // X-axis
+                [0, 0, 100],    // Z-axis
+                [-100, 0, -100], // Back corner
+                [100, 0, 100]   // Front corner
+            ];
+
+            testPoints.forEach((point, i) => {
+                const result = project3D(point[0], point[1], point[2]);
+                log(`Point ${i} [${point.join(', ')}] -> ${result ? JSON.stringify(result) : 'NULL'}`);
+            });
+        }
+
+        function drawSimpleGrid() {
+            clearLog();
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Background
+            ctx.fillStyle = '#FAFAFA';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            const gridSize = 100;
+            const extent = 300;
+            let drawnLines = 0;
+            let totalLines = 0;
+            
+            ctx.strokeStyle = '#CCCCCC';
+            ctx.lineWidth = 1;
+            
+            // X-direction lines
+            for (let z = -extent; z <= extent; z += gridSize) {
+                totalLines++;
+                const start = project3D(-extent, 0, z);
+                const end = project3D(extent, 0, z);
+                
+                if (start && end) {
+                    ctx.beginPath();
+                    ctx.moveTo(start.x, start.y);
+                    ctx.lineTo(end.x, end.y);
+                    ctx.stroke();
+                    drawnLines++;
+                    log(`Drew X-line at Z=${z}: (${start.x.toFixed(1)}, ${start.y.toFixed(1)}) to (${end.x.toFixed(1)}, ${end.y.toFixed(1)})`);
+                } else {
+                    log(`Skipped X-line at Z=${z}: start=${start ? 'valid' : 'null'}, end=${end ? 'valid' : 'null'}`);
+                }
+            }
+            
+            // Z-direction lines
+            for (let x = -extent; x <= extent; x += gridSize) {
+                totalLines++;
+                const start = project3D(x, 0, -extent);
+                const end = project3D(x, 0, extent);
+                
+                if (start && end) {
+                    ctx.beginPath();
+                    ctx.moveTo(start.x, start.y);
+                    ctx.lineTo(end.x, end.y);
+                    ctx.stroke();
+                    drawnLines++;
+                    log(`Drew Z-line at X=${x}: (${start.x.toFixed(1)}, ${start.y.toFixed(1)}) to (${end.x.toFixed(1)}, ${end.y.toFixed(1)})`);
+                } else {
+                    log(`Skipped Z-line at X=${x}: start=${start ? 'valid' : 'null'}, end=${end ? 'valid' : 'null'}`);
+                }
+            }
+            
+            // Draw axes
+            ctx.lineWidth = 3;
+            
+            // X-axis (red)
+            ctx.strokeStyle = '#FF0000';
+            const xStart = project3D(-extent, 0, 0);
+            const xEnd = project3D(extent, 0, 0);
+            if (xStart && xEnd) {
+                ctx.beginPath();
+                ctx.moveTo(xStart.x, xStart.y);
+                ctx.lineTo(xEnd.x, xEnd.y);
+                ctx.stroke();
+                log('Drew X-axis');
+            }
+            
+            // Z-axis (blue)
+            ctx.strokeStyle = '#0000FF';
+            const zStart = project3D(0, 0, -extent);
+            const zEnd = project3D(0, 0, extent);
+            if (zStart && zEnd) {
+                ctx.beginPath();
+                ctx.moveTo(zStart.x, zStart.y);
+                ctx.lineTo(zEnd.x, zEnd.y);
+                ctx.stroke();
+                log('Drew Z-axis');
+            }
+            
+            log(`SUMMARY: Drew ${drawnLines} out of ${totalLines} lines`);
+        }
+
+        function resetToDefault() {
+            camera = {
+                position: { x: 0, y: 300, z: 500 },
+                rotation: { x: -0.5, y: 0 },
+                fov: 60,
+                near: 1,
+                far: 3000
+            };
+            drawSimpleGrid();
+        }
+
+        // Initial test
+        testProjection();
+        drawSimpleGrid();
+    </script>
+</body>
+</html>

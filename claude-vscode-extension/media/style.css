@@ -1,0 +1,219 @@
+/* ... existing styles ... */
+body {
+    font-family: var(--vscode-font-family);
+    color: var(--vscode-editor-foreground);
+    background-color: var(--vscode-editor-background);
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    box-sizing: border-box;
+    font-size: 1.1em; /* Increase base font size */
+}
+
+.tab-bar {
+    display: flex;
+    border-bottom: 1px solid var(--vscode-editor-widget-border);
+}
+
+.tab {
+    padding: 8px 12px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+}
+
+.tab.active {
+    border-bottom: 2px solid var(--vscode-tab-activeBorder);
+    color: var(--vscode-tab-activeForeground);
+}
+
+.tab-content {
+    display: none;
+    flex-grow: 1;
+    padding-top: 10px;
+}
+
+.tab-content.active {
+    display: flex; /* Use flexbox for layout */
+    flex-direction: column;
+}
+
+.mode-header {
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--vscode-editor-widget-border);
+    margin-bottom: 10px;
+}
+
+.mode-header h2 {
+    margin: 0 0 5px 0;
+    font-size: 1.2em;
+}
+
+.mode-header p {
+    margin: 0;
+    font-size: 0.9em;
+    color: var(--vscode-descriptionForeground);
+}
+
+textarea {
+    width: 100%;
+    height: 150px;
+    flex-grow: 1; /* Allow textarea to fill available space */
+    border: 1px solid var(--vscode-input-border);
+    background-color: var(--vscode-input-background);
+    color: var(--vscode-input-foreground);
+    font-family: var(--vscode-font-family);
+    font-size: 1em; /* Match the body font size */
+    resize: vertical;
+    box-sizing: border-box;
+}
+
+.button-bar {
+    padding: 10px 0;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+button {
+    border: 1px solid var(--vscode-button-border, transparent);
+    background-color: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
+    padding: 5px 15px;
+    cursor: pointer;
+    border-radius: 3px;
+    margin: 5px; /* Add some default margin to all buttons */
+    font-size: 1em; /* Match the body font size */
+}
+
+button:hover {
+    background-color: var(--vscode-button-hoverBackground);
+}
+
+button.mode-button {
+    margin: 10px;
+}
+
+/* Send buttons (primary action) */
+button.send-button {
+    background-color: var(--vscode-button-primary-background, #0e639c);
+    color: var(--vscode-button-primary-foreground, white);
+}
+button.send-button:hover {
+    background-color: var(--vscode-button-primary-hoverBackground, #1177bb);
+}
+
+/* Other action buttons (secondary action) */
+button.action-button {
+    background-color: var(--vscode-button-secondary-background, #3A3D41);
+    color: var(--vscode-button-secondary-foreground, white);
+}
+button.action-button:hover {
+    background-color: var(--vscode-button-secondary-hoverBackground, #4A4D51);
+}
+
+#chat-container {
+    flex-grow: 1;
+    border: 1px solid var(--vscode-editor-widget-border);
+    overflow-y: auto;
+    padding: 10px;
+    background-color: var(--vscode-editor-background);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.chat-message {
+    padding: 8px;
+    border-radius: 5px;
+    max-width: 90%;
+    word-wrap: break-word;
+    white-space: pre-wrap; /* Respects newlines and wraps text */
+}
+
+.user-message {
+    background-color: var(--vscode-list-activeSelectionBackground);
+    align-self: flex-end;
+}
+
+.assistant-message {
+    background-color: var(--vscode-list-inactiveSelectionBackground);
+    align-self: flex-start;
+}
+
+.chat-timestamp {
+    font-size: 0.8em;
+    color: var(--vscode-descriptionForeground);
+    margin-bottom: 4px;
+}
+
+pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    background-color: var(--vscode-textBlockQuote-background);
+    border: 1px solid var(--vscode-textBlockQuote-border);
+    padding: 10px;
+    border-radius: 4px;
+}
+
+code {
+    font-family: var(--vscode-editor-font-family);
+}
+
+#file-attachment-bar {
+    padding: 5px 0;
+}
+
+#file-list {
+    font-size: 0.9em;
+    color: var(--vscode-descriptionForeground);
+}
+
+/* Token Status Bar Styles */
+#token-status-bar {
+    padding: 8px 10px;
+    border-top: 1px solid var(--vscode-editor-widget-border);
+    border-bottom: 1px solid var(--vscode-editor-widget-border);
+    margin: 10px 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    align-items: center;
+    gap: 10px 20px; /* row-gap column-gap */
+    font-size: 0.85em; /* Smaller font size */
+}
+
+.token-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.token-group-column {
+    display: flex;
+    flex-direction: column;
+    gap: 5px; /* Space between items in a column */
+}
+
+.token-label {
+    font-weight: bold;
+    color: var(--vscode-descriptionForeground);
+    flex-basis: 110px; /* Set a consistent width for alignment */
+    flex-shrink: 0; /* Prevent shrinking */
+    text-align: right; /* Align label text to the right */
+}
+
+.token-value {
+    font-family: var(--vscode-editor-font-family); /* Monospaced font for numbers */
+    background-color: var(--vscode-textBlockQuote-background);
+    padding: 2px 6px;
+    border-radius: 3px;
+    min-width: 50px;
+    text-align: right;
+}
+
+#token-status-bar button {
+    margin: 0; /* Override default button margin */
+    padding: 4px 10px;
+    font-size: 0.9em;
+}

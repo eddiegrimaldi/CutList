@@ -1,0 +1,768 @@
+/* CutList CAD - Modern Clean Styles */
+
+/* Reset and Base Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    background: #f8fafc;
+    color: #1e293b;
+    line-height: 1.6;
+    overflow: hidden;
+}
+
+/* Header */
+.header {
+    background: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    height: 60px;
+}
+
+.header-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    height: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.logo {
+    font-size: 20px;
+    font-weight: 700;
+    color: #3b82f6;
+}
+
+.nav {
+    display: flex;
+    gap: 8px;
+}
+
+.nav-btn {
+    background: none;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    color: #64748b;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.nav-btn:hover {
+    background: #f1f5f9;
+    color: #334155;
+}
+
+.nav-btn.active {
+    background: #3b82f6;
+    color: white;
+}
+
+/* Main Content */
+.main {
+    margin-top: 60px;
+    height: calc(100vh - 60px); /* Only subtract header, toolbar will overlay */
+    overflow: hidden;
+}
+
+.page {
+    display: none;
+    height: 100%;
+    overflow: auto;
+}
+
+.page.active {
+    display: block;
+}
+
+/* Dashboard */
+.dashboard {
+    padding: 48px 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.dashboard h2 {
+    font-size: 36px;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 12px;
+}
+
+.dashboard p {
+    font-size: 18px;
+    color: #64748b;
+    margin-bottom: 48px;
+}
+
+.action-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 32px 24px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+.card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 25px 0 rgba(0, 0, 0, 0.1);
+    border-color: #3b82f6;
+}
+
+.card h3 {
+    font-size: 20px;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 8px;
+}
+
+.card p {
+    color: #64748b;
+    font-size: 14px;
+    margin: 0;
+}
+
+/* Workspace */
+#workspace {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+/* Workspace content area (below toolbar) */
+.workspace-content {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+.toolbar {
+    background: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 12px 24px;
+    display: flex;
+    gap: 32px;
+    align-items: center;
+    flex-wrap: wrap;
+    min-height: 64px;
+}
+
+.toolbar-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.toolbar-group h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: #64748b;
+    margin-right: 8px;
+}
+
+.tool-btn {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.tool-btn:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+}
+
+.tool-btn.active {
+    background: #3b82f6;
+    border-color: #3b82f6;
+    color: white;
+}
+
+.tool-btn:disabled,
+.tool-btn.disabled {
+    background: #f1f5f9;
+    border-color: #e2e8f0;
+    color: #cbd5e1;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.tool-btn:disabled:hover,
+.tool-btn.disabled:hover {
+    background: #f1f5f9;
+    border-color: #e2e8f0;
+}
+
+.tool-btn .icon {
+    font-size: 16px;
+}
+
+/* Canvas Container */
+.canvas-container {
+    position: relative; /* Needed for absolute positioning of children if any */
+    flex-grow: 1; /* Allow canvas container to take up available space */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* Prevent scrollbars on the container itself */
+    /* REMOVED: height: calc(100% - 50px); - Let it fill full height, toolbar will overlay */
+}
+
+/* Project Explorer Container */
+#project-explorer {
+    width: 280px; /* Fixed width for project explorer */
+    flex-shrink: 0; /* Don't shrink the project explorer */
+    background-color: #f8fafc; /* Light background */
+    border-left: 1px solid #e2e8f0; /* Separator line */
+    padding: 0; /* No padding, let project-explorer class handle it */
+    overflow-y: auto; /* Scroll if content exceeds height */
+    color: #334155;
+    font-size: 0.9em;
+}
+
+.loading-explorer {
+    padding: 20px;
+    text-align: center;
+    color: #64748b;
+}
+
+/* Parts Explorer (Legacy - keeping for backwards compatibility) */
+#parts-explorer {
+    width: 250px; /* Initial width, can be adjusted */
+    background-color: #f0f4f8; /* Light background */
+    border-left: 1px solid #d1d9e6; /* Separator line */
+    padding: 15px;
+    overflow-y: auto; /* Scroll if content exceeds height */
+    color: #334155;
+    font-size: 0.9em;
+}
+
+#parts-explorer h4 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: #1e293b;
+    border-bottom: 1px solid #cbd5e1;
+    padding-bottom: 5px;
+}
+
+#parts-explorer div {
+    margin-bottom: 8px;
+}
+
+#parts-explorer strong {
+    display: inline-block;
+    width: 80px; /* Adjust as needed for label alignment */
+    color: #475569;
+}
+
+/* Status Bar */
+.status-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 8px 16px;
+    display: flex;
+    gap: 24px;
+    font-size: 12px;
+    backdrop-filter: blur(4px);
+}
+
+.status-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.status-item strong {
+    font-weight: 600;
+}
+
+/* Library */
+.library {
+    padding: 48px 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.library h2 {
+    font-size: 32px;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 12px;
+}
+
+.library p {
+    font-size: 16px;
+    color: #64748b;
+    margin-bottom: 32px;
+}
+
+.library-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 24px;
+}
+
+.library-item {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 24px;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+.library-item h4 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 8px;
+}
+
+.library-item p {
+    color: #64748b;
+    font-size: 14px;
+    margin: 0;
+}
+
+/* Project Explorer Styles */
+.project-explorer {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.explorer-header {
+    padding: 16px;
+    border-bottom: 1px solid #e2e8f0;
+    background: #f8fafc;
+    border-radius: 8px 8px 0 0;
+}
+
+.explorer-header h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: #475569;
+    margin: 0;
+}
+
+.project-section {
+    padding: 16px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.project-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px;
+    border-radius: 6px;
+    background: #f8fafc;
+}
+
+.project-icon {
+    font-size: 18px;
+    width: 24px;
+    text-align: center;
+}
+
+.project-info {
+    flex: 1;
+}
+
+.project-name {
+    width: 100%;
+    padding: 4px 8px;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    background: #ffffff;
+}
+
+.project-name:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.project-meta {
+    font-size: 12px;
+    color: #64748b;
+    margin-top: 2px;
+}
+
+.sketches-section {
+    padding: 16px;
+    flex: 1;
+}
+
+.sketches-section h4 {
+    font-size: 12px;
+    font-weight: 600;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 12px;
+}
+
+.sketches-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.sketch-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.sketch-item:hover {
+    background: #f1f5f9;
+}
+
+.sketch-item:active {
+    background: #e2e8f0;
+}
+
+.sketch-icon {
+    font-size: 14px;
+    width: 20px;
+    text-align: center;
+    color: #64748b;
+}
+
+.sketch-info {
+    flex: 1;
+}
+
+.sketch-name {
+    width: 100%;
+    padding: 2px 6px;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    font-size: 13px;
+    background: transparent;
+}
+
+.sketch-name:focus {
+    outline: none;
+    border-color: #3b82f6;
+    background: #ffffff;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.sketch-meta {
+    font-size: 11px;
+    color: #94a3b8;
+    margin-top: 1px;
+}
+
+.no-project,
+.no-sketches {
+    text-align: center;
+    padding: 24px 16px;
+    color: #64748b;
+}
+
+.no-project p,
+.no-sketches p {
+    font-size: 13px;
+    margin-bottom: 12px;
+}
+
+.btn-new-project,
+.btn-action {
+    padding: 8px 16px;
+    background: #3b82f6;
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn-new-project:hover,
+.btn-action:hover {
+    background: #2563eb;
+}
+
+.btn-new-project:active,
+.btn-action:active {
+    background: #1d4ed8;
+}
+
+.explorer-actions {
+    padding: 16px;
+    border-top: 1px solid #e2e8f0;
+    background: #f8fafc;
+    border-radius: 0 0 8px 8px;
+}
+
+.btn-action {
+    width: 100%;
+}
+
+/* Bottom Toolbar - Professional CAD Style */
+.bottom-toolbar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 50px;
+    background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
+    border-top: 1px solid #4a5568;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    z-index: 1100;
+    font-size: 12px;
+    color: #e2e8f0;
+    font-weight: 500;
+}
+
+.bottom-toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.bottom-toolbar-center {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.bottom-toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.toolbar-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 8px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.toolbar-status.active {
+    background: rgba(59, 130, 246, 0.3);
+    border-color: #3b82f6;
+    color: #93c5fd;
+}
+
+.toolbar-coordinates {
+    font-family: 'Courier New', monospace;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    min-width: 120px;
+    text-align: center;
+}
+
+.toolbar-zoom {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    min-width: 80px;
+    text-align: center;
+}
+
+.toolbar-grid-info {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    text-align: center;
+}
+
+.mode-indicator {
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 11px;
+}
+
+.mode-indicator.sketch {
+    background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+    color: white;
+    box-shadow: 0 2px 4px rgba(5, 150, 105, 0.3);
+}
+
+.mode-indicator.modeling {
+    background: linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%);
+    color: white;
+    box-shadow: 0 2px 4px rgba(124, 58, 237, 0.3);
+}
+
+/* Version Window - System Status Display */
+.version-window {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 24px;
+    margin: 32px auto 0;
+    max-width: 800px;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+.version-window h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 8px;
+}
+
+.version-window p {
+    color: #64748b;
+    font-size: 14px;
+    margin-bottom: 16px;
+}
+
+.version-log {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 16px;
+    max-height: 200px;
+    overflow-y: auto;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 12px;
+}
+
+.version-entry {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.version-entry:last-child {
+    border-bottom: none;
+}
+
+.version-entry.loading {
+    color: #f59e0b;
+}
+
+.version-entry.success {
+    color: #10b981;
+}
+
+.version-entry.error {
+    color: #ef4444;
+}
+
+.version-script {
+    font-weight: 600;
+    min-width: 120px;
+}
+
+.version-status {
+    text-align: right;
+    font-style: italic;
+}
+
+.version-number {
+    font-weight: bold;
+    color: #3b82f6;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .header-content {
+        padding: 0 16px;
+    }
+    
+    .toolbar {
+        padding: 12px 16px;
+        gap: 16px;
+    }
+    
+    .dashboard {
+        padding: 32px 16px;
+    }
+    
+    .action-cards {
+        grid-template-columns: 1fr;
+    }
+    
+    .status-bar {
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+}
+
+/* Animation Utilities */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.page.active {
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* Focus and Accessibility */
+button:focus {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+}
+
+.tool-btn:focus {
+    outline: 2px solid #3b82f6;
+    outline-offset: 1px;
+}

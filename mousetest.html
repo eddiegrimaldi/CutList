@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mouse Test</title>
+    <style>
+        canvas { border: 1px solid black; cursor: crosshair; }
+        #log { height: 200px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Mouse Event Test</h1>
+    <canvas id="testCanvas" width="800" height="600"></canvas>
+    <div id="log"></div>
+    
+    <script>
+        const canvas = document.getElementById('testCanvas');
+        const log = document.getElementById('log');
+        
+        function addLog(message) {
+            log.innerHTML += message + '<br>';
+            log.scrollTop = log.scrollHeight;
+        }
+        
+        canvas.addEventListener('mousedown', (e) => {
+            addLog(`Mouse Down - Button: ${e.button}, X: ${e.clientX}, Y: ${e.clientY}`);
+        });
+        
+        canvas.addEventListener('mouseup', (e) => {
+            addLog(`Mouse Up - Button: ${e.button}, X: ${e.clientX}, Y: ${e.clientY}`);
+        });
+        
+        canvas.addEventListener('mousemove', (e) => {
+            // Only log if mouse is pressed
+            if (e.buttons > 0) {
+                addLog(`Mouse Move - Buttons: ${e.buttons}, X: ${e.clientX}, Y: ${e.clientY}`);
+            }
+        });
+        
+        canvas.addEventListener('wheel', (e) => {
+            addLog(`Wheel - DeltaY: ${e.deltaY}`);
+        });
+        
+        canvas.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            addLog('Context menu prevented');
+        });
+        
+        addLog('Mouse test ready - try left, middle, right clicks and wheel');
+    </script>
+</body>
+</html>

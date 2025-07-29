@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Grid Test</title>
+    <style>
+        body { margin: 0; padding: 20px; }
+        canvas { border: 2px solid #000; background: white; }
+    </style>
+</head>
+<body>
+    <h1>MASTER'S GRID DEBUG TEST</h1>
+    <canvas id="testCanvas" width="800" height="600"></canvas>
+    <button onclick="drawTestGrid()">Draw Grid</button>
+    <button onclick="clearCanvas()">Clear</button>
+    <div id="debug"></div>
+    
+    <script>
+        const canvas = document.getElementById('testCanvas');
+        const ctx = canvas.getContext('2d');
+        const debug = document.getElementById('debug');
+        
+        function log(msg) {
+            debug.innerHTML += msg + '<br>';
+            console.log(msg);
+        }
+        
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#FAFAFA';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            debug.innerHTML = '';
+            log('Canvas cleared');
+        }
+        
+        function drawTestGrid() {
+            log('🔲 MASTER DEBUG: Starting grid test...');
+            
+            // Clear canvas first
+            clearCanvas();
+            
+            // Apply simple transform (center origin)
+            ctx.save();
+            ctx.translate(canvas.width / 2, canvas.height / 2);
+            
+            // Draw simple test lines
+            ctx.strokeStyle = '#FF0000';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(-200, 0);
+            ctx.lineTo(200, 0);
+            ctx.moveTo(0, -200);
+            ctx.lineTo(0, 200);
+            ctx.stroke();
+            log('✅ Red axes drawn');
+            
+            // Draw grid lines
+            ctx.strokeStyle = '#CCCCCC';
+            ctx.lineWidth = 1;
+            
+            const gridSize = 50;
+            const extent = 300;
+            
+            // Vertical lines
+            for (let x = -extent; x <= extent; x += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, -extent);
+                ctx.lineTo(x, extent);
+                ctx.stroke();
+            }
+            
+            // Horizontal lines
+            for (let y = -extent; y <= extent; y += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(-extent, y);
+                ctx.lineTo(extent, y);
+                ctx.stroke();
+            }
+            
+            ctx.restore();
+            log('✅ Grid drawing completed');
+        }
+        
+        // Auto-draw grid on load
+        window.onload = () => {
+            drawTestGrid();
+        };
+    </script>
+</body>
+</html>

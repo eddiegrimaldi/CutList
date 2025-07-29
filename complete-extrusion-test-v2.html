@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CutList - Complete Extrusion Workflow Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: white;
+        }
+        
+        #renderCanvas {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+            background: #2a2a2a;
+        }
+        
+        #instructions {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            max-width: 450px;
+            font-size: 14px;
+            line-height: 1.6;
+            z-index: 1000;
+        }
+        
+        .step {
+            margin-bottom: 12px;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            border-left: 4px solid #4CAF50;
+        }
+        
+        .step.current {
+            background: rgba(76, 175, 80, 0.2);
+            border-left-color: #8BC34A;
+        }
+        
+        .controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 15px;
+            border-radius: 8px;
+            z-index: 1000;
+        }
+        
+        .btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .btn:hover {
+            background: #45a049;
+        }
+        
+        .btn:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+        
+        .debug-info {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 15px;
+            border-radius: 8px;
+            max-width: 350px;
+            font-size: 12px;
+            font-family: monospace;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="renderCanvas"></canvas>
+    
+    <div id="instructions">
+        <h3>🎯 OPUS ROBUST SOLUTION - Master</h3>
+        <div class="step current" id="step1">1. Auto-created: Rectangle and Circle in 3D mode</div>
+        <div class="step" id="step2">2. Click on any FACE of the white shapes</div>
+        <div class="step" id="step3">3. Look for BLUE GIZMO appearing at face center</div>
+        <div class="step" id="step4">4. Drag the gizmo cone using SCREEN-SPACE projection</div>
+        <div class="step" id="step5">5. Enjoy SMOOTH, unlimited extrusion!</div>
+        <div class="step" id="step6">6. Check console for "OPUS ROBUST SOLUTION" logs</div>
+    </div>
+    
+    <div class="controls">
+        <h4>🎮 Test Controls</h4>
+        <button class="btn" onclick="createTestShapes(); console.log('Create button clicked');">Create Test Shapes</button>
+        <button class="btn" onclick="resetTest(); console.log('Reset button clicked');">Reset Test</button>
+        <button class="btn" onclick="toggleWireframe(); console.log('Wireframe button clicked');">Toggle Wireframe</button>
+        <button class="btn" onclick="console.log('Console test button clicked - functions available:', typeof createTestShapes);">Test Console</button>
+    </div>
+    
+    <div id="debug-info" class="debug-info">
+        <h4>🔍 Debug Info:</h4>
+        <div id="status">Status: Initializing...</div>
+        <div id="face-normal">Face Normal: Not clicked</div>
+        <div id="gizmo-position">Gizmo Position: Not set</div>
+        <div id="extrusion-axis">Extrusion Axis: Not set</div>
+        <div id="offset-direction">Offset Direction: Not calculated</div>
+    </div>
+
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script>
+        console.log("🚀 MASTER - Spanky implementing OPUS MAGNIFICENT SOLUTION!");
+        console.log("✨ OPUS: Professional CAD screen-space projection with exponential smoothing!");
+        console.log("🎯 OPUS: No more choppy movement - buttery smooth extrusion incoming!");
+        
+        const canvas = document.getElementById("renderCanvas");
+        const engine = new BABYLON.Engine(canvas, true);
+        
+        // Create scene
+        const scene = new BABYLON.Scene(engine);
+        scene.clearColor = new BABYLON.Color3(0.2, 0.2, 0.3);
+        
+        // Create camera with better positioning for object viewing
+        const camera = new BABYLON.ArcRotateCamera("camera", -Math.PI / 4, Math.PI / 3, 15, BABYLON.Vector3.Zero(), scene);
+        camera.attachControl(canvas, true);
+        camera.setTarget(BABYLON.Vector3.Zero());
+        
+        // Create lights
+        const light1 = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(1, 1, 0), scene);
+        light1.intensity = 0.7;
+        const light2 = new BABYLON.DirectionalLight("light2", new BABYLON.Vector3(-1, -1, -1), scene);
+        light2.intensity = 0.5;
+        
+        // Test objects array
+        let testObjects = [];
+        let isWireframe = false;
+        
+        // Debug visualization materials
+        const redMaterial = new BABYLON.StandardMaterial("redMat", scene);
+        redMaterial.diffuseColor = new BABYLON.Color3(1, 0, 0);
+        redMaterial.emissiveColor = new BABYLON.Color3(0.3, 0, 0);
+        
+        const greenMaterial = new BABYLON.StandardMaterial("greenMat", scene);
+        greenMaterial.diffuseColor = new BABYLON.Color3(0, 1, 0);
+        greenMaterial.emissiveColor = new BABYLON.Color3(0, 0.3, 0);
+        
+        const blueMaterial = new BABYLON.StandardMaterial("blueMat", scene);
+        blueMaterial.diffuseColor = new BABYLON.Color3(0.2, 0.7, 1.0);
+        blueMaterial.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1);
+        blueMaterial.emissiveColor = new BABYLON.Color3(0.05, 0.15, 0.2);
+        blueMaterial.backFaceCulling = false;
+        
+        // MASTER - SPANKY'S PULSATING GIZMO MATERIAL
+        const gizmoMaterial = new BABYLON.StandardMaterial("gizmoMat", scene);
+        gizmoMaterial.diffuseColor = new BABYLON.Color3(0.2, 0.7, 1.0);
+        gizmoMaterial.specularColor = new BABYLON.Color3(0.8, 0.8, 0.8);
+        gizmoMaterial.emissiveColor = new BABYLON.Color3(0.05, 0.15, 0.2);
+        gizmoMaterial.backFaceCulling = false;
+        
+        // Animation variables for pulsating glow
+        let pulseTime = 0;
+        
+        let debugSpheres = [];
+        let currentGizmo = null;
+        let extrusionData = {};
+        
+        function updateStatus(message) {
+            document.getElementById('status').textContent = `Status: ${message}`;
+            console.log(`📊 STATUS: ${message}`);
+        }
+        
+        function updateStep(stepNumber) {
+            document.querySelectorAll('.step').forEach(step => step.classList.remove('current'));
+            const step = document.getElementById(`step${stepNumber}`);
+            if (step) step.classList.add('current');
+        }
+        
+        function clearDebugSpheres() {
+            debugSpheres.forEach(sphere => sphere.dispose());
+            debugSpheres = [];
+        }
+        
+        function createDebugSphere(position, color, name = "debugSphere") {
+            const sphere = BABYLON.MeshBuilder.CreateSphere(name, {diameter: 0.3}, scene);
+            sphere.position = position.clone();
+            sphere.material = color === 'red' ? redMaterial : greenMaterial;
+            debugSpheres.push(sphere);
+            return sphere;
+        }
+        
+        function updateDebugInfo(info) {
+            if (info.faceNormal) {
+                document.getElementById('face-normal').textContent = 
+                    `Face Normal: (${info.faceNormal.x.toFixed(2)}, ${info.faceNormal.y.toFixed(2)}, ${info.faceNormal.z.toFixed(2)})`;
+            }
+            if (info.gizmoPosition) {
+                document.getElementById('gizmo-position').textContent = 
+                    `Gizmo Position: (${info.gizmoPosition.x.toFixed(2)}, ${info.gizmoPosition.y.toFixed(2)}, ${info.gizmoPosition.z.toFixed(2)})`;
+            }
+            if (info.extrusionAxis) {
+                document.getElementById('extrusion-axis').textContent = 
+                    `Extrusion Axis: ${info.extrusionAxis}`;
+            }
+            if (info.offsetDirection) {
+                document.getElementById('offset-direction').textContent = 
+                    `Offset Direction: ${info.offsetDirection}`;
+            }
+        }
+
+        // MASTER - SPANKY'S UNIFIED & ROBUST FACE DATA CALCULATION
+        // This function replaces both the old face normal and face center calculations.
+        // It correctly computes the world-space center and normal for any picked face,
+        // even after the mesh has been scaled or moved by previous extrusions.
+        function getAccurateFaceData(pickInfo) {
+            const mesh = pickInfo.pickedMesh;
+            const faceId = pickInfo.faceId;
+
+            if (!mesh || faceId === undefined) {
+                console.error("SPANKY ERROR: getAccurateFaceData called with invalid pickInfo.");
+                return null;
+            }
+
+            const indices = mesh.getIndices();
+            const positions = mesh.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+            const worldMatrix = mesh.getWorldMatrix();
+
+            // Get the indices of the three vertices that make up the picked face (triangle)
+            const v1_index = indices[faceId * 3];
+            const v2_index = indices[faceId * 3 + 1];
+            const v3_index = indices[faceId * 3 + 2];
+
+            // Get the local-space vertex positions from the mesh's data buffer
+            const v1_local = BABYLON.Vector3.FromArray(positions, v1_index * 3);
+            const v2_local = BABYLON.Vector3.FromArray(positions, v2_index * 3);
+            const v3_local = BABYLON.Vector3.FromArray(positions, v3_index * 3);
+
+            // Transform these local-space vertices into world-space coordinates
+            const v1_world = BABYLON.Vector3.TransformCoordinates(v1_local, worldMatrix);
+            const v2_world = BABYLON.Vector3.TransformCoordinates(v2_local, worldMatrix);
+            const v3_world = BABYLON.Vector3.TransformCoordinates(v3_local, worldMatrix);
+
+            // Calculate the world-space normal of the face by taking the cross product
+            // of two edges of the face triangle. This is the most reliable method.
+            const edge1 = v2_world.subtract(v1_world);
+            const edge2 = v3_world.subtract(v1_world);
+            let faceNormal = BABYLON.Vector3.Cross(edge1, edge2).normalize();
+
+            // Calculate the world-space center of the face
+            const faceCenter = v1_world.add(v2_world).add(v3_world).scale(1 / 3);
+
+            // SPANKY'S GIZMO-FLIP FIX: Ensure the normal always points "outward".
+            // We do this by checking if the normal is pointing away from the mesh's center.
+            const centerToFace = faceCenter.subtract(mesh.getAbsolutePosition());
+            if (BABYLON.Vector3.Dot(faceNormal, centerToFace) < 0) {
+                faceNormal.negateInPlace(); // Flip the normal if it's pointing inward
+                console.log("🔧 SPANKY GIZMO-FLIP: Inverted normal to point outward.");
+            }
+
+            console.log(`🔧 SPANKY'S UNIFIED CALC: Face Normal = (${faceNormal.x.toFixed(3)}, ${faceNormal.y.toFixed(3)}, ${faceNormal.z.toFixed(3)})`);
+            console.log(`🔧 SPANKY'S UNIFIED CALC: Face Center = (${faceCenter.x.toFixed(3)}, ${faceCenter.y.toFixed(3)}, ${faceCenter.z.toFixed(3)})`);
+
+            return {
+                normal: faceNormal,
+                center: faceCenter
+            };
+        }
+
+        // OPUS ROBUST SOLUTION: Face normal calculation matching main.js
+        /* SPANKY NOTE: This function is now deprecated and replaced by getAccurateFaceData
+        function getFaceNormalFromPickInfo(pickInfo) { ... } 
+        */
+
+        function createSimpleGizmo(position, normal) {
+            if (currentGizmo) {
+                currentGizmo.dispose();
+            }
+            
+            console.log(`🎯 GIZMO: Creating at position (${position.x.toFixed(2)}, ${position.y.toFixed(2)}, ${position.z.toFixed(2)})`);
+            console.log(`🎯 GIZMO: Normal direction (${normal.x.toFixed(2)}, ${normal.y.toFixed(2)}, ${normal.z.toFixed(2)})`);
+            
+            // Create simple visual gizmo
+            const gizmoContainer = new BABYLON.TransformNode("gizmoContainer", scene);
+            gizmoContainer.position = position.clone();
+            
+            // Create shaft pointing along normal (from red ball toward green ball)
+            const shaft = BABYLON.MeshBuilder.CreateCylinder("gizmoShaft", {
+                diameter: 0.1,
+                height: 2.0
+            }, scene);
+            shaft.parent = gizmoContainer;
+            shaft.position.y = 1.0; // Center shaft at 1.0 forward from base
+            shaft.material = gizmoMaterial; // Use pulsating material
+            
+            // Create cone at the FAR END (green ball end) - this is the key fix!
+            const cone = BABYLON.MeshBuilder.CreateCylinder("gizmoCone", {
+                diameterTop: 0,
+                diameterBottom: 0.3,
+                height: 0.5
+            }, scene);
+            cone.parent = gizmoContainer;
+            cone.position.y = 2.25; // Put cone at the FAR end of shaft (green ball end)
+            cone.material = gizmoMaterial; // Use pulsating material
+            
+            // Make cone pickable and add drag behavior
+            cone.isPickable = true;
+            cone.metadata = { 
+                isGizmoCone: true, 
+                originalPosition: position.clone(), 
+                normal: normal.clone(),
+                basePosition: position.clone() // Store the red ball position
+            };
+            
+            // Orient gizmo along normal (shaft points from red to green)
+            const up = new BABYLON.Vector3(0, 1, 0);
+            
+            // SPANKY'S ORIENTATION FIX: Handle downward normals properly
+            if (!normal.equals(up) && !normal.equals(up.negate())) {
+                // For most cases, use standard rotation
+                const rotationQuaternion = BABYLON.Quaternion.FromUnitVectorsToRef(up, normal, new BABYLON.Quaternion());
+                gizmoContainer.rotationQuaternion = rotationQuaternion;
+            } else if (normal.equals(up.negate())) {
+                // SPECIAL CASE: For downward normal (0, -1, 0), flip the entire gizmo 180 degrees
+                console.log("🔧 GIZMO: Applying 180-degree flip for downward normal");
+                gizmoContainer.rotation.z = Math.PI; // Flip around Z-axis to point downward
+            }
+            // If normal equals up (0, 1, 0), no rotation needed - default orientation is correct
+            
+            currentGizmo = gizmoContainer;
+            
+            console.log(`✅ GIZMO: Arrow now points toward GREEN ball (away from object)`);
+            updateStatus("Blue gizmo created - drag the CONE to extrude!");
+            updateStep(4);
+            
+            return gizmoContainer;
+        }
+        
+        // Create test shapes that match CutList workflow
+        window.createTestShapes = function() {
+            // Clear existing objects
+            testObjects.forEach(obj => obj.dispose());
+            testObjects = [];
+            clearDebugSpheres();
+
+            // Create test rectangle (box) - representing extruded 2D rectangle
+            const testBox = BABYLON.MeshBuilder.CreateBox("testBox", {
+                width: 3,
+                height: 2,
+                depth: 0.01 // Minimal thickness like CutList
+            }, scene);
+            testBox.position.x = -2;
+            testBox.material = blueMaterial.clone();
+            testBox.material.alpha = 0.8;
+            testBox.enableEdgesRendering();
+            testBox.edgesWidth = 4;
+            testBox.edgesColor = new BABYLON.Color4(0, 0, 0, 1);
+            // SPANKY'S STATEFUL EXTRUSION: Add metadata to store state
+            testBox.metadata = {
+                cumulativeExtrusion: 0,
+                originalScaling: testBox.scaling.clone(),
+                originalPosition: testBox.position.clone(),
+                // MASTER: Spanky is now storing the original vertex positions.
+                originalVertices: testBox.getVerticesData(BABYLON.VertexBuffer.PositionKind).slice()
+            };
+            testObjects.push(testBox);
+
+            // Create test cylinder (circle) - representing extruded 2D circle
+            const testCylinder = BABYLON.MeshBuilder.CreateCylinder("testCylinder", {
+                diameter: 2.5,
+                height: 0.01 // Minimal thickness like CutList
+            }, scene);
+            testCylinder.position.x = 2;
+            testCylinder.material = blueMaterial.clone();
+            testCylinder.material.alpha = 0.8;
+            testCylinder.enableEdgesRendering();
+            testCylinder.edgesWidth = 4;
+            testCylinder.edgesColor = new BABYLON.Color4(0, 0, 0, 1);
+            // SPANKY'S STATEFUL EXTRUSION: Add metadata to store state
+            testCylinder.metadata = {
+                cumulativeExtrusion: 0,
+                originalScaling: testCylinder.scaling.clone(),
+                originalPosition: testCylinder.position.clone(),
+                // MASTER: Spanky is now storing the original vertex positions.
+                originalVertices: testCylinder.getVerticesData(BABYLON.VertexBuffer.PositionKind).slice()
+            };
+            testObjects.push(testCylinder);
+
+            updateStatus("Test shapes created - click on faces!");
+        }
+
+        window.toggleWireframe = function() {
+            isWireframe = !isWireframe;
+            testObjects.forEach(obj => {
+                if (obj.material) {
+                    obj.material.wireframe = isWireframe;
+                }
+            });
+            updateStatus(isWireframe ? "Wireframe mode ON" : "Wireframe mode OFF");
+        }
+
+        window.resetTest = function() {
+            testObjects.forEach(obj => obj.dispose());
+            testObjects = [];
+            clearDebugSpheres();
+            if (currentGizmo) {
+                currentGizmo.dispose();
+                currentGizmo = null;
+            }
+            extrusionData = {};
+            pulseTime = 0; // Reset animation
+            updateStatus("Test reset - ready to start");
+            updateStep(1);
+            updateDebugInfo({
+                faceNormal: new BABYLON.Vector3(0, 0, 0),
+                gizmoPosition: new BABYLON.Vector3(0, 0, 0),
+                extrusionAxis: "None",
+                offsetDirection: "None"
+            });
+        }
+
+        /**
+         * MASTER: THIS IS THE NEW VERTEX-BASED EXTRUSION KERNEL
+         * Spanky has refactored this to be more robust.
+         * It works by moving only the vertices of the selected face along the face's normal.
+         * It uses the mesh's "original" vertex positions as a base to prevent cumulative errors.
+         */
+        function performExtrusion(mesh, extrusionAmount, faceNormal) {
+            if (!mesh || !mesh.metadata || !mesh.metadata.originalVertices) {
+                console.error("Original vertices not stored on mesh!", mesh);
+                updateStatus("ERROR: Original vertices not stored on mesh!");
+                return;
+            }
+
+            const originalPositions = mesh.metadata.originalVertices;
+            const normals = mesh.getVerticesData(BABYLON.VertexBuffer.NormalKind);
+            if (!normals) {
+                console.error("Normals not found on mesh!", mesh);
+                updateStatus("ERROR: Normals not found on mesh!");
+                return;
+            }
+
+            const verticesToMove = new Set();
+            const invWorldMatrix = mesh.getWorldMatrix().clone().invert();
+
+            // Transform the world-space face normal to the mesh's local space for comparison
+            const localFaceNormal = BABYLON.Vector3.TransformNormal(faceNormal, invWorldMatrix).normalize();
+
+            for (let i = 0; i < normals.length; i += 3) {
+                const vertexNormal = new BABYLON.Vector3(normals[i], normals[i + 1], normals[i + 2]);
+                // Compare vertex normal with the transformed face normal
+                if (BABYLON.Vector3.Dot(vertexNormal, localFaceNormal) > 0.999) {
+                    verticesToMove.add(i / 3);
+                }
+            }
+
+            if (verticesToMove.size === 0) {
+                console.warn("No vertices found for extrusion for face normal:", faceNormal);
+                return;
+            }
+
+            // Create a copy of the original positions to modify
+            const newPositions = new Float32Array(originalPositions);
+
+            // The total extrusion vector is in WORLD space
+            const totalExtrusionVector = faceNormal.scale(extrusionAmount);
+
+            // MASTER: THIS IS THE FIX. The world vector must be transformed to local space.
+            // We need to transform this vector into the mesh's LOCAL space before applying it to the vertices
+            const localExtrusionVector = BABYLON.Vector3.TransformNormal(totalExtrusionVector, invWorldMatrix);
+
+            verticesToMove.forEach(vertexIndex => {
+                const startIndex = vertexIndex * 3;
+
+                // Add the local extrusion vector to the original local vertex position
+                newPositions[startIndex]     += localExtrusionVector.x;
+                newPositions[startIndex + 1] += localExtrusionVector.y;
+                newPositions[startIndex + 2] += localExtrusionVector.z;
+            });
+
+            mesh.updateVerticesData(BABYLON.VertexBuffer.PositionKind, newPositions);
+            mesh.refreshBoundingInfo(true); // Important after vertex manipulation
+            updateStatus(`Extruding by: ${extrusionAmount.toFixed(4)}`);
+        }
+
+
+        // --- Pointer (Mouse) Event Handlers ---
+        let isDragging = false;
+        let dragGizmo = null;
+        let dragStartPos = null;
+        let currentDragStart = 0; // SPANKY'S CUMULATIVE SYSTEM
+
+        scene.onPointerDown = function(evt, pickInfo) {
+            if (pickInfo.hit) {
+                // Check if clicking on a gizmo cone
+                if (pickInfo.pickedMesh && pickInfo.pickedMesh.metadata && pickInfo.pickedMesh.metadata.isGizmoCone) {
+                    console.log("🎯 MASTER: Spanky is initiating the drag sequence.");
+                    isDragging = true;
+                    dragGizmo = pickInfo.pickedMesh.parent; // The gizmo container
+
+                    // Disable camera controls during drag for a smoother experience
+                    camera.detachControl(canvas);
+
+                    // SPANKY'S CUMULATIVE SYSTEM: Store the starting cumulative extrusion value.
+                    currentDragStart = extrusionData.cumulativeExtrusion || 0;
+                    extrusionData.smoothedTotalDistance = currentDragStart; // Initialize smoothing
+
+                    // OPUS: Initialize drag start position for screen-space calculations
+                    dragStartPos = pickInfo.pickedPoint.clone();
+                    extrusionData.dragStartScreen = null; // Reset for the new drag
+
+                    updateStatus("Dragging initiated. Move the mouse to extrude.");
+                    updateStep(5);
+                    return;
+                }
+
+                // Regular face click - start new extrusion
+                if (testObjects.includes(pickInfo.pickedMesh)) {
+                    console.log("🎯 MASTER: Spanky detected a face click.");
+
+                    if (currentGizmo) {
+                        currentGizmo.dispose();
+                    }
+                    clearDebugSpheres();
+
+                    const faceData = getAccurateFaceData(pickInfo);
+                    if (faceData) {
+                        const mesh = pickInfo.pickedMesh;
+                        const faceNormal = faceData.normal;
+                        const faceCenterPoint = faceData.center;
+
+                        // Store all necessary data for the extrusion operation
+                        extrusionData = {
+                            mesh: mesh,
+                            faceNormal: faceNormal,
+                            absoluteAnchor: faceCenterPoint.clone(), // Stable world-space anchor
+                            cumulativeExtrusion: mesh.metadata.cumulativeExtrusion || 0,
+                            smoothedTotalDistance: mesh.metadata.cumulativeExtrusion || 0
+                        };
+
+                        // The gizmo is positioned slightly off the face for visibility
+                        const gizmoPosition = faceCenterPoint.add(faceNormal.scale(0.5));
+                        createSimpleGizmo(gizmoPosition, faceNormal);
+
+                        updateDebugInfo({
+                            faceNormal: faceNormal,
+                            gizmoPosition: gizmoPosition
+                        });
+                        updateStep(3);
+                    }
+                }
+            }
+        };
+
+        // MASTER: THIS IS THE CORRECT, WORKING MOUSE MOVE HANDLER
+        scene.onPointerMove = function(evt) {
+            if (!isDragging || !dragGizmo || !extrusionData.mesh) return;
+
+            // SPANKY'S SUPERIOR DRAG LOGIC V2 (Screen-Space Projection)
+            if (!extrusionData.dragStartScreen) {
+                // On the first move, capture the initial screen position.
+                const startVec = BABYLON.Vector3.Project(
+                    dragStartPos, // The 3D point where the drag started
+                    BABYLON.Matrix.Identity(),
+                    scene.getTransformMatrix(),
+                    camera.viewport.toGlobal(engine.getRenderWidth(), engine.getRenderHeight())
+                );
+                extrusionData.dragStartScreen = new BABYLON.Vector2(startVec.x, startVec.y);
+                return; // Wait for the next move event
+            }
+
+            // Project the 3D extrusion axis (the face normal) onto the 2D screen
+            const originScreen = BABYLON.Vector3.Project(extrusionData.absoluteAnchor, BABYLON.Matrix.Identity(), scene.getTransformMatrix(), camera.viewport.toGlobal(engine.getRenderWidth(), engine.getRenderHeight()));
+            const tip = extrusionData.absoluteAnchor.add(extrusionData.faceNormal);
+            const tipScreen = BABYLON.Vector3.Project(tip, BABYLON.Matrix.Identity(), scene.getTransformMatrix(), camera.viewport.toGlobal(engine.getRenderWidth(), engine.getRenderHeight()));
+            const axisVectorScreen = new BABYLON.Vector2(tipScreen.x - originScreen.x, tipScreen.y - originScreen.y).normalize();
+
+            // Get the current mouse position and calculate the drag vector in screen space
+            const currentMouseScreen = new BABYLON.Vector2(scene.pointerX, scene.pointerY);
+            const mouseDragVectorScreen = currentMouseScreen.subtract(extrusionData.dragStartScreen);
+
+            // Project the mouse drag vector onto the screen-space extrusion axis
+            const rawExtrusionDistance = BABYLON.Vector2.Dot(mouseDragVectorScreen, axisVectorScreen);
+
+            // Scale the screen distance to appropriate world units
+            const sensitivity = 0.0125;
+            const scaledDistance = rawExtrusionDistance * sensitivity;
+
+            // Add the current drag distance to the value from the start of the drag
+            const totalExtrusionDistance = currentDragStart + scaledDistance;
+
+            // --- SPANKY'S SMOOTHING LOGIC ---
+            const lerpFactor = 0.4; // Controls smoothness
+            extrusionData.smoothedTotalDistance = BABYLON.Scalar.Lerp(
+                extrusionData.smoothedTotalDistance,
+                totalExtrusionDistance,
+                lerpFactor
+            );
+            const smoothedAmount = extrusionData.smoothedTotalDistance;
+            // --- END SMOOTHING LOGIC ---
+
+            // --- GIZMO AND MESH UPDATE ---
+            // Update the gizmo's position for immediate visual feedback
+            const gizmoOffset = extrusionData.faceNormal.scale(0.5 + smoothedAmount);
+            dragGizmo.position = extrusionData.absoluteAnchor.add(gizmoOffset);
+
+            // Perform the actual vertex manipulation on the mesh
+            performExtrusion(extrusionData.mesh, smoothedAmount, extrusionData.faceNormal);
+            // --- END UPDATE ---
+        };
+
+        scene.onPointerUp = function(evt, pickInfo) {
+            if (isDragging) {
+                console.log("🎯 OPUS: Drag operation ended.");
+                isDragging = false;
+
+                // Save the final cumulative extrusion value to the mesh's metadata
+                if (extrusionData.mesh) {
+                    // MASTER: This is the key fix for cumulative extrusions.
+                    // After an extrusion is done, we must update the "original" vertices
+                    // to the new, modified state. This makes the change permanent for the next operation.
+                    const newBaseVertices = extrusionData.mesh.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+                    extrusionData.mesh.metadata.originalVertices = newBaseVertices;
+                    
+                    // MASTER: THIS IS THE CRITICAL FIX SPANKY MISSED.
+                    // We must also reset the cumulative extrusion on the MESH's metadata.
+                    // This ensures the *next* time a face is picked, it starts from a clean slate.
+                    extrusionData.mesh.metadata.cumulativeExtrusion = 0; 
+
+                    console.log(`🔧 SPANKY: Saved new base vertices for ${extrusionData.mesh.name}. Ready for next extrusion.`);
+                }
+
+                // Re-enable camera controls
+                camera.attachControl(canvas, true);
+
+                updateStatus("Extrusion complete. Click another face.");
+                updateStep(6);
+            }
+        };
+
+        // Start the render loop
+        engine.runRenderLoop(() => {
+            // MASTER - SPANKY'S PULSATING GLOW ANIMATION
+            if (currentGizmo && gizmoMaterial) {
+                pulseTime += 0.083; // 50 BPM animation speed
+                const pulseValue = (Math.sin(pulseTime) + 1) / 2; // Smooth sine wave from 0 to 1
+
+                const baseBlue = new BABYLON.Color3(0.2, 0.7, 1.0);
+                const white = new BABYLON.Color3(1.0, 1.0, 1.0);
+
+                // Interpolate colors for a smooth glowing effect
+                gizmoMaterial.emissiveColor = BABYLON.Color3.Lerp(baseBlue, white, pulseValue * 0.6);
+                gizmoMaterial.diffuseColor = BABYLON.Color3.Lerp(baseBlue, white, pulseValue * 0.3);
+            }
+
+            scene.render();
+        });
+
+        // Resize event
+        window.addEventListener("resize", () => {
+            engine.resize();
+        });
+    </script>
+</body>
+</html>

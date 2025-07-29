@@ -1,0 +1,301 @@
+Navigated to https://www.kettlebread.com/cutlist/
+tools.js?v=cb_v5:2 TOOLS.JS V11
+main.js?v=spanky_debug_1750512238:63 CutList CAD Initialized - V7
+main.js?v=spanky_debug_1750512238:110 🚀 INIT WORKSPACE CALLED - V7 Setup
+main.js?v=spanky_debug_1750512238:118 ✅ Canvas found, initial raw dimensions: 300 x 150
+main.js?v=spanky_debug_1750512238:122 Performing initial resize BEFORE module initialization...
+main.js?v=spanky_debug_1750512238:227 🎨 Resizing canvas. Canvas client dimensions: w=1086, h=543 - V_DPR_FIX
+main.js?v=spanky_debug_1750512238:250 Canvas backing store size set to: w=2199, h=1099 (scaled by 2.0249998569488525) - V_DPR_FIX
+main.js?v=spanky_debug_1750512238:259 Applied DPR scale (2.0249998569488525) to 2D context - V_DPR_FIX
+main.js?v=spanky_debug_1750512238:126 Initializing modules with resized canvas...
+camera.js?v=cb_v5:16 CAMERA.JS V14 CONSTRUCTOR: DPR: 2.0249998569488525, Initial canvas client W/H: 1086/543
+camera.js?v=cb_v5:532 CAMERA.JS V13 CALC_ZOOM_LIMITS: DPR: 2.0249998569488525
+camera.js?v=cb_v5:533 CAMERA.JS V13 CALC_ZOOM_LIMITS: Finest LOD: 0.03125" @ 300px => MaxZoom: 4740.74
+camera.js?v=cb_v5:534 CAMERA.JS V13 CALC_ZOOM_LIMITS: Coarsest LOD: 2" @ 50px => MinZoom: 12.35
+camera.js?v=cb_v5:32 CAMERA.JS V14 CONSTRUCTOR: Calculated MinZoom: 12.35, MaxZoom: 4740.74
+camera.js?v=cb_v5:42 CAMERA.JS V14 CONSTRUCTOR: Initial zoom based on 24\" world height over 543 CSS pixels: 22.63
+camera.js?v=cb_v5:544 CAMERA.JS V12 APPLY_CONSTRAINTS: Entry. Current zoom: 22.63, minZoom: 12.35, maxZoom: 4740.74
+camera.js?v=cb_v5:560 CAMERA.JS V12 APPLY_CONSTRAINTS: Exit. New zoom: 22.63
+camera.js?v=cb_v5:50 CAMERA.JS V14 CONSTRUCTOR: Final initial zoom after constraints: 22.63
+camera.js?v=cb_v5:66 [Violation] Added non-passive event listener to a scroll-blocking 'wheel' event. Consider marking event handler as 'passive' to make the page more responsive. See https://www.chromestatus.com/feature/5745543795965952
+setupEventListeners @ camera.js?v=cb_v5:66
+CameraController @ camera.js?v=cb_v5:63
+initWorkspace @ main.js?v=spanky_debug_1750512238:128
+(anonymous) @ main.js?v=spanky_debug_1750512238:104
+main.js?v=spanky_debug_1750512238:143 Camera initialized - V7
+grid.js?v=cb_v5:10 GRID.JS V12 LOD: Levels (inches): 0.03125, 0.0625, 0.125, 0.25, 0.5, 1, 2
+grid.js?v=cb_v5:38 GRID RENDERER V13: Initialized with multi-plane support
+main.js?v=spanky_debug_1750512238:146 Grid initialized: true - V7
+tools.js?v=cb_v5:21 TOOLS.JS V_DEBUG: ToolManager constructor called. Initial activeTool: select
+events.js?v=cb_v5:49 [Violation] Added non-passive event listener to a scroll-blocking 'touchstart' event. Consider marking event handler as 'passive' to make the page more responsive. See https://www.chromestatus.com/feature/5745543795965952
+setupCanvasEvents @ events.js?v=cb_v5:49
+EventManager @ events.js?v=cb_v5:6
+initWorkspace @ main.js?v=spanky_debug_1750512238:150
+(anonymous) @ main.js?v=spanky_debug_1750512238:104
+events.js?v=cb_v5:62 [Violation] Added non-passive event listener to a scroll-blocking 'touchmove' event. Consider marking event handler as 'passive' to make the page more responsive. See https://www.chromestatus.com/feature/5745543795965952
+setupCanvasEvents @ events.js?v=cb_v5:62
+EventManager @ events.js?v=cb_v5:6
+initWorkspace @ main.js?v=spanky_debug_1750512238:150
+(anonymous) @ main.js?v=spanky_debug_1750512238:104
+main.js?v=spanky_debug_1750512238:151 MAIN.JS: Initializing Project Explorer...
+main.js?v=spanky_debug_1750512238:1628 MAIN.JS: Creating ProjectExplorer instance...
+main.js?v=spanky_debug_1750512238:1632 MAIN.JS: Found explorer container: <div id=​"project-explorer">​…​</div>​
+main.js?v=spanky_debug_1750512238:1633 MAIN.JS: Explorer container exists: true
+main.js?v=spanky_debug_1750512238:1641 MAIN.JS: Container dimensions: 280 x 808
+projectExplorer_clean.js?v=cb_v5:16 PROJECT_EXPLORER: Initializing with HTML component approach
+projectExplorer_clean.js?v=cb_v5:20 PROJECT_EXPLORER: Loading HTML component...
+main.js?v=spanky_debug_1750512238:1645 MAIN.JS: ProjectExplorer initialized with HTML component approach
+main.js?v=spanky_debug_1750512238:1667 MAIN.JS: ProjectExplorer initialized successfully
+main.js?v=spanky_debug_1750512238:155 MAIN.JS: Initializing Bottom Toolbar...
+bottom-toolbar.js?v=cb_v5:19 🔧 BOTTOM TOOLBAR: Controller initialized - V1
+main.js?v=spanky_debug_1750512238:192 Setting up mode button events...
+main.js?v=spanky_debug_1750512238:194 Found mode buttons: 2
+main.js?v=spanky_debug_1750512238:175 MAIN.JS: Initializing workspace in 3D modeling mode...
+main.js?v=spanky_debug_1750512238:278 🔄 switchMode called with mode: modeling - V7
+main.js?v=spanky_debug_1750512238:1505 MAIN.JS: Extrude button state updated. Enabled: false
+main.js?v=spanky_debug_1750512238:306 MAIN.JS V17: 🎯 Switching to 3D modeling mode
+main.js?v=spanky_debug_1750512238:329 MAIN.JS V16: ✅ Grid object exists, proceeding with 3D mode setup
+grid.js?v=cb_v5:206 🔧 3D GRID.JS: renderPerspectiveGrid called - V7
+grid.js?v=cb_v5:207 🔧 3D GRID.JS: BABYLON available: true - V7
+grid.js?v=cb_v5:208 🔧 3D GRID.JS: Current scene exists: false - V7
+grid.js?v=cb_v5:213 🔧 3D GRID.JS: Main canvas (2D) hidden - V7
+grid.js?v=cb_v5:217 🔧 3D GRID.JS: No scene exists, creating new one... - V7
+grid.js?v=cb_v5:241 🔧 3D GRID.JS: Starting 3D scene creation... - V7
+grid.js?v=cb_v5:266 🔧 3D GRID.JS: Creating dedicated Babylon.js canvas... - V7
+grid.js?v=cb_v5:277 🔧 3D GRID.JS: Container viewport offset - top: 137.3749237060547, left: 0 - V7
+grid.js?v=cb_v5:289 🔧 3D GRID.JS: Container dimensions - CSS: 1085x808, Actual: 2197x1636, DPR: 2.0249998569488525 - V7
+grid.js?v=cb_v5:309 🔧 3D GRID.JS: Babylon canvas created & appended to container. Style w/h: 1085px/808px. Actual w/h: 2197/1636. DPR: 2.0249998569488525 - V7
+grid.js?v=cb_v5:311 🔧 3D GRID.JS: Creating Babylon.js engine... - V7
+logger.ts:107 BJS - [09:24:01]: Babylon.js v8.13.0 - WebGL2
+grid.js?v=cb_v5:318 🔧 3D GRID.JS: Creating Babylon.js scene... - V7
+grid.js?v=cb_v5:321 ✅ 3D GRID.JS: Babylon.js 3D scene object CREATED successfully - V7
+ 🔧 3D GRID.JS: setupScene START - V17
+ 🔧 3D GRID.JS: Scene background set to pure white for professional CAD look - V35
+ 🔧 3D GRID.JS: Creating ArcRotateCamera with Master's specified positioning - V21
+ 🔧 3D GRID.JS: Camera positioned at: e {_isDirty: true, _x: 30, _y: 16, _z: -90}
+ 🔧 3D GRID.JS: Camera target at: e {_isDirty: true, _x: 0, _y: 0, _z: 0}
+ 🔧 3D GRID.JS: Camera alpha/beta/radius after rebuild: -1.2490457723982544 1.4037138669342188 96.20810776644555
+ 🔧 3D GRID.JS: ArcRotateCamera positioned directly at X=30", Y=16", Z=-90" looking at origin - V21
+ 🔧 3D GRID.JS: Creating HemisphericLight - V15
+ 🔧 3D GRID.JS: Added DirectionalLight for better shadows - V18
+ 🔧 3D GRID.JS: Creating Ground Plane for Custom Grid Shader - V27
+ 🔧 3D GRID.JS: Creating CONTROLLED anti-aliased grid shader - V34...
+ 🔧 3D GRID.JS: Shaders registered in ShadersStore - V33
+ 🔧 3D GRID.JS: CLEAN grid material created successfully - V33
+ 🔧 3D GRID.JS: Using step functions for artifact-free grid lines - V33
+ 🔧 3D GRID.JS: Ground plane created with RELIABLE GridMaterial. Size: 2000x2000 - V30
+ 🔧 3D GRID.JS V31: Updating RELIABLE Grid Shader to LOD3_R_50_100 (Radius: 96.21)
+ 🔧 3D GRID.JS V33: Updated CLEAN grid (no artifacts). Scale: 0.9, MajorFreq: 10, MinorOp: 0.6, MajorOp: 0.6
+ 🔧 3D GRID.JS: Observer added to 3D camera for dynamic LOD updates - V14
+ 🔧 3D GRID.JS: setupScene COMPLETE - V14
+ 🔧 3D GRID.JS: Starting Babylon.js render loop... - V7
+ 🔧 3D GRID.JS: create3DScene COMPLETE - V7
+ MAIN.JS V16: ✅ Scene and Engine confirmed after grid.render(). Proceeding...
+ MAIN.JS: Synchronizing 2D objects to 3D meshes...
+ MAIN.JS: Clearing 3D meshes...
+ MAIN.JS: 3D meshes cleared.
+ MAIN.JS: Synchronization complete. 0 3D meshes created.
+ MAIN.JS: ===== ABOUT TO CALL setup3DGizmos =====
+ MAIN.JS V2: Setting up 3D GizmoManager and HighlightLayer...
+ MAIN.JS V2: 3D GizmoManager and HighlightLayer setup complete.
+ MAIN.JS: ===== FINISHED CALLING setup3DGizmos =====
+main.js?v=spanky_debug_1750512238:1514 MAIN.JS: Initializing sketch planes system
+sketchPlanes.js?v=cb_v5:22 SKETCH_PLANES: Manager initialized
+sketchPlanes.js?v=cb_v5:25 SKETCH_PLANES: Creating default orthographic planes
+sketchPlanes.js?v=cb_v5:79 SKETCH_PLANES: Creating plane selectors
+sketchPlanes.js?v=cb_v5:157 SKETCH_PLANES: Positioned selector for Front View (XY Plane) at e {_isDirty: true, _x: -10, _y: 10, _z: 0.1}
+sketchPlanes.js?v=cb_v5:124 SKETCH_PLANES: Created selector for Front View (XY Plane) (initially hidden)
+sketchPlanes.js?v=cb_v5:157 SKETCH_PLANES: Positioned selector for Right View (YZ Plane) at e {_isDirty: true, _x: 0.1, _y: 10, _z: -10}
+sketchPlanes.js?v=cb_v5:124 SKETCH_PLANES: Created selector for Right View (YZ Plane) (initially hidden)
+sketchPlanes.js?v=cb_v5:157 SKETCH_PLANES: Positioned selector for Top View (XZ Plane) at e {_isDirty: true, _x: 10, _y: 0.1, _z: -10}
+sketchPlanes.js?v=cb_v5:124 SKETCH_PLANES: Created selector for Top View (XZ Plane) (initially hidden)
+sketchPlanes.js?v=cb_v5:89 SKETCH_PLANES: Created 3 plane selectors
+sketchPlanes.js?v=cb_v5:74 SKETCH_PLANES: Created 3 default orthographic planes
+main.js?v=spanky_debug_1750512238:1554 MAIN.JS: Sketch planes system initialized
+main.js?v=spanky_debug_1750512238:349 MAIN.JS: ===== ABOUT TO CALL initializeViewCube =====
+main.js?v=spanky_debug_1750512238:1558 MAIN.JS: ===== STARTING VIEWCUBE INITIALIZATION =====
+main.js?v=spanky_debug_1750512238:1559 MAIN.JS: ViewCube class available: function
+main.js?v=spanky_debug_1750512238:1573 MAIN.JS: 3D Scene available, proceeding with ViewCube initialization
+main.js?v=spanky_debug_1750512238:1574 MAIN.JS: Scene object: e {_inputManager: e, cameraToUseForPointers: null, _isScene: true, _blockEntityCollection: false, autoClear: true, …}
+main.js?v=spanky_debug_1750512238:1583 MAIN.JS: Babylon camera available: t {_isDirty: false, _nodeDataStorage: u, state: '', metadata: null, reservedDataStore: null, …}
+main.js?v=spanky_debug_1750512238:1584 MAIN.JS: Babylon canvas available: true
+main.js?v=spanky_debug_1750512238:1587 MAIN.JS: Creating ViewCube instance...
+viewCube.js?v=cb_v5:60 VIEWCUBE: ViewCube initialized
+main.js?v=spanky_debug_1750512238:1590 MAIN.JS: ViewCube instance created successfully: true
+main.js?v=spanky_debug_1750512238:1596 MAIN.JS: Creating ViewCube mesh...
+viewCube.js?v=cb_v5:63 VIEWCUBE: Creating ViewCube mesh
+viewCube.js?v=cb_v5:90 VIEWCUBE: ViewCube mesh created at position: e {_isDirty: true, _x: 0, _y: 8, _z: 0}
+viewCube.js?v=cb_v5:91 VIEWCUBE: ViewCube mesh visibility: true
+viewCube.js?v=cb_v5:92 VIEWCUBE: ViewCube mesh material: true
+viewCube.js?v=cb_v5:93 VIEWCUBE: ViewCube scene: true
+main.js?v=spanky_debug_1750512238:1599 MAIN.JS: ViewCube mesh created successfully: true
+main.js?v=spanky_debug_1750512238:1602 MAIN.JS: ViewCube mesh name: viewCube
+main.js?v=spanky_debug_1750512238:1603 MAIN.JS: ViewCube mesh position: e {_isDirty: true, _x: 0, _y: 8, _z: 0}
+main.js?v=spanky_debug_1750512238:1604 MAIN.JS: ViewCube mesh isVisible: true
+main.js?v=spanky_debug_1750512238:1605 MAIN.JS: ViewCube mesh material: true
+main.js?v=spanky_debug_1750512238:1612 MAIN.JS: Positioning ViewCube...
+viewCube.js?v=cb_v5:168 VIEWCUBE: ViewCube removed from scene - Master requested clean workspace
+main.js?v=spanky_debug_1750512238:1615 MAIN.JS: ViewCube positioned successfully
+main.js?v=spanky_debug_1750512238:1618 MAIN.JS: ===== VIEWCUBE INITIALIZATION COMPLETE =====
+main.js?v=spanky_debug_1750512238:1619 MAIN.JS: ViewCube object exists: true
+main.js?v=spanky_debug_1750512238:1620 MAIN.JS: ViewCube mesh exists: false
+main.js?v=spanky_debug_1750512238:1623 MAIN.JS: Forcing scene render...
+main.js?v=spanky_debug_1750512238:351 MAIN.JS: ===== FINISHED CALLING initializeViewCube =====
+camera.js?v=cb_v5:394 CAMERA.JS V18: Syncing 3D camera to 2D view. 2D Cam: x=0, y=0, zoom=22.625, rotation=0
+camera.js?v=cb_v5:395 CAMERA.JS V18 SYNC_3D_TO_2D_INPUTS: 2D Cam(x:0.00, y:0.00, zoom:22.6250, rotation:0.0000), 2D Viewport(w:1086, h:543, dpr:2.0249998569488525)
+camera.js?v=cb_v5:422 CAMERA.JS V21: SPANKY positioned 3D camera using CAD coordinates. Target: (0, 0, 0), Position: X=30(side), Y=-60(depth), Z=30(up), Spherical: Alpha=-1.1071, Beta=1.1503, Radius=73.48
+main.js?v=spanky_debug_1750512238:370 MAIN.JS: Setting initial camera position AFTER camera sync operations
+grid.js?v=cb_v5:824 🔧 3D GRID.JS: Setting initial camera position - FORCING POSITION NOW
+grid.js?v=cb_v5:839 🔧 3D GRID.JS: FORCED camera values:
+grid.js?v=cb_v5:840 🔧 3D GRID.JS: - Alpha (should be ~0.785): 0.7853981633974483
+grid.js?v=cb_v5:841 🔧 3D GRID.JS: - Beta (should be ~1.047): 1.0471975511965976
+grid.js?v=cb_v5:842 🔧 3D GRID.JS: - Radius (should be 50): 50
+grid.js?v=cb_v5:843 🔧 3D GRID.JS: - Target (should be 0,0,0): e {_isDirty: true, _x: 0, _y: 0, _z: 0}
+main.js?v=spanky_debug_1750512238:824 Main render loop initialized - V7
+main.js?v=spanky_debug_1750512238:187 Initial workspace setup complete - V7
+main.js?v=spanky_debug_1750512238:103 [Violation] 'setTimeout' handler took 119ms
+main.js?v=spanky_debug_1750512238:181 RAF: Performing resize and render after paint - V7.
+main.js?v=spanky_debug_1750512238:227 🎨 Resizing canvas. Canvas client dimensions: w=0, h=0 - V_DPR_FIX
+main.js?v=spanky_debug_1750512238:233 ⚠️ Canvas has zero client dimensions (w:0, h:0). Falling back to 800x600. Check CSS if this is unexpected.
+resizeCanvas @ main.js?v=spanky_debug_1750512238:233
+(anonymous) @ main.js?v=spanky_debug_1750512238:182
+requestAnimationFrame
+initWorkspace @ main.js?v=spanky_debug_1750512238:180
+(anonymous) @ main.js?v=spanky_debug_1750512238:104
+setTimeout
+showPage @ main.js?v=spanky_debug_1750512238:103
+(anonymous) @ main.js?v=spanky_debug_1750512238:81
+main.js?v=spanky_debug_1750512238:250 Canvas backing store size set to: w=1619, h=1214 (scaled by 2.0249998569488525) - V_DPR_FIX
+main.js?v=spanky_debug_1750512238:259 Applied DPR scale (2.0249998569488525) to 2D context - V_DPR_FIX
+camera.js?v=cb_v5:111 Camera viewport updated to: 800 x 600
+main.js?v=spanky_debug_1750512238:263 📷 Camera viewport updated to: w=800, h=600 (CSS dimensions) - V_DPR_FIX
+main.js?v=spanky_debug_1750512238:851 MAIN.JS: render2D CALLED. Mode: modeling
+main.js?v=spanky_debug_1750512238:853 MAIN.JS: render2D not in sketch mode, returning.
+cutlist/:1 [GroupMarkerNotSet(crbug.com/242999)!:A0A03900B4480000]Automatic fallback to software WebGL has been deprecated. Please use the --enable-unsafe-swiftshader flag to opt in to lower security guarantees for trusted content.
+bottom-toolbar.js?v=cb_v5:38 🔧 BOTTOM TOOLBAR: All elements found and initialized - V1
+main.js?v=spanky_debug_1750512238:160 MAIN.JS: Bottom toolbar initialized successfully - V7
+grid.js?v=cb_v5:851 🔧 3D GRID.JS: FINAL camera position after 100ms: 30.0 30.0 -60.0
+grid.js?v=cb_v5:852 🔧 3D GRID.JS: FINAL alpha/beta/radius: -1.107 1.150 73.5
+projectExplorer_clean.js?v=cb_v5:26 PROJECT_EXPLORER: HTML component loaded successfully
+projectExplorer_clean.js?v=cb_v5:74 PROJECT_EXPLORER: Event handlers attached
+projectExplorer_clean.js?v=cb_v5:32 PROJECT_EXPLORER: Component initialization complete
+projectExplorer_clean.js?v=cb_v5:23 Fetch finished loading: GET "https://www.kettlebread.com/cutlist/src/components/project-explorer.html".
+loadComponent @ projectExplorer_clean.js?v=cb_v5:23
+ProjectExplorer @ projectExplorer_clean.js?v=cb_v5:17
+initializeProjectExplorer @ main.js?v=spanky_debug_1750512238:1644
+initWorkspace @ main.js?v=spanky_debug_1750512238:152
+(anonymous) @ main.js?v=spanky_debug_1750512238:104
+setTimeout
+showPage @ main.js?v=spanky_debug_1750512238:103
+(anonymous) @ main.js?v=spanky_debug_1750512238:81
+projectExplorer_clean.js?v=cb_v5:103 PROJECT_EXPLORER: Set current project: Untitled
+projectExplorer_clean.js?v=cb_v5:89 PROJECT_EXPLORER: Created new project: Untitled
+main.js?v=spanky_debug_1750512238:1649 MAIN.JS: Project created: Untitled
+main.js?v=spanky_debug_1750512238:1671 MAIN.JS: Handling new project creation: Untitled
+main.js?v=spanky_debug_1750512238:278 🔄 switchMode called with mode: modeling - V7
+ CAMERA.JS: Saved 3D camera state: {alpha: -1.1071487177940904, beta: 1.1502619915109316, radius: 73.48469228349535, target: e}
+ MAIN.JS: Extrude button state updated. Enabled: false
+ MAIN.JS V17: 🎯 Switching to 3D modeling mode
+ MAIN.JS V16: ✅ Grid object exists, proceeding with 3D mode setup
+ 🔧 3D GRID.JS: renderPerspectiveGrid called - V7
+ 🔧 3D GRID.JS: BABYLON available: true - V7
+ 🔧 3D GRID.JS: Current scene exists: true - V7
+ 🔧 3D GRID.JS: Main canvas (2D) hidden - V7
+grid.js?v=cb_v5:220 🔧 3D GRID.JS: Scene exists, ensuring Babylon canvas is visible... - V7
+grid.js?v=cb_v5:223 🔧 3D GRID.JS: Babylon canvas display set to block - V7
+main.js?v=spanky_debug_1750512238:334 MAIN.JS V16: ✅ Scene and Engine confirmed after grid.render(). Proceeding...
+main.js?v=spanky_debug_1750512238:591 MAIN.JS: Synchronizing 2D objects to 3D meshes...
+main.js?v=spanky_debug_1750512238:607 MAIN.JS: Clearing 3D meshes...
+main.js?v=spanky_debug_1750512238:618 MAIN.JS: 3D meshes cleared.
+main.js?v=spanky_debug_1750512238:603 MAIN.JS: Synchronization complete. 0 3D meshes created.
+main.js?v=spanky_debug_1750512238:344 MAIN.JS: ===== ABOUT TO CALL setup3DGizmos =====
+main.js?v=spanky_debug_1750512238:626 MAIN.JS V2: Setting up 3D GizmoManager and HighlightLayer...
+main.js?v=spanky_debug_1750512238:746 MAIN.JS V2: 3D GizmoManager and HighlightLayer setup complete.
+main.js?v=spanky_debug_1750512238:345 MAIN.JS: ===== FINISHED CALLING setup3DGizmos =====
+main.js?v=spanky_debug_1750512238:1514 MAIN.JS: Initializing sketch planes system
+sketchPlanes.js?v=cb_v5:22 SKETCH_PLANES: Manager initialized
+sketchPlanes.js?v=cb_v5:25 SKETCH_PLANES: Creating default orthographic planes
+sketchPlanes.js?v=cb_v5:79 SKETCH_PLANES: Creating plane selectors
+sketchPlanes.js?v=cb_v5:157 SKETCH_PLANES: Positioned selector for Front View (XY Plane) at e {_isDirty: true, _x: -10, _y: 10, _z: 0.1}
+sketchPlanes.js?v=cb_v5:124 SKETCH_PLANES: Created selector for Front View (XY Plane) (initially hidden)
+sketchPlanes.js?v=cb_v5:157 SKETCH_PLANES: Positioned selector for Right View (YZ Plane) at e {_isDirty: true, _x: 0.1, _y: 10, _z: -10}
+sketchPlanes.js?v=cb_v5:124 SKETCH_PLANES: Created selector for Right View (YZ Plane) (initially hidden)
+sketchPlanes.js?v=cb_v5:157 SKETCH_PLANES: Positioned selector for Top View (XZ Plane) at e {_isDirty: true, _x: 10, _y: 0.1, _z: -10}
+sketchPlanes.js?v=cb_v5:124 SKETCH_PLANES: Created selector for Top View (XZ Plane) (initially hidden)
+sketchPlanes.js?v=cb_v5:89 SKETCH_PLANES: Created 3 plane selectors
+sketchPlanes.js?v=cb_v5:74 SKETCH_PLANES: Created 3 default orthographic planes
+main.js?v=spanky_debug_1750512238:1554 MAIN.JS: Sketch planes system initialized
+main.js?v=spanky_debug_1750512238:349 MAIN.JS: ===== ABOUT TO CALL initializeViewCube =====
+main.js?v=spanky_debug_1750512238:1558 MAIN.JS: ===== STARTING VIEWCUBE INITIALIZATION =====
+main.js?v=spanky_debug_1750512238:1559 MAIN.JS: ViewCube class available: function
+main.js?v=spanky_debug_1750512238:1573 MAIN.JS: 3D Scene available, proceeding with ViewCube initialization
+main.js?v=spanky_debug_1750512238:1574 MAIN.JS: Scene object: e {_inputManager: e, cameraToUseForPointers: null, _isScene: true, _blockEntityCollection: false, autoClear: true, …}
+main.js?v=spanky_debug_1750512238:1583 MAIN.JS: Babylon camera available: t {_isDirty: false, _nodeDataStorage: u, state: '', metadata: null, reservedDataStore: null, …}
+main.js?v=spanky_debug_1750512238:1584 MAIN.JS: Babylon canvas available: true
+main.js?v=spanky_debug_1750512238:1587 MAIN.JS: Creating ViewCube instance...
+viewCube.js?v=cb_v5:60 VIEWCUBE: ViewCube initialized
+main.js?v=spanky_debug_1750512238:1590 MAIN.JS: ViewCube instance created successfully: true
+main.js?v=spanky_debug_1750512238:1596 MAIN.JS: Creating ViewCube mesh...
+viewCube.js?v=cb_v5:63 VIEWCUBE: Creating ViewCube mesh
+viewCube.js?v=cb_v5:90 VIEWCUBE: ViewCube mesh created at position: e {_isDirty: true, _x: 0, _y: 8, _z: 0}
+viewCube.js?v=cb_v5:91 VIEWCUBE: ViewCube mesh visibility: true
+viewCube.js?v=cb_v5:92 VIEWCUBE: ViewCube mesh material: true
+viewCube.js?v=cb_v5:93 VIEWCUBE: ViewCube scene: true
+main.js?v=spanky_debug_1750512238:1599 MAIN.JS: ViewCube mesh created successfully: true
+main.js?v=spanky_debug_1750512238:1602 MAIN.JS: ViewCube mesh name: viewCube
+main.js?v=spanky_debug_1750512238:1603 MAIN.JS: ViewCube mesh position: e {_isDirty: true, _x: 0, _y: 8, _z: 0}
+main.js?v=spanky_debug_1750512238:1604 MAIN.JS: ViewCube mesh isVisible: true
+main.js?v=spanky_debug_1750512238:1605 MAIN.JS: ViewCube mesh material: true
+main.js?v=spanky_debug_1750512238:1612 MAIN.JS: Positioning ViewCube...
+viewCube.js?v=cb_v5:168 VIEWCUBE: ViewCube removed from scene - Master requested clean workspace
+main.js?v=spanky_debug_1750512238:1615 MAIN.JS: ViewCube positioned successfully
+main.js?v=spanky_debug_1750512238:1618 MAIN.JS: ===== VIEWCUBE INITIALIZATION COMPLETE =====
+main.js?v=spanky_debug_1750512238:1619 MAIN.JS: ViewCube object exists: true
+main.js?v=spanky_debug_1750512238:1620 MAIN.JS: ViewCube mesh exists: false
+main.js?v=spanky_debug_1750512238:1623 MAIN.JS: Forcing scene render...
+main.js?v=spanky_debug_1750512238:351 MAIN.JS: ===== FINISHED CALLING initializeViewCube =====
+camera.js?v=cb_v5:521 CAMERA.JS: Restored 3D camera state: {alpha: -1.1071487177940904, beta: 1.1502619915109316, radius: 73.48469228349535, target: e}
+main.js?v=spanky_debug_1750512238:370 MAIN.JS: Setting initial camera position AFTER camera sync operations
+grid.js?v=cb_v5:824 🔧 3D GRID.JS: Setting initial camera position - FORCING POSITION NOW
+grid.js?v=cb_v5:839 🔧 3D GRID.JS: FORCED camera values:
+grid.js?v=cb_v5:840 🔧 3D GRID.JS: - Alpha (should be ~0.785): 0.7853981633974483
+grid.js?v=cb_v5:841 🔧 3D GRID.JS: - Beta (should be ~1.047): 1.0471975511965976
+grid.js?v=cb_v5:842 🔧 3D GRID.JS: - Radius (should be 50): 50
+grid.js?v=cb_v5:843 🔧 3D GRID.JS: - Target (should be 0,0,0): e {_isDirty: true, _x: 0, _y: 0, _z: 0}
+main.js?v=spanky_debug_1750512238:1678 MAIN.JS: Showing plane selectors for new project
+sketchPlanes.js?v=cb_v5:164 SKETCH_PLANES: Showing plane selection prompt
+sketchPlanes.js?v=cb_v5:187 SKETCH_PLANES: Plane selectors visible
+grid.js?v=cb_v5:851 🔧 3D GRID.JS: FINAL camera position after 100ms: 30.0 30.0 -60.0
+grid.js?v=cb_v5:852 🔧 3D GRID.JS: FINAL alpha/beta/radius: -1.107 1.150 73.5
+main.js?v=spanky_debug_1750512238:679 MAIN.JS V2: Picked 3D Mesh: planeSelector_default_xz ID: undefined
+sketchPlanes.js?v=cb_v5:200 SKETCH_PLANES: Selecting plane: Top View (XZ Plane)
+sketchPlanes.js?v=cb_v5:176 SKETCH_PLANES: Hiding plane selection prompt
+sketchPlanes.js?v=cb_v5:195 SKETCH_PLANES: Plane selectors hidden
+main.js?v=spanky_debug_1750512238:1520 MAIN.JS V36: Plane selected for persistent sketch plane system: Top View (XZ Plane)
+main.js?v=spanky_debug_1750512238:1737 MAIN.JS V36: Creating persistent sketch plane from: {id: 'default_xz', name: 'Top View (XZ Plane)', normal: e, origin: e, uAxis: e, …}
+main.js?v=spanky_debug_1750512238:1464 MAIN.JS V35: Applying sketch plane transformation using Babylon.js TransformCoordinates
+main.js?v=spanky_debug_1750512238:1480 Uncaught TypeError: rotationMatrix.toEulerAngles is not a function
+    at CutListCAD.applySketchPlaneTransformation (main.js?v=spanky_debug_1750512238:1480:41)
+    at CutListCAD.createPersistentSketchPlane (main.js?v=spanky_debug_1750512238:1762:14)
+    at CutListCAD.onPlaneSelected (main.js?v=spanky_debug_1750512238:1523:48)
+    at SketchPlanesManager.selectPlane (sketchPlanes.js?v=cb_v5:207:22)
+    at SketchPlanesManager.handlePlaneClick (sketchPlanes.js?v=cb_v5:220:14)
+    at e.callback (main.js?v=spanky_debug_1750512238:680:64)
+    at e.notifyObservers (observable.ts:439:49)
+    at e._processPointerDown (scene.inputManager.ts:461:39)
+    at e._onPointerDown (scene.inputManager.ts:924:18)
+    at e.callback (scene.inputManager.ts:1082:34)
+applySketchPlaneTransformation @ main.js?v=spanky_debug_1750512238:1480
+createPersistentSketchPlane @ main.js?v=spanky_debug_1750512238:1762
+onPlaneSelected @ main.js?v=spanky_debug_1750512238:1523
+selectPlane @ sketchPlanes.js?v=cb_v5:207
+handlePlaneClick @ sketchPlanes.js?v=cb_v5:220
+(anonymous) @ main.js?v=spanky_debug_1750512238:680
+e.notifyObservers @ observable.ts:439
+e._processPointerDown @ scene.inputManager.ts:461
+_onPointerDown @ scene.inputManager.ts:924
+(anonymous) @ scene.inputManager.ts:1082
+e.notifyObservers @ observable.ts:439
+e._onInputChanged @ deviceSourceManager.ts:164
+a @ internalDeviceSourceManager.ts:81
+_pointerDownEvent @ webDeviceInputSystem.ts:563

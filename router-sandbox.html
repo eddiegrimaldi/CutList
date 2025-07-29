@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Router Bit Sandbox</title>
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+    <style>
+        body { margin: 0; padding: 0; overflow: hidden; font-family: Arial; }
+        #renderCanvas { width: 100%; height: 100vh; }
+        #controls { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.8); color: white; padding: 10px; border-radius: 5px; }
+        #upload { margin: 10px 0; }
+        button { padding: 8px 15px; margin: 5px; background: #27ae60; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        button:hover { background: #229954; }
+    </style>
+</head>
+<body>
+    <canvas id="renderCanvas"></canvas>
+    
+    <div id="controls">
+        <h3>Router Bit Sandbox</h3>
+        <div id="upload">
+            <input type="file" id="fileInput" accept=".obj,.gltf,.glb" />
+            <button onclick="startPositioning()">Position Router Bit</button>
+        </div>
+        <div>
+            <button id="lockButton" onclick="lockPosition()" disabled>🔒 Lock Position</button>
+            <button onclick="resetBoard()">Reset Board</button>
+            <button onclick="resetCamera()">Reset Camera</button>
+        </div>
+        <div id="positioning-mode" style="display:none; margin-top:10px; padding:10px; background:rgba(255,255,0,0.2); border-radius:3px;">
+            <strong>POSITIONING MODE</strong><br>
+            Drag the router bit into position, then click Lock Position
+        </div>
+        <div id="info">
+            Board: Standard 2x4x96" (96" length, 6" width, 0.75" thick)<br>
+            Position: Center of grid<br>
+            Edge: Top-Right (long edge)
+        </div>
+    </div>
+
+    <script type="module">
+        let engine, scene, camera, board, routerBit = null;
+        let gizmoManager = null;
+        let isPositioning = false;
+        let isDraggingGizmo = false;
+        
+        // Initialize Babylon.js
+        function init() {
+            const canvas = document.getElementById('renderCanvas');
+            engine = new BABYLON.Engine(canvas, true);
+            scene = new BABYLON.Scene(engine);
+            
+            // Camera with controls
+            camera = new BABYLON.ArcRotateCamera('camera', -Math.PI/2, Math.PI/2.5, 150, BABYLON.Vector3.Zero(), scene);
+            camera.setTarget(BABYLON.Vector3.Zero());
+            scene.activeCamera = camera;
+            
+            // Enable default camera controls
+            camera.attachControls(canvas);
+            
+            // Debug camera controls
+            console.log('Camera created with controls');
+            
+            // Gizmo manager for dragging router bit
+            gizmoManager = new BABYLON.GizmoManager(scene);
+            gizmoManager.positionGizmoEnabled = true;
+            gizmoManager.rotationGizmoEnabled = true;
+            gizmoManager.scaleGizmoEnabled = false;
+            
+            // Camera controls are automatic with ArcRotateCamera
+            
+            // Better lighting for 3D visibility
+            const hemisphericLight = new BABYLON.HemisphericLight('hemiLight', new BABYLON.Vector3(0, 1, 0), scene);
+            hemisphericLight.intensity = 0.4;
+            
+            // Main directional light from upper left
+            const directionalLight = new BABYLON.DirectionalLight('dirLight', new BABYLON.Vector3(-1, -1, -1), scene);
+            directionalLight.intensity = 1.0;
+            directionalLight.position = new BABYLON.Vector3(200, 150, 200);
+            
+            // Fill light from the right side 
+            const directionalLight2 = new BABYLON.DirectionalLight('dirLight2', new BABYLON.Vector3(1, -0.5, 0), scene);
+            directionalLight2.intensity = 0.6;
+            directionalLight2.position = new BABYLON.Vector3(-200, 100, 0);
+            
+            // Grid - make it more visible
+            const grid = BABYLON.MeshBuilder.CreateGround('grid', {width: 500, height: 500, subdivisions: 25}, scene);
+            const gridMaterial = new BABYLON.StandardMaterial('gridMat', scene);
+            gridMaterial.wireframe = true;
+            gridMaterial.diffuseColor = new BABYLON.Color3(0.5, 0.5, 0.5); // Brighter gray
+            gridMaterial.alpha = 0.8;
+            grid.material = gridMaterial;
+            
+            console.log('Grid created:', grid.isEnabled(), grid.isVisible);
+            
+            // Create standard board
+            createStandardBoard();
+            
+            // Render loop
+            engine.runRenderLoop(() => scene.render());
+            window.addEventListener('resize', () => engine.resize());
+        }
+        
+        // Create standard 2x4x96" board at center
+        function createStandardBoard() {
+            if (board) board.dispose();
+            
+            // Convert inches to scene units (1 inch = 2.54 units)
+            const length = 96 * 2.54;  // 96" = 243.84 units
+            const width = 6 * 2.54;    // 6" = 15.24 units  
+            const thickness = 0.75 * 2.54; // 0.75" = 1.905 units
+            
+            board = BABYLON.BoxBuilder.CreateBox('board', {
+                width: width,
+                height: thickness, 
+                depth: length
+            }, scene);
+            
+            // Position at center, sitting on grid
+            board.position.set(0, thickness/2, 0);
+            
+            // Wood material - make it more visible
+            const woodMaterial = new BABYLON.StandardMaterial('wood', scene);
+            woodMaterial.diffuseColor = new BABYLON.Color3(0.9, 0.7, 0.5); // Lighter wood color
+            woodMaterial.specularColor = new BABYLON.Color3(0.2, 0.2, 0.2); // Some shine
+            woodMaterial.roughness = 0.8; // Wood texture
+            board.material = woodMaterial;
+            
+            console.log('Standard board created:', {
+                dimensions: `${length} x ${width} x ${thickness} units`,
+                position: board.position,
+                bounds: board.getBoundingInfo()
+            });
+        }
+        
+        // Reset camera to standard view
+        window.resetCamera = function() {
+            camera.setPosition(new BABYLON.Vector3(100, 50, -100));
+            camera.setTarget(BABYLON.Vector3.Zero());
+        }
+        
+        // Reset board
+        window.resetBoard = function() {
+            createStandardBoard();
+            if (routerBit) {
+                routerBit.dispose();
+                routerBit = null;
+            }
+        }
+        
+        // Start positioning mode - let user drag router bit into position
+        window.startPositioning = function() {
+            if (!routerBit) {
+                alert('Please upload a router bit OBJ file first');
+                return;
+            }
+            
+            isPositioning = true;
+            
+            // Create draggable cutting tool
+            const cuttingTool = routerBit.clone('cutting_tool');
+            
+            // Position near the top-right edge as starting point
+            const bounds = board.getBoundingInfo();
+            cuttingTool.position.set(
+                bounds.maximum.x + 10,  // Slightly away from edge
+                bounds.maximum.y + 5,   // Above the board
+                bounds.maximum.z        // At front corner
+            );
+            
+            // Scale appropriately
+            cuttingTool.scaling.setAll(1000);
+            
+            // Make it semi-transparent red for positioning
+            const positioningMaterial = new BABYLON.StandardMaterial('positioning', scene);
+            positioningMaterial.diffuseColor = new BABYLON.Color3(1, 0.5, 0.5); // Light red
+            positioningMaterial.alpha = 0.7;
+            cuttingTool.material = positioningMaterial;
+            
+            // Attach gizmos for dragging
+            gizmoManager.attachToMesh(cuttingTool);
+            
+            // Show positioning UI
+            document.getElementById('positioning-mode').style.display = 'block';
+            document.getElementById('lockButton').disabled = false;
+            
+            // Keep camera controls active - you need to move around to position properly
+            
+            console.log('Positioning mode started - drag the router bit into position');
+        }
+        
+        // Lock the router bit position
+        window.lockPosition = function() {
+            if (!isPositioning) return;
+            
+            // Get the positioned mesh
+            const cuttingTool = scene.getMeshByName('cutting_tool');
+            if (!cuttingTool) return;
+            
+            // Change to solid green to show it's locked
+            const lockedMaterial = new BABYLON.StandardMaterial('locked', scene);
+            lockedMaterial.diffuseColor = new BABYLON.Color3(0, 0.8, 0); // Green
+            lockedMaterial.alpha = 0.9;
+            cuttingTool.material = lockedMaterial;
+            
+            // Detach gizmos
+            gizmoManager.attachToMesh(null);
+            
+            // Camera controls stay active throughout positioning
+            
+            // Hide positioning UI
+            document.getElementById('positioning-mode').style.display = 'none';
+            document.getElementById('lockButton').disabled = true;
+            
+            isPositioning = false;
+            
+            console.log('Router bit locked at position:', {
+                position: cuttingTool.position,
+                rotation: cuttingTool.rotation,
+                scaling: cuttingTool.scaling
+            });
+            
+            alert('Router bit locked in position! This is where it will cut the edge.');
+        }
+        
+        // File upload handler
+        document.getElementById('fileInput').addEventListener('change', async function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            console.log('Importing router bit:', file.name);
+            
+            try {
+                // Use manual OBJ parsing (Babylon.js OBJ loader is broken)
+                const result = await parseOBJManually(file, scene);
+                
+                if (result.meshes.length > 0) {
+                    // Clean up old router bit
+                    if (routerBit) routerBit.dispose();
+                    
+                    // Use first mesh
+                    routerBit = result.meshes[0];
+                    routerBit.name = 'router_bit';
+                    
+                    // Position for viewing (to the right of board, away from UI)
+                    routerBit.position.set(50, 20, 0);
+                    routerBit.scaling.setAll(1000); // Scale up for visibility
+                    
+                    // Router bit material
+                    const bitMaterial = new BABYLON.StandardMaterial('bit', scene);
+                    bitMaterial.diffuseColor = new BABYLON.Color3(0.7, 0.7, 0.8); // Steel
+                    routerBit.material = bitMaterial;
+                    
+                    console.log('Router bit imported successfully:', {
+                        name: file.name,
+                        vertices: routerBit.getTotalVertices(),
+                        position: routerBit.position,
+                        bounds: routerBit.getBoundingInfo()
+                    });
+                    
+                    document.getElementById('info').innerHTML += `<br>Router Bit: ${file.name} (${routerBit.getTotalVertices()} vertices)`;
+                } else {
+                    alert('No meshes found in file');
+                }
+            } catch (error) {
+                console.error('Import failed:', error);
+                alert('Failed to import router bit: ' + error.message);
+            }
+        });
+        
+        // Manual OBJ parser (because Babylon.js OBJ loader is broken)
+        async function parseOBJManually(file, scene) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const objContent = e.target.result;
+                        const lines = objContent.split('\n');
+                        
+                        const vertices = [];
+                        const faces = [];
+                        
+                        // Parse OBJ content
+                        for (const line of lines) {
+                            const parts = line.trim().split(/\s+/);
+                            
+                            if (parts[0] === 'v') {
+                                // Vertex: v x y z
+                                vertices.push(
+                                    parseFloat(parts[1]),
+                                    parseFloat(parts[2]), 
+                                    parseFloat(parts[3])
+                                );
+                            } else if (parts[0] === 'f') {
+                                // Face: f v1 v2 v3 (1-indexed)
+                                const face = parts.slice(1).map(vertex => {
+                                    const vertexIndex = vertex.split('/')[0];
+                                    return parseInt(vertexIndex) - 1; // Convert to 0-indexed
+                                });
+                                
+                                if (face.length >= 3) {
+                                    faces.push(face[0], face[1], face[2]);
+                                    
+                                    // Handle quads by adding second triangle
+                                    if (face.length === 4) {
+                                        faces.push(face[0], face[2], face[3]);
+                                    }
+                                }
+                            }
+                        }
+                        
+                        console.log(`Parsed ${vertices.length/3} vertices and ${faces.length/3} faces`);
+                        
+                        // Create Babylon.js mesh
+                        const mesh = new BABYLON.Mesh('parsed_obj', scene);
+                        const vertexData = new BABYLON.VertexData();
+                        
+                        vertexData.positions = vertices;
+                        vertexData.indices = faces;
+                        
+                        // Generate normals
+                        const normals = [];
+                        BABYLON.VertexData.ComputeNormals(vertices, faces, normals);
+                        vertexData.normals = normals;
+                        
+                        // Apply to mesh
+                        vertexData.applyToMesh(mesh);
+                        
+                        resolve({ meshes: [mesh] });
+                        
+                    } catch (error) {
+                        reject(error);
+                    }
+                };
+                reader.onerror = () => reject(reader.error);
+                reader.readAsText(file);
+            });
+        }
+        
+        // Start
+        init();
+    </script>
+</body>
+</html>

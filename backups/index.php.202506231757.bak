@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">    <title>CutList CAD - Woodworking Design Tool</title>
+    <script src="https://preview.babylonjs.com/babylon.js"></script>
+    <script src="https://preview.babylonjs.com/materialsLibrary/babylonjs.materials.min.js"></script>
+    <link rel="stylesheet" href="./src/styles/main.css">
+    
+</head>
+<body>
+    <!-- Navigation Header -->
+    <header class="header">
+        <div class="header-content">
+            <h1 class="logo">CutList CAD</h1>
+            <nav class="nav">
+                <button class="nav-btn active" data-page="dashboard">Dashboard</button>
+                <button class="nav-btn" data-page="workspace">Workspace</button>
+                <button class="nav-btn" data-page="library">Library</button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main">
+        <!-- Dashboard Page -->
+        <div id="dashboard" class="page active">
+            <div class="dashboard">
+                <h2>Welcome to CutList CAD</h2>
+                <p>Modern woodworking design and measurement tool</p>
+                <div class="action-cards">
+                    <div class="card">
+                        <h3>🎯 New Project</h3>
+                        <p>Start a new woodworking design</p>
+                    </div>
+                    <div class="card">
+                        <h3>📁 Open Project</h3>
+                        <p>Continue working on existing design</p>
+                    </div>
+                    <div class="card">
+                        <h3>📏 Templates</h3>
+                        <p>Use pre-made project templates</p>
+                    </div>
+                    <div class="card">
+                        <h3>⚙️ Settings</h3>
+                        <p>Configure application preferences</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Workspace Page -->
+        <div id="workspace" class="page">
+            <!-- Toolbar -->
+            <div class="toolbar">
+                <div class="toolbar-group">
+                    <h3>Mode</h3>
+                    <button class="tool-btn mode-btn active" data-mode="sketch">2D Sketch</button>
+                    <button class="tool-btn mode-btn" data-mode="modeling">3D Model</button>
+                </div>
+                
+                <div class="toolbar-group">
+                    <h3>Tools</h3>
+                    <button class="tool-btn active" data-tool="select" title="Select">
+                        <span class="icon">🔘</span> Select
+                    </button>
+                    <button class="tool-btn" data-tool="line" title="Line">
+                        <span class="icon">📏</span> Line
+                    </button>
+                    <button class="tool-btn" data-tool="rectangle" title="Rectangle">
+                        <span class="icon">▭</span> Rectangle
+                    </button>                    <button class="tool-btn" data-tool="circle" title="Circle">
+                        <span class="icon">○</span> Circle
+                    </button>
+                    <button class="tool-btn" data-tool="extrude" title="Extrude" id="extrude-btn" disabled>
+                        <span class="icon">📦</span> Extrude
+                    </button>
+                </div>
+
+                <div class="toolbar-group">
+                    <h3>View</h3>
+                    <button class="tool-btn" id="grid-toggle" title="Toggle Grid">
+                        <span class="icon">⊞</span> Grid
+                    </button>
+                    <button class="tool-btn" id="zoom-fit" title="Zoom to Fit">
+                        <span class="icon">🔍</span> Fit
+                    </button>
+                    <button class="tool-btn" id="reset-view" title="Reset View">
+                        <span class="icon">🏠</span> Reset
+                    </button>
+                </div>            </div>
+
+            <!-- Workspace Content Area -->
+            <div class="workspace-content">
+                <!-- Canvas Container -->
+                <div class="canvas-container">
+                    <canvas id="drawingCanvas"></canvas>
+                    
+                    <!-- Status Bar -->
+                    <div class="status-bar">
+                        <div class="status-bar-item">
+                            Mode: <span id="current-mode">2D Sketch</span>
+                        </div>
+                        <div class="status-bar-item">
+                            Grid: <span id="current-grid-size">1/8"</span>
+                        </div>
+                        <div class="status-bar-item">
+                            <!-- Zoom: <span id="current-zoom-level">100%</span> --> <!-- Old zoom display -->
+                            <span id="current-visible-height">View H: 24.0"</span> <!-- New display -->
+                        </div>
+                        <div class="status-bar-item">
+                            Objects: <span id="object-count">0</span>
+                        </div>
+                        <div class="status-bar-item">
+                            Tool: <span id="current-tool">Select</span>
+                        </div>
+                        <div class="status-bar-item">
+                            Mouse: <span id="mouse-coords">0, 0</span>
+                        </div>
+                        <div class="status-bar-item" id="hud-3d-distance" style="display: none;">
+                            3D Cam Distance (Y): <span id="cam-distance-y">N/A</span>
+                        </div>
+                        <div class="status-bar-item" id="hud-3d-facing" style="display: none;">
+                            3D Cam Facing: <span id="cam-facing">N/A</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Project Explorer - NOW ALONGSIDE CANVAS -->
+                <div id="project-explorer">
+                    <!-- Project Explorer HTML component will be loaded here -->
+                    <div class="loading-explorer">
+                        <p>Loading Project Explorer...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Library Page -->
+        <div id="library" class="page">
+            <div class="library">
+                <h2>Component Library</h2>
+                <p>Common woodworking components and hardware</p>
+                <div class="library-grid">
+                    <div class="library-item">
+                        <h4>Standard Lumber</h4>
+                        <p>2x4, 2x6, 2x8, 4x4</p>
+                    </div>
+                    <div class="library-item">
+                        <h4>Plywood</h4>
+                        <p>3/4", 1/2", 1/4" sheets</p>
+                    </div>
+                    <div class="library-item">
+                        <h4>Hardware</h4>
+                        <p>Screws, bolts, hinges</p>
+                    </div>
+                    <div class="library-item">
+                        <h4>Joints</h4>
+                        <p>Mortise & tenon, dovetail</p>
+                    </div>
+                </div>
+            </div>        </div>
+    </main>
+
+    <!-- Bottom Toolbar -->
+    <?php include 'ui/bottom-toolbar.php'; ?>
+
+    <script type="module" src="src/main_2d_orthogonal_v21_spankyfix4.js?v=spanky_2d_orthogonal_<?php echo time(); ?>"></script>
+</body>
+</html>

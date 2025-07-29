@@ -1,0 +1,11 @@
+POST http://localhost:9001/spanky-raw
+Content-Type: text/plain
+Accept: text/plain
+
+
+
+Are you able to upload files to the server?
+  
+  
+  
+  

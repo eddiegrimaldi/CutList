@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grid Diagnostic Test for Master</title>
+    <style>
+        body { margin: 0; background: #333; }
+        canvas { 
+            border: 2px solid #ff0000; 
+            background: #f0f0f0;
+            display: block;
+            margin: 20px auto;
+        }
+        .controls {
+            text-align: center;
+            color: white;
+            font-family: Arial;
+            margin: 20px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        button:hover { background: #45a049; }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <h1>Grid Diagnostic Test for Master</h1>
+        <button onclick="drawSimpleGrid()">Draw Simple Grid</button>
+        <button onclick="drawAdvancedGrid()">Draw Advanced Grid</button>
+        <button onclick="clearCanvas()">Clear Canvas</button>
+        <button onclick="testBabylonJS()">Test Babylon.js</button>
+        <p>Status: <span id="status">Ready</span></p>
+    </div>
+    
+    <canvas id="testCanvas" width="800" height="600"></canvas>
+    
+    <!-- Babylon.js for testing -->
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    
+    <script>
+        const canvas = document.getElementById('testCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        function updateStatus(msg) {
+            document.getElementById('status').textContent = msg;
+            console.log('🔥 STATUS:', msg);
+        }
+        
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            updateStatus('Canvas cleared');
+        }
+        
+        function drawSimpleGrid() {
+            updateStatus('Drawing simple grid...');
+            
+            ctx.strokeStyle = '#666';
+            ctx.lineWidth = 1;
+            
+            const gridSize = 50;
+            
+            // Vertical lines
+            for (let x = 0; x <= canvas.width; x += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+            
+            // Horizontal lines
+            for (let y = 0; y <= canvas.height; y += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+            
+            updateStatus('Simple grid drawn successfully!');
+        }
+        
+        function drawAdvancedGrid() {
+            updateStatus('Drawing advanced grid with camera system...');
+            
+            // Simulate the camera system from CutList
+            const camera = {
+                x: 0,
+                y: 0,
+                zoom: 1
+            };
+            
+            ctx.save();
+            
+            // Apply camera transform
+            ctx.translate(canvas.width / 2, canvas.height / 2);
+            ctx.scale(camera.zoom, camera.zoom);
+            ctx.translate(-camera.x, -camera.y);
+            
+            // Draw grid
+            const minorGridSize = 20;
+            const majorGridSize = 200;
+            
+            // Calculate view bounds
+            const viewBounds = {
+                left: -canvas.width / 2 / camera.zoom + camera.x,
+                right: canvas.width / 2 / camera.zoom + camera.x,
+                top: -canvas.height / 2 / camera.zoom + camera.y,
+                bottom: canvas.height / 2 / camera.zoom + camera.y
+            };
+            
+            // Draw minor grid lines
+            ctx.strokeStyle = '#ddd';
+            ctx.lineWidth = 1 / camera.zoom;
+            
+            const startX = Math.floor(viewBounds.left / minorGridSize) * minorGridSize;
+            const endX = Math.ceil(viewBounds.right / minorGridSize) * minorGridSize;
+            const startY = Math.floor(viewBounds.top / minorGridSize) * minorGridSize;
+            const endY = Math.ceil(viewBounds.bottom / minorGridSize) * minorGridSize;
+            
+            // Vertical lines
+            for (let x = startX; x <= endX; x += minorGridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, viewBounds.top);
+                ctx.lineTo(x, viewBounds.bottom);
+                ctx.stroke();
+            }
+            
+            // Horizontal lines
+            for (let y = startY; y <= endY; y += minorGridSize) {
+                ctx.beginPath();
+                ctx.moveTo(viewBounds.left, y);
+                ctx.lineTo(viewBounds.right, y);
+                ctx.stroke();
+            }
+            
+            // Draw major grid lines
+            ctx.strokeStyle = '#999';
+            ctx.lineWidth = 2 / camera.zoom;
+            
+            const majorStartX = Math.floor(viewBounds.left / majorGridSize) * majorGridSize;
+            const majorEndX = Math.ceil(viewBounds.right / majorGridSize) * majorGridSize;
+            const majorStartY = Math.floor(viewBounds.top / majorGridSize) * majorGridSize;
+            const majorEndY = Math.ceil(viewBounds.bottom / majorGridSize) * majorGridSize;
+            
+            // Major vertical lines
+            for (let x = majorStartX; x <= majorEndX; x += majorGridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, viewBounds.top);
+                ctx.lineTo(x, viewBounds.bottom);
+                ctx.stroke();
+            }
+            
+            // Major horizontal lines
+            for (let y = majorStartY; y <= majorEndY; y += majorGridSize) {
+                ctx.beginPath();
+                ctx.moveTo(viewBounds.left, y);
+                ctx.lineTo(viewBounds.right, y);
+                ctx.stroke();
+            }
+            
+            ctx.restore();
+            updateStatus('Advanced grid drawn successfully!');
+        }
+        
+        function testBabylonJS() {
+            updateStatus('Testing Babylon.js availability...');
+            
+            if (typeof BABYLON !== 'undefined') {
+                updateStatus('Babylon.js is loaded and ready!');
+                console.log('🎯 Babylon.js version available');
+            } else {
+                updateStatus('❌ Babylon.js is NOT available');
+                console.error('❌ Babylon.js failed to load');
+            }
+        }
+        
+        // Auto-draw simple grid on load
+        window.onload = function() {
+            updateStatus('Grid diagnostic loaded - testing...');
+            drawSimpleGrid();
+        };
+    </script>
+</body>
+</html>

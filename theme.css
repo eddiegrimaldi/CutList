@@ -1,0 +1,35 @@
+/*
+  theme.css
+  Centralized theme variables for CutList
+  Colors, sizes, fonts, and label styles for lines, shapes, grids, font, and labels
+*/
+:root {
+  /* Colors */
+  --color-primary: #2C5530;
+  --color-secondary: #8B4513;
+  --color-accent: #D2691E;
+  --color-background: #F5F5F0;
+  --color-surface: #FFFFFF;
+  --color-grid-major: #CCCCCC;
+  --color-grid-minor: #E8E8E8;
+  --color-line: #2C2C2C;
+  --color-label: #333333;
+  --color-selection: #90caf9;
+
+  /* Sizes */
+  --font-size-base: 16px;
+  --font-size-label: 14px;
+  --line-thickness: 2px;
+  --grid-major-thickness: 1.5px;
+  --grid-minor-thickness: 0.5px;
+  --shape-border-radius: 4px;
+
+  /* Fonts */
+  --font-family-base: 'Segoe UI', Arial, sans-serif;
+  --font-family-label: 'Segoe UI', Arial, sans-serif;
+
+  /* Label Styles */
+  --label-padding: 2px 6px;
+  --label-bg: var(--color-surface);
+  --label-border: 1px solid var(--color-grid-major);
+}

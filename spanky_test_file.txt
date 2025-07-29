@@ -1,0 +1,3 @@
+SPANKY TEST FILE - If you can see this file on the server, uploads are working.
+Created at: 2025-06-17 19:10:00
+This file should appear at: https://www.kettlebread.com/cutlist/spanky_test_file.txt

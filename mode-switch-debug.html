@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mode Switch Debug - Find Grid Disappearance</title>
+    <style>
+        body { margin: 0; padding: 20px; background: #f5f5f5; font-family: Arial, sans-serif; }
+        canvas { border: 3px solid #000; background: white; display: block; margin: 20px 0; }
+        .controls { margin: 10px 0; }
+        button { margin: 5px; padding: 12px 20px; background: #007acc; color: white; border: none; font-size: 14px; }
+        button:hover { background: #005999; }
+        #debug { background: #fff; padding: 15px; margin: 10px 0; border: 1px solid #ccc; font-family: monospace; font-size: 12px; max-height: 400px; overflow-y: auto; }
+        .status { font-weight: bold; color: #d00; }
+    </style>
+</head>
+<body>
+    <h1>🔍 MODE SWITCH DEBUG - FIND THE GRID KILLER</h1>
+    <div class="controls">
+        <button onclick="forceSketchMode()">📐 FORCE SKETCH MODE</button>
+        <button onclick="forceModelingMode()">🎯 FORCE MODELING MODE</button>
+        <button onclick="testModeSwitch()">🔄 TEST MODE SWITCH</button>
+        <button onclick="drawGridDirect()">🗿 DRAW GRID DIRECTLY</button>
+        <button onclick="clearAll()">🧹 CLEAR ALL</button>
+    </div>
+    <canvas id="canvas" width="800" height="600"></canvas>
+    <div class="status" id="status">READY</div>
+    <div id="debug"></div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const debug = document.getElementById('debug');
+        const status = document.getElementById('status');
+
+        // EXACT CAMERA FROM MAIN APP
+        let camera = {
+            x: 0, y: 0, zoom: 1,
+            position: { x: 0, y: 300, z: 500 },
+            rotation: { x: -0.5, y: 0 },
+            fov: 60, near: 1, far: 3000,
+            mode: 'sketch'
+        };
+
+        let showGrid = true;
+
+        function log(message) {
+            const time = new Date().toLocaleTimeString();
+            debug.innerHTML += `[${time}] ${message}<br>`;
+            debug.scrollTop = debug.scrollHeight;
+            console.log(message);
+        }
+
+        function updateStatus(msg) {
+            status.textContent = msg;
+            log(`STATUS: ${msg}`);
+        }
+
+        function clearAll() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            debug.innerHTML = '';
+            updateStatus('CLEARED');
+        }
+
+        // EXACT PROJECT3D FROM MAIN APP
+        function project3D(x, y, z) {
+            const dx = x - camera.position.x;
+            const dy = y - camera.position.y;
+            const dz = z - camera.position.z;
+            
+            const cos_pitch = Math.cos(camera.rotation.x);
+            const sin_pitch = Math.sin(camera.rotation.x);
+            const cos_yaw = Math.cos(camera.rotation.y);
+            const sin_yaw = Math.sin(camera.rotation.y);
+            
+            const x1 = dx * cos_yaw - dz * sin_yaw;
+            const z1 = dx * sin_yaw + dz * cos_yaw;
+            const y2 = dy * cos_pitch - z1 * sin_pitch;
+            const z2 = dy * sin_pitch + z1 * cos_pitch;
+            
+            if (z2 <= camera.near) {
+                return null;
+            }
+            
+            const fovScale = (canvas.height / 2) / Math.tan((camera.fov * Math.PI / 180) / 2);
+            const screenX = (x1 * fovScale) / z2;
+            const screenY = (y2 * fovScale) / z2;
+            
+            return { 
+                x: screenX + canvas.width / 2, 
+                y: -screenY + canvas.height / 2, 
+                depth: z2 
+            };
+        }
+
+        // EXACT APPLYCAMERATRANSFORM FROM MAIN APP
+        function applyCameraTransform() {
+            log(`applyCameraTransform called - Mode: ${camera.mode}`);
+            
+            if (camera.mode === 'sketch') {
+                log('Applying 2D transforms');
+                ctx.translate(canvas.width / 2, canvas.height / 2);
+                ctx.scale(camera.zoom, camera.zoom);
+                ctx.translate(-camera.x, -camera.y);
+            } else {
+                log('Applying 3D transforms (centering only)');
+                ctx.translate(canvas.width / 2, canvas.height / 2);
+            }
+        }
+
+        // EXACT DRAWGRID3D FROM MAIN APP
+        function drawGrid3D() {
+            log('🔥 drawGrid3D called');
+            log(`Camera position: ${JSON.stringify(camera.position)}`);
+            log(`Camera rotation: ${JSON.stringify(camera.rotation)}`);
+            
+            const gridSize = 100;
+            const extent = 300;
+            let drawnLines = 0;
+            let totalLines = 0;
+            
+            ctx.strokeStyle = '#DDDDDD';
+            ctx.lineWidth = 1;
+            
+            // X-direction lines
+            for (let z = -extent; z <= extent; z += gridSize) {
+                totalLines++;
+                const start = project3D(-extent, 0, z);
+                const end = project3D(extent, 0, z);
+                
+                if (start && end && start.depth > 0 && end.depth > 0) {
+                    ctx.beginPath();
+                    ctx.moveTo(start.x, start.y);
+                    ctx.lineTo(end.x, end.y);
+                    ctx.stroke();
+                    drawnLines++;
+                    log(`Drew X-line at Z=${z}: (${start.x.toFixed(1)}, ${start.y.toFixed(1)}) to (${end.x.toFixed(1)}, ${end.y.toFixed(1)})`);
+                } else {
+                    log(`SKIPPED X-line at Z=${z}: start=${start ? 'valid' : 'NULL'}, end=${end ? 'valid' : 'NULL'}`);
+                }
+            }
+            
+            // Z-direction lines
+            for (let x = -extent; x <= extent; x += gridSize) {
+                totalLines++;
+                const start = project3D(x, 0, -extent);
+                const end = project3D(x, 0, extent);
+                
+                if (start && end && start.depth > 0 && end.depth > 0) {
+                    ctx.beginPath();
+                    ctx.moveTo(start.x, start.y);
+                    ctx.lineTo(end.x, end.y);
+                    ctx.stroke();
+                    drawnLines++;
+                    log(`Drew Z-line at X=${x}: (${start.x.toFixed(1)}, ${start.y.toFixed(1)}) to (${end.x.toFixed(1)}, ${end.y.toFixed(1)})`);
+                } else {
+                    log(`SKIPPED Z-line at X=${x}: start=${start ? 'valid' : 'NULL'}, end=${end ? 'valid' : 'NULL'}`);
+                }
+            }
+            
+            log(`🎯 GRID RESULT: Drew ${drawnLines} out of ${totalLines} lines`);
+            
+            // Draw origin point
+            const origin = project3D(0, 0, 0);
+            if (origin && origin.depth > 0) {
+                ctx.fillStyle = '#FF00FF';
+                ctx.beginPath();
+                ctx.arc(origin.x, origin.y, 5, 0, Math.PI * 2);
+                ctx.fill();
+                log(`Drew origin at (${origin.x.toFixed(1)}, ${origin.y.toFixed(1)})`);
+            } else {
+                log('ORIGIN NOT VISIBLE');
+            }
+        }
+
+        // EXACT DRAWGRID2D FROM MAIN APP
+        function drawGrid2D() {
+            log('📐 drawGrid2D called');
+            const minorGridSize = 20;
+            const majorGridSize = minorGridSize * 10;
+            
+            const viewBounds = {
+                left: -canvas.width / 2 / camera.zoom + camera.x,
+                right: canvas.width / 2 / camera.zoom + camera.x,
+                top: -canvas.height / 2 / camera.zoom + camera.y,
+                bottom: canvas.height / 2 / camera.zoom + camera.y
+            };
+            
+            ctx.strokeStyle = '#CCCCCC';
+            ctx.lineWidth = 1 / camera.zoom;
+            
+            let drawnLines = 0;
+            
+            // Draw some grid lines
+            for (let x = -200; x <= 200; x += minorGridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, -200);
+                ctx.lineTo(x, 200);
+                ctx.stroke();
+                drawnLines++;
+            }
+            
+            for (let y = -200; y <= 200; y += minorGridSize) {
+                ctx.beginPath();
+                ctx.moveTo(-200, y);
+                ctx.lineTo(200, y);
+                ctx.stroke();
+                drawnLines++;
+            }
+            
+            log(`📐 2D GRID: Drew ${drawnLines} lines`);
+        }
+
+        // EXACT DRAWGRID FROM MAIN APP
+        function drawGrid() {
+            log(`drawGrid called - showGrid: ${showGrid}, mode: ${camera.mode}`);
+            
+            if (!showGrid) {
+                log('Grid disabled, skipping');
+                return;
+            }
+            
+            if (camera.mode === 'sketch') {
+                drawGrid2D();
+            } else {
+                drawGrid3D();
+            }
+        }
+
+        // EXACT REDRAWCANVAS FROM MAIN APP
+        function redrawCanvas() {
+            log('🔥 redrawCanvas called');
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#FAFAFA';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Save context
+            ctx.save();
+            
+            // Apply transforms
+            applyCameraTransform();
+            
+            // Draw grid
+            if (showGrid) {
+                drawGrid();
+            }
+            
+            // Restore context
+            ctx.restore();
+            
+            log('🔥 redrawCanvas completed');
+        }
+
+        function forceSketchMode() {
+            camera.mode = 'sketch';
+            updateStatus('SKETCH MODE');
+            redrawCanvas();
+        }
+
+        function forceModelingMode() {
+            camera.mode = 'modeling';
+            updateStatus('MODELING MODE');
+            redrawCanvas();
+        }
+
+        function testModeSwitch() {
+            log('🔄 TESTING MODE SWITCH SEQUENCE');
+            camera.mode = 'sketch';
+            updateStatus('Starting in SKETCH');
+            redrawCanvas();
+            
+            setTimeout(() => {
+                log('🔄 Switching to MODELING...');
+                camera.mode = 'modeling';
+                updateStatus('Switched to MODELING');
+                redrawCanvas();
+            }, 2000);
+        }
+
+        function drawGridDirect() {
+            log('🗿 DRAWING GRID WITHOUT ANY TRANSFORMS');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // NO TRANSFORMS - DIRECT DRAWING
+            const gridSize = 100;
+            const extent = 300;
+            let drawnLines = 0;
+            
+            ctx.strokeStyle = '#00FF00';
+            ctx.lineWidth = 2;
+            
+            for (let z = -extent; z <= extent; z += gridSize) {
+                const start = project3D(-extent, 0, z);
+                const end = project3D(extent, 0, z);
+                
+                if (start && end) {
+                    ctx.beginPath();
+                    ctx.moveTo(start.x, start.y);
+                    ctx.lineTo(end.x, end.y);
+                    ctx.stroke();
+                    drawnLines++;
+                }
+            }
+            
+            for (let x = -extent; x <= extent; x += gridSize) {
+                const start = project3D(x, 0, -extent);
+                const end = project3D(x, 0, extent);
+                
+                if (start && end) {
+                    ctx.beginPath();
+                    ctx.moveTo(start.x, start.y);
+                    ctx.lineTo(end.x, end.y);
+                    ctx.stroke();
+                    drawnLines++;
+                }
+            }
+            
+            log(`🗿 DIRECT GRID: Drew ${drawnLines} lines`);
+            updateStatus(`DIRECT GRID: ${drawnLines} lines`);
+        }
+
+        // Initial state
+        updateStatus('INITIALIZED - Ready for testing');
+        log('Debug tool loaded. Test the mode switching to find the grid killer!');
+    </script>
+</body>
+</html>

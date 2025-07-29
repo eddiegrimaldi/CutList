@@ -1,0 +1,30 @@
+{
+  "name": "spanky-vscode-extension",
+  "displayName": "Spanky VSCode Extension",
+  "description": "Chat with Spanky (Claude 3 Opus) and other AI agents in VSCode.",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "activationEvents": [
+    "onCommand:spanky.openChat"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "spanky.openChat",
+        "title": "Open Spanky Chat"
+      }
+    ]
+  },
+  "scripts": {
+    "compile": "tsc -p .",
+    "watch": "tsc -watch -p ."
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.3",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.3.0"
+  }
+}

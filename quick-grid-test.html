@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MASTER'S QUICK GRID TEST</title>
+    <style>
+        body { margin: 0; padding: 20px; background: #333; color: white; font-family: monospace; }
+        canvas { border: 2px solid #fff; background: #FAFAFA; }
+        .controls { margin: 10px 0; }
+        button { padding: 10px; margin: 5px; background: #007acc; color: white; border: none; border-radius: 5px; }
+        .status { background: #222; padding: 10px; margin: 10px 0; border-left: 4px solid #0f0; }
+    </style>
+</head>
+<body>
+    <h1>🎯 MASTER'S QUICK GRID TEST</h1>
+    <div class="status" id="status">Ready to test grid...</div>
+    
+    <div class="controls">
+        <button onclick="testSketch()">📐 Test Sketch Mode</button>
+        <button onclick="testModeling()">🎯 Test Modeling Mode</button>
+        <button onclick="clearCanvas()">🧹 Clear</button>
+    </div>
+    
+    <canvas id="testCanvas" width="800" height="600"></canvas>
+    
+    <div id="log" style="background: #000; padding: 10px; margin: 10px 0; font-size: 12px; height: 200px; overflow-y: scroll;"></div>
+
+    <script>
+        const canvas = document.getElementById('testCanvas');
+        const ctx = canvas.getContext('2d');
+        let showGrid = true;
+        
+        const camera = {
+            mode: 'sketch',
+            x: 0, y: 0, zoom: 1,
+            position: { x: 0, y: 300, z: 300 },
+            rotation: { x: -0.5, y: 0 },
+            fov: 75, near: 0.5
+        };
+        
+        function log(msg) {
+            console.log(msg);
+            document.getElementById('log').innerHTML += msg + '<br>';
+            document.getElementById('log').scrollTop = document.getElementById('log').scrollHeight;
+            document.getElementById('status').textContent = msg;
+        }
+        
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#FAFAFA';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            document.getElementById('log').innerHTML = '';
+            log('🧹 Canvas cleared');
+        }
+        
+        function applyCameraTransform() {
+            if (camera.mode === 'sketch') {
+                ctx.translate(canvas.width / 2, canvas.height / 2);
+                ctx.scale(camera.zoom, camera.zoom);
+                ctx.translate(-camera.x, -camera.y);
+            } else {
+                // 3D perspective mode - NO additional transforms
+                // The project3D function already includes canvas centering
+            }
+        }
+        
+        function project3D(x, y, z) {
+            const dx = x - camera.position.x;
+            const dy = y - camera.position.y;
+            const dz = z - camera.position.z;
+            
+            const cos_pitch = Math.cos(camera.rotation.x);
+            const sin_pitch = Math.sin(camera.rotation.x);
+            const cos_yaw = Math.cos(camera.rotation.y);
+            const sin_yaw = Math.sin(camera.rotation.y);
+            
+            const x1 = dx * cos_yaw - dz * sin_yaw;
+            const z1 = dx * sin_yaw + dz * cos_yaw;
+            const y2 = dy * cos_pitch - z1 * sin_pitch;
+            const z2 = dy * sin_pitch + z1 * cos_pitch;
+            
+            if (z2 <= 0.001) return null;
+            
+            const fovScale = (canvas.height / 2) / Math.tan((camera.fov * Math.PI / 180) / 2);
+            const screenX = (x1 * fovScale) / z2;
+            const screenY = (y2 * fovScale) / z2;
+            
+            return { 
+                x: screenX + canvas.width / 2, 
+                y: -screenY + canvas.height / 2, 
+                depth: z2 
+            };
+        }
+        
+        function drawGrid2D() {
+            log('📐 Drawing 2D grid...');
+            
+            const minorGridSize = 50;
+            const majorGridSize = minorGridSize * 5;
+            
+            const halfWidth = canvas.width / 2 / camera.zoom;
+            const halfHeight = canvas.height / 2 / camera.zoom;
+            
+            const viewBounds = {
+                left: camera.x - halfWidth,
+                right: camera.x + halfWidth,
+                top: camera.y - halfHeight,
+                bottom: camera.y + halfHeight
+            };
+            
+            const padding = Math.max(minorGridSize, majorGridSize) * 2;
+            viewBounds.left -= padding;
+            viewBounds.right += padding;
+            viewBounds.top -= padding;
+            viewBounds.bottom += padding;
+            
+            // Minor grid lines
+            ctx.strokeStyle = '#E5E5E5';
+            ctx.lineWidth = 1 / camera.zoom;
+            let lines = 0;
+            
+            const minorStartX = Math.floor(viewBounds.left / minorGridSize) * minorGridSize;
+            const minorEndX = Math.ceil(viewBounds.right / minorGridSize) * minorGridSize;
+            
+            for (let x = minorStartX; x <= minorEndX; x += minorGridSize) {
+                if (x % majorGridSize !== 0) {
+                    ctx.beginPath();
+                    ctx.moveTo(x, viewBounds.top);
+                    ctx.lineTo(x, viewBounds.bottom);
+                    ctx.stroke();
+                    lines++;
+                }
+            }
+            
+            const minorStartY = Math.floor(viewBounds.top / minorGridSize) * minorGridSize;
+            const minorEndY = Math.ceil(viewBounds.bottom / minorGridSize) * minorGridSize;
+            
+            for (let y = minorStartY; y <= minorEndY; y += minorGridSize) {
+                if (y % majorGridSize !== 0) {
+                    ctx.beginPath();
+                    ctx.moveTo(viewBounds.left, y);
+                    ctx.lineTo(viewBounds.right, y);
+                    ctx.stroke();
+                    lines++;
+                }
+            }
+            
+            // Major grid lines
+            ctx.strokeStyle = '#CCCCCC';
+            ctx.lineWidth = 1.5 / camera.zoom;
+            
+            const majorStartX = Math.floor(viewBounds.left / majorGridSize) * majorGridSize;
+            const majorEndX = Math.ceil(viewBounds.right / majorGridSize) * majorGridSize;
+            
+            for (let x = majorStartX; x <= majorEndX; x += majorGridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, viewBounds.top);
+                ctx.lineTo(x, viewBounds.bottom);
+                ctx.stroke();
+                lines++;
+            }
+            
+            const majorStartY = Math.floor(viewBounds.top / majorGridSize) * majorGridSize;
+            const majorEndY = Math.ceil(viewBounds.bottom / majorGridSize) * majorGridSize;
+            
+            for (let y = majorStartY; y <= majorEndY; y += majorGridSize) {
+                ctx.beginPath();
+                ctx.moveTo(viewBounds.left, y);
+                ctx.lineTo(viewBounds.right, y);
+                ctx.stroke();
+                lines++;
+            }
+            
+            log(`✅ 2D Grid drawn: ${lines} lines`);
+        }
+        
+        function drawGrid3D() {
+            log('🎯 Drawing 3D grid...');
+            
+            const gridSize = 100;
+            const extent = 500;
+            let lines = 0;
+            
+            ctx.strokeStyle = '#DDDDDD';
+            ctx.lineWidth = 1;
+            
+            // X-direction lines
+            for (let z = -extent; z <= extent; z += gridSize) {
+                const start = project3D(-extent, 0, z);
+                const end = project3D(extent, 0, z);
+                
+                if (start && end) {
+                    ctx.beginPath();
+                    ctx.moveTo(start.x, start.y);
+                    ctx.lineTo(end.x, end.y);
+                    ctx.stroke();
+                    lines++;
+                }
+            }
+            
+            // Z-direction lines
+            for (let x = -extent; x <= extent; x += gridSize) {
+                const start = project3D(x, 0, -extent);
+                const end = project3D(x, 0, extent);
+                
+                if (start && end) {
+                    ctx.beginPath();
+                    ctx.moveTo(start.x, start.y);
+                    ctx.lineTo(end.x, end.y);
+                    ctx.stroke();
+                    lines++;
+                }
+            }
+            
+            log(`✅ 3D Grid drawn: ${lines} lines`);
+        }
+        
+        function testSketch() {
+            clearCanvas();
+            camera.mode = 'sketch';
+            
+            ctx.save();
+            applyCameraTransform();
+            drawGrid2D();
+            ctx.restore();
+            
+            log('📐 SKETCH MODE TEST COMPLETE');
+        }
+        
+        function testModeling() {
+            clearCanvas();
+            camera.mode = 'modeling';
+            
+            ctx.save();
+            applyCameraTransform();
+            drawGrid3D();
+            ctx.restore();
+            
+            log('🎯 MODELING MODE TEST COMPLETE');
+        }
+        
+        // Auto-test on load
+        window.onload = () => {
+            testSketch();
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grid Repair Test - Master's Emergency Grid Recovery</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            background: #222;
+            color: #fff;
+        }
+        .controls {
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            font-family: inherit;
+            background: #444;
+            color: #fff;
+            border: 1px solid #666;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #555;
+        }
+        canvas {
+            border: 2px solid #666;
+            background: #fafafa;
+        }
+        .status {
+            margin-top: 10px;
+            padding: 10px;
+            background: #333;
+            border: 1px solid #666;
+        }
+    </style>
+</head>
+<body>
+    <h1>🚑 MASTER'S GRID EMERGENCY REPAIR</h1>
+    <div class="controls">
+        <button onclick="testBasicGrid()">🟩 TEST BASIC GRID</button>
+        <button onclick="testTransformedGrid()">📐 TEST TRANSFORMED GRID</button>
+        <button onclick="testMainAppGrid()">🎯 TEST MAIN APP GRID</button>
+        <button onclick="clearCanvas()">🧹 CLEAR</button>
+    </div>
+    <canvas id="canvas" width="800" height="600"></canvas>
+    <div class="status" id="status">Ready to diagnose grid issue...</div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const status = document.getElementById('status');
+
+        // EXACT CAMERA FROM MAIN APP
+        let camera = {
+            x: 0, y: 0, zoom: 1,
+            position: { x: 0, y: 300, z: 500 },
+            rotation: { x: -0.5, y: 0 },
+            fov: 60, near: 1, far: 3000,
+            mode: 'sketch'
+        };
+
+        let showGrid = true;
+
+        function updateStatus(msg) {
+            status.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong>: ${msg}`;
+            console.log('🔥 STATUS:', msg);
+        }
+
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#FAFAFA';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            updateStatus('Canvas cleared');
+        }
+
+        function testBasicGrid() {
+            updateStatus('Testing basic grid without transforms...');
+            clearCanvas();
+            
+            ctx.strokeStyle = '#FF0000';
+            ctx.lineWidth = 2;
+            
+            const gridSize = 50;
+            let lines = 0;
+            
+            // Draw vertical lines
+            for (let x = 0; x <= canvas.width; x += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+                lines++;
+            }
+            
+            // Draw horizontal lines
+            for (let y = 0; y <= canvas.height; y += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+                lines++;
+            }
+            
+            updateStatus(`✅ Basic grid drawn: ${lines} red lines visible!`);
+        }
+
+        function testTransformedGrid() {
+            updateStatus('Testing transformed grid (like main app)...');
+            clearCanvas();
+            
+            ctx.save();
+            
+            // Apply EXACT same transforms as main app
+            ctx.translate(canvas.width / 2, canvas.height / 2);
+            ctx.scale(camera.zoom, camera.zoom);
+            ctx.translate(-camera.x, -camera.y);
+            
+            ctx.strokeStyle = '#00FF00';
+            ctx.lineWidth = 1 / camera.zoom;
+            
+            const gridSize = 50;
+            let lines = 0;
+            
+            // Draw grid in world coordinates
+            for (let x = -500; x <= 500; x += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, -500);
+                ctx.lineTo(x, 500);
+                ctx.stroke();
+                lines++;
+            }
+            
+            for (let y = -500; y <= 500; y += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(-500, y);
+                ctx.lineTo(500, y);
+                ctx.stroke();
+                lines++;
+            }
+            
+            ctx.restore();
+            
+            updateStatus(`✅ Transformed grid drawn: ${lines} green lines with camera transforms!`);
+        }
+
+        function testMainAppGrid() {
+            updateStatus('Testing EXACT main app grid function...');
+            clearCanvas();
+            
+            ctx.save();
+            
+            // EXACT applyCameraTransform from main app
+            ctx.translate(canvas.width / 2, canvas.height / 2);
+            ctx.scale(camera.zoom, camera.zoom);
+            ctx.translate(-camera.x, -camera.y);
+            
+            // EXACT drawGrid2D logic from main app
+            const currentGrid = { pixels: 96 }; // 1 inch grid
+            const gridLOD = {
+                fine: { size: 24, style: '#F0F0F0', width: 0.3 },
+                minor: { size: 96, style: '#DDDDDD', width: 0.8 },
+                major: { size: 384, style: '#888888', width: 1.5 }
+            };
+            
+            const viewBounds = {
+                left: -canvas.width / 2 / camera.zoom + camera.x,
+                right: canvas.width / 2 / camera.zoom + camera.x,
+                top: -canvas.height / 2 / camera.zoom + camera.y,
+                bottom: canvas.height / 2 / camera.zoom + camera.y
+            };
+            
+            const padding = gridLOD.major.size;
+            viewBounds.left -= padding;
+            viewBounds.right += padding;
+            viewBounds.top -= padding;
+            viewBounds.bottom += padding;
+            
+            let totalLines = 0;
+            
+            // Draw major grid lines
+            ctx.strokeStyle = gridLOD.major.style;
+            ctx.lineWidth = Math.max(1.5, gridLOD.major.width / camera.zoom);
+            
+            const majorStartX = Math.floor(viewBounds.left / gridLOD.major.size) * gridLOD.major.size;
+            const majorEndX = Math.ceil(viewBounds.right / gridLOD.major.size) * gridLOD.major.size;
+            
+            for (let x = majorStartX; x <= majorEndX; x += gridLOD.major.size) {
+                ctx.beginPath();
+                ctx.moveTo(x, viewBounds.top);
+                ctx.lineTo(x, viewBounds.bottom);
+                ctx.stroke();
+                totalLines++;
+            }
+            
+            const majorStartY = Math.floor(viewBounds.top / gridLOD.major.size) * gridLOD.major.size;
+            const majorEndY = Math.ceil(viewBounds.bottom / gridLOD.major.size) * gridLOD.major.size;
+            
+            for (let y = majorStartY; y <= majorEndY; y += gridLOD.major.size) {
+                ctx.beginPath();
+                ctx.moveTo(viewBounds.left, y);
+                ctx.lineTo(viewBounds.right, y);
+                ctx.stroke();
+                totalLines++;
+            }
+            
+            // Origin marker
+            ctx.strokeStyle = '#FF6666';
+            ctx.lineWidth = 2 / camera.zoom;
+            const originSize = 10 / camera.zoom;
+            
+            ctx.beginPath();
+            ctx.moveTo(-originSize, 0);
+            ctx.lineTo(originSize, 0);
+            ctx.moveTo(0, -originSize);
+            ctx.lineTo(0, originSize);
+            ctx.stroke();
+            
+            ctx.restore();
+            
+            updateStatus(`✅ Main app grid test: ${totalLines} lines drawn with exact logic! ${totalLines > 0 ? 'GRID WORKS!' : 'GRID FAILED!'}`);
+        }
+
+        // Test basic grid on load
+        window.onload = function() {
+            updateStatus('Grid repair test loaded - testing basic functionality...');
+            setTimeout(testBasicGrid, 500);
+        };
+    </script>
+</body>
+</html>

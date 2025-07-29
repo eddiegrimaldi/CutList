@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Direct Gizmo Integration</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: white;
+        }
+        
+        #renderCanvas {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+            background: #2a2a2a;
+        }
+        
+        #debug {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 5px;
+            color: white;
+            font-family: monospace;
+            font-size: 12px;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="renderCanvas"></canvas>
+    <div id="debug">
+        <div>MASTER - Direct gizmo test</div>
+        <div>1. Click a face of the box</div>
+        <div>2. Drag the blue gizmo cone</div>
+        <div id="status">Ready...</div>
+    </div>
+
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script>
+        const canvas = document.getElementById("renderCanvas");
+        const engine = new BABYLON.Engine(canvas, true);
+        const scene = new BABYLON.Scene(engine);
+        
+        // Set up camera
+        const camera = new BABYLON.ArcRotateCamera("camera", -Math.PI / 2, Math.PI / 2.5, 10, BABYLON.Vector3.Zero(), scene);
+        camera.attachControl(canvas, true);
+        
+        // Set up lighting
+        const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
+        
+        // Create a test box
+        const box = BABYLON.MeshBuilder.CreateBox("testBox", {size: 2}, scene);
+        box.position = new BABYLON.Vector3(0, 0, 0);
+        
+        // SPANKY'S WORKING GIZMO LOGIC - DIRECTLY FROM PROTOTYPE
+        let gizmoContainer = null;
+        let isDragging = false;
+        let extrusionStartInfo = null;
+        
+        function createGizmo() {
+            if (gizmoContainer) {
+                gizmoContainer.dispose();
+            }
+            
+            gizmoContainer = new BABYLON.TransformNode("extrusionGizmoContainer", scene);
+            gizmoContainer.isPickable = false;
+
+            // Create gizmo material
+            const gizmoMaterial = new BABYLON.StandardMaterial("extrusionGizmoMat", scene);
+            gizmoMaterial.diffuseColor = new BABYLON.Color3(0.2, 0.4, 1.0);
+            gizmoMaterial.emissiveColor = new BABYLON.Color3(0.1, 0.2, 0.5);
+
+            // EXACT WORKING SHAFT FROM PROTOTYPE
+            const shaft = BABYLON.MeshBuilder.CreateCylinder("gizmoShaft", {
+                diameter: 0.1,
+                height: 1.0
+            }, scene);
+            shaft.parent = gizmoContainer;
+            shaft.position.y = 0.5;
+            shaft.material = gizmoMaterial;
+            shaft.isPickable = true;
+            shaft.name = "extrusionGizmo_shaft";
+            
+            // EXACT WORKING CONE FROM PROTOTYPE
+            const topCone = BABYLON.MeshBuilder.CreateCylinder("gizmoCone", {
+                diameterTop: 0,
+                diameterBottom: 0.3,
+                height: 0.5
+            }, scene);
+            topCone.parent = gizmoContainer;
+            topCone.position.y = 1.25;
+            topCone.material = gizmoMaterial;
+            topCone.isPickable = true;
+            topCone.metadata = { isGizmoCone: true };
+            topCone.name = "extrusionGizmo_topCone";
+            
+            gizmoContainer.setEnabled(false);
+            
+            console.log("🎯 SPANKY: Created working gizmo");
+            return { container: gizmoContainer, cone: topCone, shaft: shaft };
+        }
+        
+        function getFaceNormalFromFaceId(faceId) {
+            const boxNormals = [
+                new BABYLON.Vector3(0, 0, 1),   // Front (faces 0-1)
+                new BABYLON.Vector3(0, 0, -1),  // Back (faces 2-3)
+                new BABYLON.Vector3(1, 0, 0),   // Right (faces 4-5)
+                new BABYLON.Vector3(-1, 0, 0),  // Left (faces 6-7)
+                new BABYLON.Vector3(0, 1, 0),   // Top (faces 8-9)
+                new BABYLON.Vector3(0, -1, 0)   // Bottom (faces 10-11)
+            ];
+            
+            const normalIndex = Math.floor(faceId / 2);
+            return boxNormals[normalIndex] || new BABYLON.Vector3(0, 1, 0);
+        }
+        
+        function showGizmo(pickInfo) {
+            if (!gizmoContainer || !pickInfo.hit) return;
+            
+            gizmoContainer.setEnabled(true);
+            
+            const faceNormal = getFaceNormalFromFaceId(pickInfo.faceId);
+            const gizmoPosition = pickInfo.pickedPoint.add(faceNormal.scale(0.1));
+            
+            gizmoContainer.position = gizmoPosition;
+            
+            // Orient gizmo
+            const up = new BABYLON.Vector3(0, 1, 0);
+            if (!faceNormal.equals(up)) {
+                const rotationQuaternion = BABYLON.Quaternion.FromUnitVectorsToRef(up, faceNormal, new BABYLON.Quaternion());
+                gizmoContainer.rotationQuaternion = rotationQuaternion;
+            }
+            
+            // Store extrusion info
+            extrusionStartInfo = {
+                mesh: box,
+                faceNormal: faceNormal.clone(),
+                initialScale: box.scaling.clone(),
+                initialPosition: box.position.clone(),
+                initialMouseX: scene.pointerX,
+                initialMouseY: scene.pointerY
+            };
+            
+            document.getElementById('status').textContent = `Gizmo shown on face ${pickInfo.faceId}`;
+            console.log("🎯 SPANKY: Gizmo positioned at", gizmoPosition, "normal", faceNormal);
+        }
+        
+        // Create the gizmo
+        const gizmo = createGizmo();
+        
+        // Set up pointer interactions - EXACT PROTOTYPE LOGIC
+        scene.onPointerObservable.add((pointerInfo) => {
+            switch (pointerInfo.type) {
+                case BABYLON.PointerEventTypes.POINTERDOWN:
+                    if (pointerInfo.pickInfo.hit && pointerInfo.pickInfo.pickedMesh) {
+                        if (pointerInfo.pickInfo.pickedMesh === box) {
+                            // Clicked the box - show gizmo
+                            showGizmo(pointerInfo.pickInfo);
+                        } else if (pointerInfo.pickInfo.pickedMesh.metadata && 
+                                 pointerInfo.pickInfo.pickedMesh.metadata.isGizmoCone) {
+                            // Clicked the gizmo cone - start dragging
+                            if (extrusionStartInfo) {
+                                isDragging = true;
+                                camera.detachControl(canvas);
+                                document.getElementById('status').textContent = "Dragging gizmo...";
+                                console.log("🎯 SPANKY: Started dragging");
+                            }
+                        }
+                    }
+                    break;
+
+                case BABYLON.PointerEventTypes.POINTERMOVE:
+                    if (isDragging && extrusionStartInfo) {
+                        const { mesh, faceNormal, initialScale, initialPosition } = extrusionStartInfo;
+
+                        // EXACT PROTOTYPE MOUSE CALCULATION
+                        const mouseDeltaX = scene.pointerX - extrusionStartInfo.initialMouseX;
+                        const mouseDeltaY = scene.pointerY - extrusionStartInfo.initialMouseY;
+                        
+                        // EXACT PROTOTYPE CAMERA PROJECTION
+                        const cameraMatrix = camera.getWorldMatrix();
+                        const cameraRight = new BABYLON.Vector3(cameraMatrix.m[0], cameraMatrix.m[1], cameraMatrix.m[2]);
+                        const cameraUp = new BABYLON.Vector3(cameraMatrix.m[4], cameraMatrix.m[5], cameraMatrix.m[6]);
+                        
+                        const rightProjection = Math.abs(BABYLON.Vector3.Dot(faceNormal, cameraRight));
+                        const upProjection = Math.abs(BABYLON.Vector3.Dot(faceNormal, cameraUp));
+                        
+                        let effectiveMouseDelta;
+                        if (rightProjection > upProjection) {
+                            effectiveMouseDelta = mouseDeltaX;
+                        } else {
+                            effectiveMouseDelta = mouseDeltaY;
+                        }
+                        
+                        const normalCameraUpDot = BABYLON.Vector3.Dot(faceNormal, cameraUp);
+                        
+                        let directionMultiplier;
+                        if (rightProjection > upProjection) {
+                            const rightDot = BABYLON.Vector3.Dot(faceNormal, cameraRight);
+                            directionMultiplier = rightDot > 0 ? -1 : 1;
+                        } else {
+                            if (Math.abs(faceNormal.y) > 0.9) {
+                                directionMultiplier = normalCameraUpDot > 0 ? 1 : -1;
+                            } else {
+                                directionMultiplier = normalCameraUpDot > 0 ? -1 : 1;
+                            }
+                        }
+                        
+                        const extrusionAmount = -effectiveMouseDelta * 0.01 * directionMultiplier;
+
+                        // EXACT PROTOTYPE SCALING
+                        const absNormal = new BABYLON.Vector3(Math.abs(faceNormal.x), Math.abs(faceNormal.y), Math.abs(faceNormal.z));
+                        
+                        let scaleAxis;
+                        if (absNormal.x > 0.9) scaleAxis = 'x';
+                        else if (absNormal.y > 0.9) scaleAxis = 'y';
+                        else scaleAxis = 'z';
+
+                        const newScale = Math.max(0.1, initialScale[scaleAxis] + extrusionAmount / 2.0);
+                        mesh.scaling[scaleAxis] = newScale;
+
+                        const positionOffset = faceNormal.scale(extrusionAmount / 2.0);
+                        mesh.position.copyFrom(initialPosition).addInPlace(positionOffset);
+                        
+                        document.getElementById('status').textContent = `Extruding: ${extrusionAmount.toFixed(3)}`;
+                    }
+                    break;
+
+                case BABYLON.PointerEventTypes.POINTERUP:
+                    if (isDragging) {
+                        isDragging = false;
+                        camera.attachControl(canvas, true);
+                        document.getElementById('status').textContent = "Extrusion complete";
+                        console.log("🎯 SPANKY: Finished dragging");
+                    }
+                    break;
+            }
+        });
+        
+        // Render loop
+        engine.runRenderLoop(() => {
+            scene.render();
+        });
+        
+        // Handle window resize
+        window.addEventListener("resize", () => {
+            engine.resize();
+        });
+        
+        console.log("🎯 SPANKY: Direct gizmo test ready - click the box face, then drag the blue cone");
+    </script>
+</body>
+</html>

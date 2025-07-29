@@ -1,0 +1,18 @@
+{
+  "test_ogee": {
+    "name": "test_ogee",
+    "id": "imported_1",
+    "fileName": "ogee_test.obj",
+    "meshData": {
+      "id": "imported_1",
+      "name": "test_ogee",
+      "fileName": "ogee_test.obj",
+      "positions": [0,0,0,1,0,0,1,1,0,0,1,0],
+      "indices": [0,1,2,0,2,3],
+      "normals": [0,0,1,0,0,1,0,0,1,0,0,1],
+      "timestamp": 1637000000000
+    },
+    "timestamp": "2024-01-15T10:30:00.000Z",
+    "version": "1.0"
+  }
+}

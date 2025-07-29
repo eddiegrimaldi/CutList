@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CutList - Face Extrusion Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: white;
+        }
+        
+        #renderCanvas {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+            background: #2a2a2a;
+        }
+        
+        #instructions {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 5px;
+            max-width: 400px;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        
+        .step {
+            margin-bottom: 10px;
+            padding: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+        
+        .debug-info {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 5px;
+            max-width: 300px;
+            font-size: 12px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="renderCanvas"></canvas>
+    
+    <div id="instructions">
+        <h3>Face Extrusion Test - Master</h3>
+        <div class="step">1. Click on any face of the white box to start extrusion</div>
+        <div class="step">2. Look for blue gizmo appearing at the clicked point</div>
+        <div class="step">3. Drag the gizmo cone to extrude</div>
+        <div class="step">4. The clicked face should stay anchored in place</div>
+        <div class="step">5. Check console for debug information</div>
+        <div class="step">6. Red/green spheres show debug visualization</div>
+    </div>
+    
+    <div id="debug-info" class="debug-info">
+        <h4>Debug Info:</h4>
+        <div id="face-normal">Face Normal: Not clicked</div>
+        <div id="gizmo-position">Gizmo Position: Not set</div>
+        <div id="extrusion-axis">Extrusion Axis: Not set</div>
+        <div id="offset-direction">Offset Direction: Not calculated</div>
+    </div>
+
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script type="module">
+        console.log("🚀 MASTER - Spanky starting Face Extrusion Test");
+        
+        const canvas = document.getElementById("renderCanvas");
+        const engine = new BABYLON.Engine(canvas, true);
+        
+        // Create scene
+        const scene = new BABYLON.Scene(engine);
+        scene.clearColor = new BABYLON.Color3(0.2, 0.2, 0.3);
+        
+        // Create camera
+        const camera = new BABYLON.ArcRotateCamera("camera", -Math.PI / 2, Math.PI / 2.5, 10, BABYLON.Vector3.Zero(), scene);
+        camera.attachControl(canvas, true);
+        
+        // Create light
+        const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(1, 1, 0), scene);
+        
+        // Create a test box
+        const box = BABYLON.MeshBuilder.CreateBox("testBox", {size: 2}, scene);
+        const boxMaterial = new BABYLON.StandardMaterial("boxMat", scene);
+        boxMaterial.diffuseColor = new BABYLON.Color3(0.8, 0.8, 0.8); // Back to grey
+        boxMaterial.wireframe = false;
+        box.material = boxMaterial;
+        
+        // Debug visualization materials
+        const redMaterial = new BABYLON.StandardMaterial("redMat", scene);
+        redMaterial.diffuseColor = new BABYLON.Color3(1, 0, 0);
+        redMaterial.emissiveColor = new BABYLON.Color3(0.3, 0, 0);
+        
+        const greenMaterial = new BABYLON.StandardMaterial("greenMat", scene);
+        greenMaterial.diffuseColor = new BABYLON.Color3(0, 1, 0);
+        greenMaterial.emissiveColor = new BABYLON.Color3(0, 0.3, 0);
+        
+        const gizmoMaterial = new BABYLON.StandardMaterial("gizmoMat", scene);
+        gizmoMaterial.diffuseColor = new BABYLON.Color3(0.2, 0.7, 1.0);
+        gizmoMaterial.specularColor = new BABYLON.Color3(0.8, 0.8, 0.8);
+        gizmoMaterial.emissiveColor = new BABYLON.Color3(0.05, 0.15, 0.2);
+
+        let debugSpheres = [];
+        let currentGizmo = null;
+        
+        // --- Spanky's new variables for dragging state ---
+        let isDragging = false;
+        let extrusionStartInfo = null;
+        let initialMouseY = 0;
+        // --- End of new variables ---
+
+        function clearDebugSpheres() {
+            debugSpheres.forEach(sphere => sphere.dispose());
+            debugSpheres = [];
+        }
+        
+        function createDebugSphere(position, color, name = "debugSphere") {
+            const sphere = BABYLON.MeshBuilder.CreateSphere(name, {diameter: 0.2}, scene);
+            sphere.position = position.clone();
+            sphere.material = color === 'red' ? redMaterial : greenMaterial;
+            debugSpheres.push(sphere);
+            return sphere;
+        }
+        
+        function updateDebugInfo(info) {
+            if (info.faceNormal) {
+                document.getElementById('face-normal').textContent = 
+                    `Face Normal: (${info.faceNormal.x.toFixed(2)}, ${info.faceNormal.y.toFixed(2)}, ${info.faceNormal.z.toFixed(2)})`;
+            }
+            if (info.gizmoPosition) {
+                document.getElementById('gizmo-position').textContent = 
+                    `Gizmo Position: (${info.gizmoPosition.x.toFixed(2)}, ${info.gizmoPosition.y.toFixed(2)}, ${info.gizmoPosition.z.toFixed(2)})`;
+            }
+            if (info.extrusionAxis) {
+                document.getElementById('extrusion-axis').textContent = 
+                    `Extrusion Axis: ${info.extrusionAxis}`;
+            }
+            if (info.offsetDirection) {
+                document.getElementById('offset-direction').textContent = 
+                    `Offset Direction: ${info.offsetDirection}`;
+            }
+        }
+        
+        function createSimpleGizmo(position, normal) {
+            if (currentGizmo) {
+                currentGizmo.dispose();
+            }
+            
+            console.log(`🎯 GIZMO: Creating at position (${position.x.toFixed(2)}, ${position.y.toFixed(2)}, ${position.z.toFixed(2)})`);
+            console.log(`🎯 GIZMO: Normal direction (${normal.x.toFixed(2)}, ${normal.y.toFixed(2)}, ${normal.z.toFixed(2)})`);
+            
+            const gizmoContainer = new BABYLON.TransformNode("gizmoContainer", scene);
+            gizmoContainer.position = position.clone();
+            
+            const shaft = BABYLON.MeshBuilder.CreateCylinder("gizmoShaft", {
+                diameter: 0.1,
+                height: 1.0
+            }, scene);
+            shaft.parent = gizmoContainer;
+            shaft.position.y = 0.5;
+            shaft.material = gizmoMaterial;
+            
+            const cone = BABYLON.MeshBuilder.CreateCylinder("gizmoCone", {
+                diameterTop: 0,
+                diameterBottom: 0.3,
+                height: 0.5
+            }, scene);
+            cone.parent = gizmoContainer;
+            cone.position.y = 1.25;
+            cone.material = gizmoMaterial;
+            
+            cone.isPickable = true;
+            cone.metadata = { isGizmoCone: true };
+            
+            const up = new BABYLON.Vector3(0, 1, 0);
+            if (!normal.equals(up)) {
+                const rotationQuaternion = BABYLON.Quaternion.FromUnitVectorsToRef(up, normal, new BABYLON.Quaternion());
+                gizmoContainer.rotationQuaternion = rotationQuaternion;
+            }
+            
+            currentGizmo = gizmoContainer;
+            return gizmoContainer;
+        }
+
+        // Simplified face normal calculation based on our main.js logic
+        function getFaceNormalFromPickInfo(pickInfo) {
+            const mesh = pickInfo.pickedMesh;
+            const faceId = pickInfo.faceId;
+            const positions = mesh.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+            const indices = mesh.getIndices();
+            
+            console.log(`🎯 MASTER - Face ${faceId} clicked on ${mesh.name}`);
+            
+            if (mesh.name === "testBox") {
+                // Box face normal mapping
+                const boxNormals = [
+                    new BABYLON.Vector3(0, 0, 1),   // Front (faces 0-1)
+                    new BABYLON.Vector3(0, 0, -1),  // Back (faces 2-3)
+                    new BABYLON.Vector3(1, 0, 0),   // Right (faces 4-5)
+                    new BABYLON.Vector3(-1, 0, 0),  // Left (faces 6-7)
+                    new BABYLON.Vector3(0, 1, 0),   // Top (faces 8-9)
+                    new BABYLON.Vector3(0, -1, 0)   // Bottom (faces 10-11)
+                ];
+                
+                const normalIndex = Math.floor(faceId / 2);
+                const normal = boxNormals[normalIndex];
+                
+                console.log(`📦 MASTER - Box face ${faceId}, normal index ${normalIndex}, normal:`, normal);
+                
+                // Create debug sphere at click point
+                createDebugSphere(pickInfo.pickedPoint, 'red', 'clickPoint');
+                
+                // Create debug sphere showing normal direction
+                const normalEndPoint = pickInfo.pickedPoint.add(normal.scale(1.0));
+                createDebugSphere(normalEndPoint, 'green', 'normalDirection');
+                
+                updateDebugInfo({
+                    faceNormal: normal,
+                    gizmoPosition: normalEndPoint
+                });
+                
+                return normal;
+            }
+            
+            return new BABYLON.Vector3(0, 1, 0); // Default up
+        }
+        
+        // Click handler for face picking
+        scene.onPointerDown = (evt, pickInfo) => {
+            // Check if we are clicking on the gizmo cone
+            if (pickInfo.hit && pickInfo.pickedMesh && pickInfo.pickedMesh.metadata && pickInfo.pickedMesh.metadata.isGizmoCone) {
+                console.log("⚙️ MASTER - Spanky sees you've grabbed the gizmo!");
+                
+                // Only proceed if we have extrusion info already set up
+                if (!extrusionStartInfo) {
+                    console.log("❌ MASTER - No extrusion info available, ignoring gizmo click");
+                    return;
+                }
+                
+                isDragging = true;
+                initialMouseY = scene.pointerY; // Store initial mouse Y position
+                extrusionStartInfo.initialMouseX = scene.pointerX; // Store initial mouse X position
+                console.log(`🚀 MASTER - Starting drag from mouse X: ${scene.pointerX}, Y: ${initialMouseY}, face point: (${extrusionStartInfo.initialPointerPos.x.toFixed(2)}, ${extrusionStartInfo.initialPointerPos.y.toFixed(2)}, ${extrusionStartInfo.initialPointerPos.z.toFixed(2)})`);
+
+                // Detach camera to prevent rotation during drag
+                camera.detachControl(canvas);
+                return;
+            }
+
+            if (pickInfo.hit && pickInfo.pickedMesh === box) {
+                console.log("🎯 MASTER - Spanky detected face click!");
+                
+                clearDebugSpheres();
+                
+                const faceNormal = getFaceNormalFromPickInfo(pickInfo);
+                
+                // The gizmo is positioned slightly off the face for visibility
+                const gizmoPosition = pickInfo.pickedPoint.add(faceNormal.scale(0.1));
+                createSimpleGizmo(gizmoPosition, faceNormal);
+
+                // --- Spanky stores info for extrusion ---
+                extrusionStartInfo = {
+                    mesh: box,
+                    faceNormal: faceNormal.clone(),
+                    initialScale: box.scaling.clone(),
+                    initialPosition: box.position.clone(),
+                    initialPointerPos: pickInfo.pickedPoint.clone() // Set from face click, not gizmo click
+                };
+                // --- End of storage ---
+                
+                updateDebugInfo({
+                    faceNormal: faceNormal,
+                    gizmoPosition: gizmoPosition
+                });
+            }
+        };
+
+        // --- Spanky's new handlers for dragging logic ---
+        scene.onPointerMove = () => {
+            if (!isDragging || !extrusionStartInfo) {
+                return;
+            }
+
+            const { mesh, faceNormal, initialScale, initialPosition } = extrusionStartInfo;
+
+            // Calculate the mouse movement in both X and Y
+            const mouseDeltaX = scene.pointerX - (extrusionStartInfo.initialMouseX || scene.pointerX);
+            const mouseDeltaY = scene.pointerY - initialMouseY;
+            
+            // Get camera's right and up vectors in world space
+            const cameraMatrix = camera.getWorldMatrix();
+            const cameraRight = new BABYLON.Vector3(cameraMatrix.m[0], cameraMatrix.m[1], cameraMatrix.m[2]);
+            const cameraUp = new BABYLON.Vector3(cameraMatrix.m[4], cameraMatrix.m[5], cameraMatrix.m[6]);
+            
+            // Project the face normal onto the camera's right and up vectors
+            const rightProjection = Math.abs(BABYLON.Vector3.Dot(faceNormal, cameraRight));
+            const upProjection = Math.abs(BABYLON.Vector3.Dot(faceNormal, cameraUp));
+            
+            // Use the dominant direction for mouse input
+            let effectiveMouseDelta;
+            if (rightProjection > upProjection) {
+                // Face is more aligned with camera right, use X movement
+                effectiveMouseDelta = mouseDeltaX;
+                console.log(`🔧 MASTER - Using X movement: ${mouseDeltaX}`);
+            } else {
+                // Face is more aligned with camera up, use Y movement
+                effectiveMouseDelta = mouseDeltaY;
+                console.log(`🔧 MASTER - Using Y movement: ${mouseDeltaY}`);
+            }
+            
+            // Get the camera's forward direction and up direction for direction calculation
+            const cameraForward = camera.getForwardRay().direction;
+            const normalCameraForwardDot = BABYLON.Vector3.Dot(faceNormal, cameraForward);
+            const normalCameraUpDot = BABYLON.Vector3.Dot(faceNormal, cameraUp);
+            
+            // Determine direction multiplier
+            let directionMultiplier;
+            if (rightProjection > upProjection) {
+                // For X movement, check if we need to flip based on normal direction
+                const rightDot = BABYLON.Vector3.Dot(faceNormal, cameraRight);
+                directionMultiplier = rightDot > 0 ? -1 : 1;  // Flipped
+            } else {
+                // For Y movement, use dot product with camera up vector
+                // Special handling: top and bottom faces (Y=±1) need to be flipped
+                if (Math.abs(faceNormal.y) > 0.9) {
+                    // This is top or bottom face - both need flipped logic
+                    directionMultiplier = normalCameraUpDot > 0 ? 1 : -1;  // Flipped for top/bottom faces
+                    console.log(`🔧 MASTER - TOP/BOTTOM FACE detected (Y=${faceNormal.y.toFixed(1)}), flipping direction. normalCameraUpDot: ${normalCameraUpDot.toFixed(3)}`);
+                } else {
+                    // All other faces using Y movement (front/back)
+                    directionMultiplier = normalCameraUpDot > 0 ? -1 : 1;
+                    console.log(`🔧 MASTER - Front/Back face using Y. normalCameraUpDot: ${normalCameraUpDot.toFixed(3)}`);
+                }
+            }
+            
+            const extrusionAmount = -effectiveMouseDelta * 0.01 * directionMultiplier;
+
+            console.log(`🔧 MASTER - Right proj: ${rightProjection.toFixed(3)}, Up proj: ${upProjection.toFixed(3)}, Direction mult: ${directionMultiplier}, Extrusion: ${extrusionAmount.toFixed(3)}`);
+
+            // Determine which axis to scale based on the normal
+            const absNormal = new BABYLON.Vector3(Math.abs(faceNormal.x), Math.abs(faceNormal.y), Math.abs(faceNormal.z));
+            
+            let scaleAxis;
+            if (absNormal.x > 0.9) scaleAxis = 'x';
+            else if (absNormal.y > 0.9) scaleAxis = 'y';
+            else scaleAxis = 'z';
+
+            // Apply scaling (box size is 2, so we divide by 2 to get the scale factor)
+            const newScale = Math.max(0.1, initialScale[scaleAxis] + extrusionAmount / 2.0); // Prevent negative scaling
+            mesh.scaling[scaleAxis] = newScale;
+
+            // Move the box to keep the opposite face anchored
+            const positionOffset = faceNormal.scale(extrusionAmount / 2.0);
+            mesh.position.copyFrom(initialPosition).addInPlace(positionOffset);
+        };
+
+        scene.onPointerUp = () => {
+            if (isDragging) {
+                console.log("✅ MASTER - Spanky has finished the extrusion.");
+                isDragging = false;
+                extrusionStartInfo = null;
+                
+                // Re-attach camera controls
+                camera.attachControl(canvas, true);
+            }
+        };
+        // --- End of new handlers ---
+        
+        // Render loop
+        engine.runRenderLoop(() => {
+            scene.render();
+        });
+        
+        // Handle resize
+        window.addEventListener("resize", () => {
+            engine.resize();
+        });
+        
+        console.log("✅ MASTER - Spanky's test environment ready!");
+    </script>
+</body>
+</html>

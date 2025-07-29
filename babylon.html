@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CutList CAD - Babylon.js</title>    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script src="https://cdn.babylonjs.com/materialsLibrary/babylonjs.materials.min.js"></script>
+    <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8fafc;
+            overflow: hidden;
+        }
+        
+        #renderCanvas {
+            width: 100vw;
+            height: 100vh;
+            touch-action: none;
+        }
+        
+        .toolbar {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            padding: 16px;
+            display: flex;
+            gap: 12px;
+            z-index: 1000;
+        }
+        
+        .tool-btn {
+            padding: 8px 16px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .tool-btn:hover {
+            background: #f1f5f9;
+            border-color: #3b82f6;
+        }
+        
+        .tool-btn.active {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+          .status {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            padding: 12px 16px;
+            font-size: 14px;
+            color: #64748b;
+            font-family: monospace;
+            min-width: 300px;
+        }
+        
+        .rulers {
+            position: fixed;
+            pointer-events: none;
+            font-size: 10px;
+            font-family: monospace;
+            color: #374151;
+        }
+        
+        .ruler-top {
+            top: 0;
+            left: 60px;
+            right: 0;
+            height: 30px;
+            background: linear-gradient(to bottom, #f9fafb, #e5e7eb);
+            border-bottom: 1px solid #d1d5db;
+        }
+        
+        .ruler-left {
+            left: 0;
+            top: 30px;
+            bottom: 0;
+            width: 60px;
+            background: linear-gradient(to right, #f9fafb, #e5e7eb);
+            border-right: 1px solid #d1d5db;
+        }
+    </style>
+</head>
+<body>    <canvas id="renderCanvas"></canvas>
+    
+    <div class="rulers ruler-top" id="ruler-top"></div>
+    <div class="rulers ruler-left" id="ruler-left"></div>
+    
+    <div class="toolbar">
+        <button class="tool-btn active" data-tool="select">Select</button>
+        <button class="tool-btn" data-tool="line">Line</button>
+        <button class="tool-btn" data-tool="rectangle">Rectangle</button>
+        <button class="tool-btn" data-tool="circle">Circle</button>
+        <button class="tool-btn" data-tool="extrude">Extrude</button>
+    </div>
+    
+    <div class="status">
+        <div>Camera Height: <span id="camera-height">0</span></div>
+        <div>Grid Size: <span id="grid-size">0</span></div>
+        <div>LOD Level: <span id="lod-level">0</span></div>
+    </div>
+
+    <script>        // CutList CAD with Babylon.js
+        class CutListCADBabylon {
+            constructor() {
+                this.canvas = document.getElementById('renderCanvas');
+                this.engine = new BABYLON.Engine(this.canvas, true);
+                this.scene = new BABYLON.Scene(this.engine);
+                this.camera = null;
+                this.grid = null;
+                this.currentTool = 'select';
+                
+                // Woodworking measurements in inches (converted to world units)
+                // 1 world unit = 1 inch
+                this.lodLevels = [
+                    { name: "1/32\"", size: 1/32, majorEvery: 10 },
+                    { name: "1/16\"", size: 1/16, majorEvery: 8 },
+                    { name: "1/8\"", size: 1/8, majorEvery: 8 },
+                    { name: "1/4\"", size: 1/4, majorEvery: 4 },
+                    { name: "1/2\"", size: 1/2, majorEvery: 4 },
+                    { name: "1\"", size: 1, majorEvery: 12 },
+                    { name: "2\"", size: 2, majorEvery: 6 }
+                ];
+                
+                this.currentLOD = 4; // Start at 1/2" level
+                this.gridLines = [];
+                this.rulers = { top: null, left: null };
+                
+                this.init();
+            }
+            
+            init() {
+                this.setupScene();
+                this.setupCamera();
+                this.setupLighting();
+                this.setupGrid();
+                this.setupEventListeners();
+                this.startRenderLoop();
+                
+                console.log('🚀 CutList CAD with Babylon.js initialized!');
+            }
+            
+            setupScene() {
+                // Set background color
+                this.scene.clearColor = new BABYLON.Color3(0.95, 0.95, 0.95);
+                
+                // Enable physics if needed later
+                // this.scene.enablePhysics(new BABYLON.Vector3(0, -9.81, 0), new BABYLON.CannonJSPlugin());
+            }
+              setupCamera() {
+                // Arc rotate camera - classic CAD style
+                this.camera = new BABYLON.ArcRotateCamera(
+                    "camera", 
+                    -Math.PI / 2,  // alpha (horizontal rotation)
+                    Math.PI / 3,   // beta (vertical rotation) 
+                    20,            // radius (distance from target) - closer start
+                    BABYLON.Vector3.Zero(), // target
+                    this.scene
+                );
+                
+                // Set camera limits
+                this.camera.setTarget(BABYLON.Vector3.Zero());
+                this.camera.wheelDeltaPercentage = 0.005; // Much smoother zoom
+                this.camera.pinchDeltaPercentage = 0.005;
+                
+                // Limit camera movement
+                this.camera.lowerRadiusLimit = 2;
+                this.camera.upperRadiusLimit = 100;
+                this.camera.lowerBetaLimit = 0.1;
+                this.camera.upperBetaLimit = Math.PI / 2.2;
+                
+                // Attach camera controls to canvas
+                this.camera.attachTo(this.canvas);
+                
+                // Much smoother camera movement
+                this.camera.inertia = 0.95;
+                this.camera.angularSensibilityX = 500; // Faster rotation
+                this.camera.angularSensibilityY = 500;
+                this.camera.panningSensibility = 50;
+                this.camera.wheelPrecision = 50; // More responsive wheel
+            }
+            
+            setupLighting() {
+                // Hemisphere light for overall illumination
+                const hemiLight = new BABYLON.HemisphericLight(
+                    "hemiLight", 
+                    new BABYLON.Vector3(0, 1, 0), 
+                    this.scene
+                );
+                hemiLight.intensity = 0.7;
+                
+                // Directional light for shadows and definition
+                const dirLight = new BABYLON.DirectionalLight(
+                    "dirLight", 
+                    new BABYLON.Vector3(-1, -1, -1), 
+                    this.scene
+                );
+                dirLight.intensity = 0.5;
+                dirLight.position = new BABYLON.Vector3(20, 40, 20);
+            }            setupGrid() {
+                this.updateGridLOD();
+                console.log('✅ LOD Grid system initialized!');
+            }
+            
+            updateGridLOD() {
+                // Clear existing grid
+                this.gridLines.forEach(line => line.dispose());
+                this.gridLines = [];
+                
+                // Determine LOD based on camera distance
+                const distance = this.camera.radius;
+                let lodIndex = 4; // Default to 1/2"
+                
+                if (distance < 3) lodIndex = 0;      // 1/32"
+                else if (distance < 5) lodIndex = 1;  // 1/16"
+                else if (distance < 8) lodIndex = 2;  // 1/8"
+                else if (distance < 12) lodIndex = 3; // 1/4"
+                else if (distance < 20) lodIndex = 4; // 1/2"
+                else if (distance < 40) lodIndex = 5; // 1"
+                else lodIndex = 6; // 2"
+                
+                this.currentLOD = lodIndex;
+                const lod = this.lodLevels[lodIndex];
+                
+                // Calculate visible area
+                const viewSize = distance * 1.5; // Approximate visible area
+                const gridSize = Math.ceil(viewSize / lod.size) * lod.size;
+                const spacing = lod.size;
+                
+                // Create minor grid lines
+                for (let i = -gridSize; i <= gridSize; i += spacing) {
+                    // Vertical lines
+                    const vPoints = [
+                        new BABYLON.Vector3(i, 0, -gridSize),
+                        new BABYLON.Vector3(i, 0, gridSize)
+                    ];
+                    const vLine = BABYLON.MeshBuilder.CreateLines(`gridV${i}`, {points: vPoints}, this.scene);
+                    vLine.color = new BABYLON.Color3(0.8, 0.8, 0.8);
+                    this.gridLines.push(vLine);
+                    
+                    // Horizontal lines
+                    const hPoints = [
+                        new BABYLON.Vector3(-gridSize, 0, i),
+                        new BABYLON.Vector3(gridSize, 0, i)
+                    ];
+                    const hLine = BABYLON.MeshBuilder.CreateLines(`gridH${i}`, {points: hPoints}, this.scene);
+                    hLine.color = new BABYLON.Color3(0.8, 0.8, 0.8);
+                    this.gridLines.push(hLine);
+                }
+                
+                // Create major grid lines
+                const majorSpacing = spacing * lod.majorEvery;
+                for (let i = -gridSize; i <= gridSize; i += majorSpacing) {
+                    // Vertical major lines
+                    const vPoints = [
+                        new BABYLON.Vector3(i, 0, -gridSize),
+                        new BABYLON.Vector3(i, 0, gridSize)
+                    ];
+                    const vLine = BABYLON.MeshBuilder.CreateLines(`majorV${i}`, {points: vPoints}, this.scene);
+                    vLine.color = new BABYLON.Color3(0.5, 0.5, 0.5);
+                    this.gridLines.push(vLine);
+                    
+                    // Horizontal major lines
+                    const hPoints = [
+                        new BABYLON.Vector3(-gridSize, 0, i),
+                        new BABYLON.Vector3(gridSize, 0, i)
+                    ];
+                    const hLine = BABYLON.MeshBuilder.CreateLines(`majorH${i}`, {points: hPoints}, this.scene);
+                    hLine.color = new BABYLON.Color3(0.5, 0.5, 0.5);
+                    this.gridLines.push(hLine);
+                }
+                
+                // Create origin axes
+                const xAxis = BABYLON.MeshBuilder.CreateLines("xAxis", {
+                    points: [new BABYLON.Vector3(-gridSize, 0, 0), new BABYLON.Vector3(gridSize, 0, 0)]
+                }, this.scene);
+                xAxis.color = new BABYLON.Color3(1, 0, 0);
+                this.gridLines.push(xAxis);
+                
+                const zAxis = BABYLON.MeshBuilder.CreateLines("zAxis", {
+                    points: [new BABYLON.Vector3(0, 0, -gridSize), new BABYLON.Vector3(0, 0, gridSize)]
+                }, this.scene);
+                zAxis.color = new BABYLON.Color3(0, 0, 1);
+                this.gridLines.push(zAxis);
+                
+                this.updateRulers();
+            }
+            
+            setupEventListeners() {
+                // Tool selection
+                document.querySelectorAll('.tool-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        this.selectTool(e.target.dataset.tool);
+                    });
+                });                // Camera info updates  
+                let lastRadius = 0;
+                this.scene.onBeforeRenderObservable.add(() => {
+                    this.updateStatus();
+                    
+                    // Check if we need to update LOD
+                    if (Math.abs(this.camera.radius - lastRadius) > 1) {
+                        this.updateGridLOD();
+                        lastRadius = this.camera.radius;
+                    }
+                });
+                
+                // Window resize
+                window.addEventListener('resize', () => {
+                    this.engine.resize();
+                });
+            }
+            
+            selectTool(tool) {
+                this.currentTool = tool;
+                
+                // Update UI
+                document.querySelectorAll('.tool-btn').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.tool === tool);
+                });
+                
+                console.log(`🔧 Selected tool: ${tool}`);
+            }
+              updateStatus() {
+                if (this.camera) {
+                    const height = this.camera.radius.toFixed(2);
+                    const gridSize = this.lodLevels[this.currentLOD].name;
+                    const lodLevel = `${this.currentLOD + 1}/7`;
+                    
+                    document.getElementById('camera-height').textContent = height + '"';
+                    document.getElementById('grid-size').textContent = gridSize;
+                    document.getElementById('lod-level').textContent = lodLevel;
+                }
+            }
+            
+            updateRulers() {
+                // TODO: Implement rulers that move with the grid
+                // This would project world coordinates to screen coordinates
+                // and draw measurement marks along the top and left edges
+            }
+            
+            startRenderLoop() {
+                this.engine.runRenderLoop(() => {
+                    this.scene.render();
+                });
+            }
+            
+            // Drawing methods for CAD functionality
+            createLine(start, end) {
+                const points = [start, end];
+                const line = BABYLON.MeshBuilder.CreateLines("line", {points: points}, this.scene);
+                line.color = new BABYLON.Color3(0.2, 0.4, 0.8);
+                return line;
+            }
+            
+            createRectangle(width, height, position = BABYLON.Vector3.Zero()) {
+                const box = BABYLON.MeshBuilder.CreateBox("rectangle", {
+                    width: width, 
+                    height: 0.1, 
+                    depth: height
+                }, this.scene);
+                box.position = position;
+                
+                // Material
+                const material = new BABYLON.StandardMaterial("rectMaterial", this.scene);
+                material.diffuseColor = new BABYLON.Color3(0.6, 0.8, 1.0);
+                material.alpha = 0.8;
+                box.material = material;
+                
+                return box;
+            }
+            
+            createCircle(radius, position = BABYLON.Vector3.Zero()) {
+                const cylinder = BABYLON.MeshBuilder.CreateCylinder("circle", {
+                    height: 0.1,
+                    diameter: radius * 2
+                }, this.scene);
+                cylinder.position = position;
+                
+                const material = new BABYLON.StandardMaterial("circleMaterial", this.scene);
+                material.diffuseColor = new BABYLON.Color3(1.0, 0.8, 0.6);
+                material.alpha = 0.8;
+                cylinder.material = material;
+                
+                return cylinder;
+            }
+        }
+        
+        // Initialize when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            window.cutlistCAD = new CutListCADBabylon();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,38 @@
+<!-- Project Explorer Component -->
+<div class="project-explorer">
+    <div class="explorer-header">
+        <h3>Project Explorer</h3>
+    </div>
+    
+    <!-- Current Project Section -->
+    <div class="project-section">
+        <div class="no-project" id="no-project-section">
+            <p>No project open</p>
+            <button class="btn-new-project" id="btn-new-project">New Project</button>
+        </div>
+        
+        <div class="project-item" id="current-project-section" style="display: none;">
+            <div class="project-icon">📁</div>
+            <div class="project-info">
+                <input type="text" class="project-name" id="project-name" />
+                <div class="project-meta" id="project-meta">0 sketches</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Sketches Section -->
+    <div class="sketches-section">
+        <h4>Sketches</h4>
+        <div class="no-sketches" id="no-sketches-section">
+            <p>No sketches yet. Select a sketch plane to start.</p>
+        </div>
+        <div class="sketches-list" id="sketches-list" style="display: none;">
+            <!-- Sketch items will be added dynamically -->
+        </div>
+    </div>
+    
+    <!-- Actions Section -->
+    <div class="explorer-actions">
+        <button class="btn-action" id="btn-workspace-actions">📐 Sketch Tools</button>
+    </div>
+</div>

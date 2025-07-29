@@ -1,0 +1,2304 @@
+/**
+ * RouterBitSystem Module - Professional Router Bit Edge Treatment System
+ * 
+ * Handles edge selection, router bit profile application, and real-time preview
+ * for professional woodworking edge treatments including roundovers, chamfers,
+ * ogees, and other common router bit profiles.
+ * 
+ * Features:
+ * - Edge detection and selection system
+ * - Real-time router bit profile preview
+ * - Professional router bit library (roundover, chamfer, ogee, etc.)
+ * - Visual feedback with color-coded edge highlighting
+ * - Parametric profile generation for different bit sizes
+ * - Material-aware feed rate calculations
+ */
+
+export class RouterBitSystem {
+    constructor(drawingWorld) {
+        this.drawingWorld = drawingWorld;
+        this.scene = drawingWorld.scene;
+        this.canvas = drawingWorld.canvas;
+        
+        // Router system state
+        this.isActive = false;
+        this.selectedBitProfile = null;
+        this.hoveredEdge = null;
+        this.selectedEdges = [];
+        this.previewActive = false;
+        
+        // Router bit library
+        this.routerBitLibrary = null;
+        this.currentBitSize = 0.25; // Default 1/4" radius
+        
+        // Visual elements
+        this.edgePreviewMaterial = null;
+        this.selectedEdgeMaterial = null;
+        this.profilePreviewMeshes = [];
+        
+        // Mouse tracking
+        this.pointerObserver = null;
+        this.lastMousePosition = null;
+        
+        // Edge detection
+        this.edgeDetectionTolerance = 0.1; // 1mm tolerance for edge detection
+        this.detectedEdges = [];
+        this.focusPart = null; // Currently focused part for edge detection
+        
+        this.init();
+    }
+    
+    init() {
+        console.log('RouterBitSystem: Initializing professional router bit system');
+        this.createRouterBitLibrary();
+        this.setupEdgePreviewMaterials();
+        this.setupMouseTracking();
+        this.setupRouterBitModal();
+    }
+    
+    /**
+     * Create the router bit profile library
+     */
+    createRouterBitLibrary() {
+        this.routerBitLibrary = {
+            roundover: {
+                name: 'Roundover',
+                description: 'Creates a smooth rounded edge',
+                icon: '⌒',
+                generateProfile: (radius) => this.generateRoundoverProfile(radius),
+                defaultSizes: [0.125, 0.25, 0.375, 0.5, 0.75]
+            },
+            chamfer: {
+                name: 'Chamfer',
+                description: 'Creates a 45-degree beveled edge',
+                icon: '⟋',
+                generateProfile: (size) => this.generateChamferProfile(size),
+                defaultSizes: [0.125, 0.25, 0.375, 0.5, 0.75]
+            },
+            cove: {
+                name: 'Cove',
+                description: 'Creates a concave rounded edge',
+                icon: '⌓',
+                generateProfile: (radius) => this.generateCoveProfile(radius),
+                defaultSizes: [0.125, 0.25, 0.375, 0.5, 0.75]
+            },
+            rabbeting: {
+                name: 'Rabbeting',
+                description: 'Creates a stepped edge for joinery',
+                icon: '⅃',
+                generateProfile: (depth, width) => this.generateRabbetProfile(depth, width),
+                defaultSizes: [0.25, 0.375, 0.5, 0.75]
+            },
+            ogee: {
+                name: 'Ogee',
+                description: 'Classical S-shaped decorative profile',
+                icon: '∼',
+                generateProfile: (size) => this.generateOgeeProfile(size),
+                defaultSizes: [0.25, 0.375, 0.5, 0.75, 1.0]
+            },
+            beading: {
+                name: 'Beading',
+                description: 'Creates a decorative bead profile',
+                icon: '◉',
+                generateProfile: (size) => this.generateBeadingProfile(size),
+                defaultSizes: [0.125, 0.25, 0.375, 0.5]
+            },
+            roman_ogee: {
+                name: 'Roman Ogee',
+                description: 'Complex classical profile with cove and bead',
+                icon: '⟡',
+                generateProfile: (size) => this.generateRomanOgeeProfile(size),
+                defaultSizes: [0.25, 0.375, 0.5, 0.75]
+            },
+            thumbnail: {
+                name: 'Thumbnail',
+                description: 'Small quarter-round with flat section',
+                icon: '◗',
+                generateProfile: (size) => this.generateThumbnailProfile(size),
+                defaultSizes: [0.125, 0.25, 0.375, 0.5]
+            },
+            bullnose: {
+                name: 'Bullnose',
+                description: 'Half-round edge profile',
+                icon: '◐',
+                generateProfile: (radius) => this.generateBullnoseProfile(radius),
+                defaultSizes: [0.25, 0.375, 0.5, 0.75, 1.0]
+            },
+            fillet: {
+                name: 'Fillet',
+                description: 'Quarter-round inside corner',
+                icon: '◜',
+                generateProfile: (radius) => this.generateFilletProfile(radius),
+                defaultSizes: [0.125, 0.25, 0.375, 0.5]
+            },
+            v_groove: {
+                name: 'V-Groove',
+                description: 'Sharp V-shaped decorative groove',
+                icon: '⋁',
+                generateProfile: (size) => this.generateVGrooveProfile(size),
+                defaultSizes: [0.125, 0.25, 0.375, 0.5]
+            },
+            edge_bead: {
+                name: 'Edge Bead',
+                description: 'Rounded bead on edge with fillets',
+                icon: '◎',
+                generateProfile: (size) => this.generateEdgeBeadProfile(size),
+                defaultSizes: [0.125, 0.25, 0.375, 0.5]
+            },
+            table_edge: {
+                name: 'Table Edge',
+                description: 'Elegant table edge with multiple curves',
+                icon: '⌐',
+                generateProfile: (size) => this.generateTableEdgeProfile(size),
+                defaultSizes: [0.375, 0.5, 0.75, 1.0]
+            },
+            classical: {
+                name: 'Classical',
+                description: 'Traditional architectural molding profile',
+                icon: '⟐',
+                generateProfile: (size) => this.generateClassicalProfile(size),
+                defaultSizes: [0.5, 0.75, 1.0, 1.25]
+            },
+            triple_bead: {
+                name: 'Triple Bead',
+                description: 'Three parallel decorative beads',
+                icon: '⚬',
+                generateProfile: (size) => this.generateTripleBeadProfile(size),
+                defaultSizes: [0.375, 0.5, 0.75]
+            },
+            wavy_edge: {
+                name: 'Wavy Edge',
+                description: 'Flowing wave pattern edge',
+                icon: '〰',
+                generateProfile: (size) => this.generateWavyEdgeProfile(size),
+                defaultSizes: [0.25, 0.375, 0.5]
+            },
+            dovetail: {
+                name: 'Dovetail',
+                description: 'Angled profile for dovetail joints',
+                icon: '⟣',
+                generateProfile: (size, angle) => this.generateDovetailProfile(size, angle || 14),
+                defaultSizes: [0.25, 0.375, 0.5, 0.75]
+            },
+            keyhole: {
+                name: 'Keyhole',
+                description: 'T-slot profile for hanging hardware',
+                icon: '⊤',
+                generateProfile: (size) => this.generateKeyholeProfile(size),
+                defaultSizes: [0.25, 0.375, 0.5]
+            },
+            flush_trim: {
+                name: 'Flush Trim',
+                description: 'Pattern trimming with bearing guide',
+                icon: '⫽',
+                generateProfile: (diameter) => this.generateFlushTrimProfile(diameter),
+                defaultSizes: [0.25, 0.375, 0.5, 0.75]
+            },
+            corner_round: {
+                name: 'Corner Round',
+                description: 'Inside corner rounding bit',
+                icon: '◝',
+                generateProfile: (radius) => this.generateCornerRoundProfile(radius),
+                defaultSizes: [0.125, 0.25, 0.375, 0.5]
+            },
+            panel_pilot: {
+                name: 'Panel Pilot',
+                description: 'Raised panel cutting profile',
+                icon: '⌊',
+                generateProfile: (size) => this.generatePanelPilotProfile(size),
+                defaultSizes: [0.5, 0.75, 1.0, 1.25]
+            },
+            stile_rail: {
+                name: 'Stile & Rail',
+                description: 'Door frame joinery profile',
+                icon: '⫸',
+                generateProfile: (size) => this.generateStileRailProfile(size),
+                defaultSizes: [0.5, 0.75, 1.0]
+            },
+            finger_joint: {
+                name: 'Finger Joint',
+                description: 'Box joint cutting profile',
+                icon: '⨅',
+                generateProfile: (size) => this.generateFingerJointProfile(size),
+                defaultSizes: [0.25, 0.375, 0.5]
+            },
+            slot_cutter: {
+                name: 'Slot Cutter',
+                description: 'Precise groove cutting',
+                icon: '⫟',
+                generateProfile: (width, depth) => this.generateSlotCutterProfile(width, depth),
+                defaultSizes: [0.125, 0.25, 0.375, 0.5]
+            },
+            spiral_upcut: {
+                name: 'Spiral Upcut',
+                description: 'Chip evacuation spiral cutting',
+                icon: '⟲',
+                generateProfile: (diameter) => this.generateSpiralUpcutProfile(diameter),
+                defaultSizes: [0.125, 0.25, 0.375, 0.5, 0.75]
+            },
+            spiral_downcut: {
+                name: 'Spiral Downcut',
+                description: 'Clean top edge spiral cutting',
+                icon: '⟳',
+                generateProfile: (diameter) => this.generateSpiralDowncutProfile(diameter),
+                defaultSizes: [0.125, 0.25, 0.375, 0.5, 0.75]
+            },
+            compression: {
+                name: 'Compression',
+                description: 'Clean cut on both faces',
+                icon: '⇈',
+                generateProfile: (diameter) => this.generateCompressionProfile(diameter),
+                defaultSizes: [0.25, 0.375, 0.5, 0.75]
+            },
+            bowl_bit: {
+                name: 'Bowl Bit',
+                description: 'Large radius bowl carving',
+                icon: '⫸',
+                generateProfile: (radius) => this.generateBowlBitProfile(radius),
+                defaultSizes: [0.5, 0.75, 1.0, 1.5, 2.0]
+            },
+            mortise: {
+                name: 'Mortise',
+                description: 'Square hole mortise cutting',
+                icon: '⬛',
+                generateProfile: (width, depth) => this.generateMortiseProfile(width, depth),
+                defaultSizes: [0.25, 0.375, 0.5, 0.75]
+            },
+            hinge_mortise: {
+                name: 'Hinge Mortise',
+                description: 'Precise hinge pocket cutting',
+                icon: '⫯',
+                generateProfile: (size) => this.generateHingeMortiseProfile(size),
+                defaultSizes: [0.5, 0.75, 1.0]
+            },
+            lock_mortise: {
+                name: 'Lock Mortise',
+                description: 'Door lock hardware mortise',
+                icon: '🔒',
+                generateProfile: (size) => this.generateLockMortiseProfile(size),
+                defaultSizes: [0.75, 1.0, 1.25]
+            },
+            inlay: {
+                name: 'Inlay',
+                description: 'Precision inlay groove cutting',
+                icon: '⬜',
+                generateProfile: (width, depth) => this.generateInlayProfile(width, depth),
+                defaultSizes: [0.0625, 0.125, 0.1875, 0.25]
+            },
+            sign_making: {
+                name: 'Sign Making',
+                description: 'V-carving for lettering',
+                icon: '∇',
+                generateProfile: (angle) => this.generateSignMakingProfile(angle || 60),
+                defaultSizes: [30, 45, 60, 90]
+            },
+            core_box: {
+                name: 'Core Box',
+                description: 'Semicircular groove cutting',
+                icon: '⌒',
+                generateProfile: (radius) => this.generateCoreBoxProfile(radius),
+                defaultSizes: [0.125, 0.25, 0.375, 0.5, 0.75]
+            },
+            point_cut: {
+                name: 'Point Cut',
+                description: 'Sharp pointed profile cutting',
+                icon: '▼',
+                generateProfile: (angle) => this.generatePointCutProfile(angle || 90),
+                defaultSizes: [60, 90, 120]
+            }
+        };
+        
+        console.log('RouterBitSystem: Router bit library created with', Object.keys(this.routerBitLibrary).length, 'profiles');
+    }
+    
+    /**
+     * Setup visual materials for edge preview
+     */
+    setupEdgePreviewMaterials() {
+        // Hover edge material (bright yellow tube)
+        this.edgePreviewMaterial = new BABYLON.StandardMaterial('edgePreview', this.scene);
+        this.edgePreviewMaterial.diffuseColor = new BABYLON.Color3(1, 1, 0); // Bright yellow
+        this.edgePreviewMaterial.emissiveColor = new BABYLON.Color3(0.8, 0.8, 0); // Bright emissive yellow
+        this.edgePreviewMaterial.specularColor = new BABYLON.Color3(0, 0, 0); // No specular
+        this.edgePreviewMaterial.alpha = 0.9;
+        this.edgePreviewMaterial.disableLighting = true;
+        this.edgePreviewMaterial.backFaceCulling = false;
+        
+        // Selected edge material (bright orange tube)
+        this.selectedEdgeMaterial = new BABYLON.StandardMaterial('selectedEdge', this.scene);
+        this.selectedEdgeMaterial.diffuseColor = new BABYLON.Color3(1, 0.4, 0); // Bright orange
+        this.selectedEdgeMaterial.emissiveColor = new BABYLON.Color3(0.8, 0.3, 0); // Bright emissive orange
+        this.selectedEdgeMaterial.specularColor = new BABYLON.Color3(0, 0, 0); // No specular
+        this.selectedEdgeMaterial.alpha = 1.0;
+        this.selectedEdgeMaterial.disableLighting = true;
+        this.selectedEdgeMaterial.backFaceCulling = false;
+        
+        console.log('RouterBitSystem: Edge preview materials created with bold tube rendering');
+    }
+    
+    /**
+     * Setup mouse tracking for edge detection
+     */
+    setupMouseTracking() {
+        this.pointerObserver = this.scene.onPointerObservable.add((pointerInfo) => {
+            if (!this.isActive) return;
+            
+            if (pointerInfo.type === BABYLON.PointerEventTypes.POINTERMOVE) {
+                this.handleEdgeHover(pointerInfo);
+            } else if (pointerInfo.type === BABYLON.PointerEventTypes.POINTERDOWN) {
+                if (pointerInfo.event.button === 0) { // Left click
+                    this.handleEdgeSelection(pointerInfo);
+                }
+            }
+        });
+        
+        console.log('RouterBitSystem: Mouse tracking setup complete');
+    }
+    
+    /**
+     * Handle edge hover detection
+     */
+    handleEdgeHover(pointerInfo) {
+        const pickInfo = this.scene.pick(
+            this.scene.pointerX,
+            this.scene.pointerY,
+            (mesh) => this.isRoutablePart(mesh)
+        );
+        
+        if (pickInfo.hit && pickInfo.pickedMesh) {
+            const edge = this.detectEdgeFromPick(pickInfo);
+            
+            if (edge && edge !== this.hoveredEdge) {
+                this.clearEdgeHover();
+                this.hoveredEdge = edge;
+                this.showEdgePreview(edge);
+            }
+        } else {
+            this.clearEdgeHover();
+        }
+    }
+    
+    /**
+     * Handle edge selection
+     */
+    handleEdgeSelection(pointerInfo) {
+        if (this.hoveredEdge) {
+            if (this.selectedEdges.includes(this.hoveredEdge)) {
+                // Deselect edge
+                this.deselectEdge(this.hoveredEdge);
+            } else {
+                // Select edge
+                this.selectEdge(this.hoveredEdge);
+            }
+        } else {
+            // If no edge is hovered but we clicked on a part, set it as focus part
+            const pickInfo = this.scene.pick(
+                this.scene.pointerX,
+                this.scene.pointerY,
+                (mesh) => mesh && (mesh.isWorkBenchPart || mesh.isProjectPart)
+            );
+            
+            if (pickInfo.hit && pickInfo.pickedMesh && !this.focusPart) {
+                this.setFocusPart(pickInfo.pickedMesh);
+                console.log('RouterBitSystem: Auto-focused on clicked part');
+            }
+        }
+    }
+    
+    /**
+     * Detect edge from pick information
+     */
+    detectEdgeFromPick(pickInfo) {
+        const mesh = pickInfo.pickedMesh;
+        const pickPoint = pickInfo.pickedPoint;
+        
+        // Get mesh bounds
+        const bounds = mesh.getBoundingInfo();
+        const size = bounds.maximum.subtract(bounds.minimum);
+        const center = mesh.position;
+        
+        // Calculate distances to edges based on pick point relative to mesh center
+        const relativePoint = pickPoint.subtract(center);
+        const edgeTolerance = 3.0; // Tighter tolerance for precise edge detection
+        
+        console.log('RouterBitSystem: Analyzing click at relative position:', relativePoint);
+        console.log('RouterBitSystem: Board dimensions - X:', size.x.toFixed(1), 'Y:', size.y.toFixed(1), 'Z:', size.z.toFixed(1));
+        
+        // Calculate distances to each face
+        const distToTop = Math.abs(relativePoint.y - size.y / 2);
+        const distToBottom = Math.abs(relativePoint.y + size.y / 2);
+        const distToRight = Math.abs(relativePoint.x - size.x / 2);
+        const distToLeft = Math.abs(relativePoint.x + size.x / 2);
+        const distToFront = Math.abs(relativePoint.z - size.z / 2);
+        const distToBack = Math.abs(relativePoint.z + size.z / 2);
+        
+        // Find which face we're closest to
+        const minDistance = Math.min(distToTop, distToBottom, distToRight, distToLeft, distToFront, distToBack);
+        
+        if (minDistance > edgeTolerance) {
+            console.log('RouterBitSystem: Click too far from any edge, min distance:', minDistance.toFixed(1));
+            return null;
+        }
+        
+        let edgeType = 'unknown';
+        let edgeDirection = 'unknown';
+        let specificSide = 'unknown';
+        
+        // Determine which specific edge based on the closest face and position
+        if (minDistance === distToTop) {
+            // Top face - determine which specific edge
+            console.log('RouterBitSystem: On top face');
+            
+            // Check if we're near the X edges (front/back edges of top face)
+            if (Math.abs(relativePoint.z - size.z / 2) < edgeTolerance) {
+                edgeType = 'top_front_edge';
+                specificSide = 'front';
+                edgeDirection = size.x > size.z ? 'long_edge' : 'short_edge';
+            } else if (Math.abs(relativePoint.z + size.z / 2) < edgeTolerance) {
+                edgeType = 'top_back_edge';
+                specificSide = 'back';
+                edgeDirection = size.x > size.z ? 'long_edge' : 'short_edge';
+            }
+            // Check if we're near the Z edges (left/right edges of top face)
+            else if (Math.abs(relativePoint.x - size.x / 2) < edgeTolerance) {
+                edgeType = 'top_right_edge';
+                specificSide = 'right';
+                edgeDirection = size.z > size.x ? 'long_edge' : 'short_edge';
+            } else if (Math.abs(relativePoint.x + size.x / 2) < edgeTolerance) {
+                edgeType = 'top_left_edge';
+                specificSide = 'left';
+                edgeDirection = size.z > size.x ? 'long_edge' : 'short_edge';
+            }
+        }
+        else if (minDistance === distToRight) {
+            edgeType = 'right_edge';
+            specificSide = 'right';
+            edgeDirection = size.z > size.x ? 'long_edge' : 'short_edge';
+        }
+        else if (minDistance === distToLeft) {
+            edgeType = 'left_edge';
+            specificSide = 'left';
+            edgeDirection = size.z > size.x ? 'long_edge' : 'short_edge';
+        }
+        else if (minDistance === distToFront) {
+            edgeType = 'front_edge';
+            specificSide = 'front';
+            edgeDirection = size.x > size.z ? 'long_edge' : 'short_edge';
+        }
+        else if (minDistance === distToBack) {
+            edgeType = 'back_edge';
+            specificSide = 'back';
+            edgeDirection = size.x > size.z ? 'long_edge' : 'short_edge';
+        }
+        
+        if (edgeType !== 'unknown') {
+            const edge = {
+                type: edgeType,
+                direction: edgeDirection,
+                specificSide: specificSide,
+                mesh: mesh,
+                pickPoint: pickPoint,
+                center: center,
+                size: size,
+                relativePoint: relativePoint,
+                id: `edge_${mesh.uniqueId}_${Date.now()}_${specificSide}`
+            };
+            
+            console.log('RouterBitSystem: PRECISE edge detected -', edgeType, '(', edgeDirection, ') on', specificSide, 'side');
+            console.log('RouterBitSystem: Distance to edge:', minDistance.toFixed(1), 'cm');
+            return edge;
+        }
+        
+        console.log('RouterBitSystem: No valid edge detected');
+        return null;
+    }
+    
+    /**
+     * Generate list of edges for a rectangular lumber piece
+     */
+    generateEdgeList(min, max, mesh) {
+        const edges = [];
+        
+        // Top edges (Y = max.y)
+        edges.push({
+            type: 'top_front',
+            start: new BABYLON.Vector3(min.x, max.y, max.z),
+            end: new BABYLON.Vector3(max.x, max.y, max.z),
+            normal: new BABYLON.Vector3(0, 1, 0),
+            mesh: mesh
+        });
+        
+        edges.push({
+            type: 'top_back',
+            start: new BABYLON.Vector3(min.x, max.y, min.z),
+            end: new BABYLON.Vector3(max.x, max.y, min.z),
+            normal: new BABYLON.Vector3(0, 1, 0),
+            mesh: mesh
+        });
+        
+        edges.push({
+            type: 'top_left',
+            start: new BABYLON.Vector3(min.x, max.y, min.z),
+            end: new BABYLON.Vector3(min.x, max.y, max.z),
+            normal: new BABYLON.Vector3(0, 1, 0),
+            mesh: mesh
+        });
+        
+        edges.push({
+            type: 'top_right',
+            start: new BABYLON.Vector3(max.x, max.y, min.z),
+            end: new BABYLON.Vector3(max.x, max.y, max.z),
+            normal: new BABYLON.Vector3(0, 1, 0),
+            mesh: mesh
+        });
+        
+        // Add bottom, front, back, left, right edges...
+        // (Additional edges would be added here for complete edge detection)
+        
+        return edges;
+    }
+    
+    /**
+     * Calculate distance from point to edge
+     */
+    distanceToEdge(point, edge) {
+        const edgeVector = edge.end.subtract(edge.start);
+        const pointVector = point.subtract(edge.start);
+        
+        const edgeLength = edgeVector.length();
+        const projection = BABYLON.Vector3.Dot(pointVector, edgeVector) / edgeLength;
+        
+        // Clamp projection to edge bounds
+        const clampedProjection = Math.max(0, Math.min(edgeLength, projection));
+        const closestPoint = edge.start.add(edgeVector.normalize().scale(clampedProjection));
+        
+        return BABYLON.Vector3.Distance(point, closestPoint);
+    }
+    
+    /**
+     * Show edge preview highlight
+     */
+    showEdgePreview(edge) {
+        // Create a thin line to show the SPECIFIC edge being previewed
+        const mesh = edge.mesh;
+        const meshSize = edge.size;
+        const meshCenter = edge.center;
+        
+        // Create edge line based on specific edge type
+        let edgeLine = null;
+        
+        if (edge.type === 'top_front_edge') {
+            // Front edge of top face (along X axis) - create thick tube
+            const startPoint = new BABYLON.Vector3(meshCenter.x - meshSize.x/2, meshCenter.y + meshSize.y/2, meshCenter.z + meshSize.z/2);
+            const endPoint = new BABYLON.Vector3(meshCenter.x + meshSize.x/2, meshCenter.y + meshSize.y/2, meshCenter.z + meshSize.z/2);
+            const path = [startPoint, endPoint];
+            edgeLine = BABYLON.MeshBuilder.CreateTube('edgePreview', {
+                path: path,
+                radius: 0.3,
+                tessellation: 8,
+                cap: BABYLON.Mesh.CAP_ALL
+            }, this.scene);
+        }
+        else if (edge.type === 'top_back_edge') {
+            // Back edge of top face (along X axis) - create thick tube
+            const startPoint = new BABYLON.Vector3(meshCenter.x - meshSize.x/2, meshCenter.y + meshSize.y/2, meshCenter.z - meshSize.z/2);
+            const endPoint = new BABYLON.Vector3(meshCenter.x + meshSize.x/2, meshCenter.y + meshSize.y/2, meshCenter.z - meshSize.z/2);
+            const path = [startPoint, endPoint];
+            edgeLine = BABYLON.MeshBuilder.CreateTube('edgePreview', {
+                path: path,
+                radius: 0.3,
+                tessellation: 8,
+                cap: BABYLON.Mesh.CAP_ALL
+            }, this.scene);
+        }
+        else if (edge.type === 'top_left_edge') {
+            // Left edge of top face (along Z axis) - create thick tube
+            const startPoint = new BABYLON.Vector3(meshCenter.x - meshSize.x/2, meshCenter.y + meshSize.y/2, meshCenter.z - meshSize.z/2);
+            const endPoint = new BABYLON.Vector3(meshCenter.x - meshSize.x/2, meshCenter.y + meshSize.y/2, meshCenter.z + meshSize.z/2);
+            const path = [startPoint, endPoint];
+            edgeLine = BABYLON.MeshBuilder.CreateTube('edgePreview', {
+                path: path,
+                radius: 0.3,
+                tessellation: 8,
+                cap: BABYLON.Mesh.CAP_ALL
+            }, this.scene);
+        }
+        else if (edge.type === 'top_right_edge') {
+            // Right edge of top face (along Z axis) - create thick tube
+            const startPoint = new BABYLON.Vector3(meshCenter.x + meshSize.x/2, meshCenter.y + meshSize.y/2, meshCenter.z - meshSize.z/2);
+            const endPoint = new BABYLON.Vector3(meshCenter.x + meshSize.x/2, meshCenter.y + meshSize.y/2, meshCenter.z + meshSize.z/2);
+            const path = [startPoint, endPoint];
+            edgeLine = BABYLON.MeshBuilder.CreateTube('edgePreview', {
+                path: path,
+                radius: 0.3,
+                tessellation: 8,
+                cap: BABYLON.Mesh.CAP_ALL
+            }, this.scene);
+        }
+        else {
+            console.warn('RouterBitSystem: Unknown edge type:', edge.type, '- no preview will be shown');
+            return; // Don't show anything for unknown edge types
+        }
+        
+        if (edgeLine) {
+            edgeLine.material = this.edgePreviewMaterial; // Use yellow material
+            edgeLine.isPickable = false;
+            edgeLine.renderingGroupId = 1; // Render on top
+            
+            // Store reference for cleanup
+            this.currentEdgePreview = edgeLine;
+            
+            console.log('RouterBitSystem: Showing BOLD tube edge preview for', edge.type, 'on', edge.specificSide, 'side');
+        }
+    }
+    
+    /**
+     * Clear edge hover preview
+     */
+    clearEdgeHover() {
+        if (this.currentEdgePreview) {
+            this.currentEdgePreview.dispose();
+            this.currentEdgePreview = null;
+        }
+        this.hoveredEdge = null;
+    }
+    
+    /**
+     * Select an edge for router bit application
+     */
+    selectEdge(edge) {
+        this.selectedEdges.push(edge);
+        console.log('RouterBitSystem: Edge selected for routing:', edge.type, 'Total selected:', this.selectedEdges.length);
+        
+        // Show persistent selection highlight
+        this.showEdgeSelection(edge);
+        
+        // Update UI to show selection count
+        this.updateSelectionUI();
+        
+        // Show router bit library in properties panel
+        this.showRouterBitsInPropertiesPanel();
+    }
+    
+    /**
+     * Deselect an edge
+     */
+    deselectEdge(edge) {
+        const index = this.selectedEdges.indexOf(edge);
+        if (index > -1) {
+            this.selectedEdges.splice(index, 1);
+            console.log('RouterBitSystem: Edge deselected:', edge.type, 'Total selected:', this.selectedEdges.length);
+            
+            // Remove selection highlight
+            if (edge.selectionHighlight) {
+                edge.selectionHighlight.dispose();
+                edge.selectionHighlight = null;
+            }
+            
+            // Update UI
+            this.updateSelectionUI();
+            
+            // Update properties panel
+            if (this.selectedEdges.length > 0) {
+                this.showRouterBitsInPropertiesPanel();
+            } else {
+                // Clear router bit library from properties panel if no edges selected
+                const selectionInfo = document.getElementById('selection-info');
+                if (selectionInfo) {
+                    selectionInfo.innerHTML = '<strong>Router Tool:</strong><br>Click edges to select them for routing';
+                }
+            }
+        }
+    }
+    
+    /**
+     * Show persistent edge selection highlight
+     */
+    showEdgeSelection(edge) {
+        // Create the SAME precise edge line as preview, but in orange
+        const mesh = edge.mesh;
+        const meshSize = edge.size;
+        const meshCenter = edge.center;
+        
+        let selectionLine = null;
+        
+        if (edge.type === 'top_front_edge') {
+            const startPoint = new BABYLON.Vector3(meshCenter.x - meshSize.x/2, meshCenter.y + meshSize.y/2, meshCenter.z + meshSize.z/2);
+            const endPoint = new BABYLON.Vector3(meshCenter.x + meshSize.x/2, meshCenter.y + meshSize.y/2, meshCenter.z + meshSize.z/2);
+            const path = [startPoint, endPoint];
+            selectionLine = BABYLON.MeshBuilder.CreateTube('edgeSelection', {
+                path: path,
+                radius: 0.4, // Thicker than preview
+                tessellation: 8,
+                cap: BABYLON.Mesh.CAP_ALL
+            }, this.scene);
+        }
+        else if (edge.type === 'top_back_edge') {
+            const startPoint = new BABYLON.Vector3(meshCenter.x - meshSize.x/2, meshCenter.y + meshSize.y/2, meshCenter.z - meshSize.z/2);
+            const endPoint = new BABYLON.Vector3(meshCenter.x + meshSize.x/2, meshCenter.y + meshSize.y/2, meshCenter.z - meshSize.z/2);
+            const path = [startPoint, endPoint];
+            selectionLine = BABYLON.MeshBuilder.CreateTube('edgeSelection', {
+                path: path,
+                radius: 0.4,
+                tessellation: 8,
+                cap: BABYLON.Mesh.CAP_ALL
+            }, this.scene);
+        }
+        else if (edge.type === 'top_left_edge') {
+            const startPoint = new BABYLON.Vector3(meshCenter.x - meshSize.x/2, meshCenter.y + meshSize.y/2, meshCenter.z - meshSize.z/2);
+            const endPoint = new BABYLON.Vector3(meshCenter.x - meshSize.x/2, meshCenter.y + meshSize.y/2, meshCenter.z + meshSize.z/2);
+            const path = [startPoint, endPoint];
+            selectionLine = BABYLON.MeshBuilder.CreateTube('edgeSelection', {
+                path: path,
+                radius: 0.4,
+                tessellation: 8,
+                cap: BABYLON.Mesh.CAP_ALL
+            }, this.scene);
+        }
+        else if (edge.type === 'top_right_edge') {
+            const startPoint = new BABYLON.Vector3(meshCenter.x + meshSize.x/2, meshCenter.y + meshSize.y/2, meshCenter.z - meshSize.z/2);
+            const endPoint = new BABYLON.Vector3(meshCenter.x + meshSize.x/2, meshCenter.y + meshSize.y/2, meshCenter.z + meshSize.z/2);
+            const path = [startPoint, endPoint];
+            selectionLine = BABYLON.MeshBuilder.CreateTube('edgeSelection', {
+                path: path,
+                radius: 0.4,
+                tessellation: 8,
+                cap: BABYLON.Mesh.CAP_ALL
+            }, this.scene);
+        }
+        
+        if (selectionLine) {
+            selectionLine.material = this.selectedEdgeMaterial; // Use orange material
+            selectionLine.isPickable = false;
+            selectionLine.renderingGroupId = 1; // Render on top
+            
+            // Store for cleanup
+            edge.selectionHighlight = selectionLine;
+            
+            console.log('RouterBitSystem: Showing BOLD tube edge selection for', edge.type);
+        }
+    }
+    
+    /**
+     * Update UI to show current selection
+     */
+    updateSelectionUI() {
+        const selectionInfo = document.getElementById('selection-info');
+        if (selectionInfo && this.isActive) {
+            if (this.selectedEdges.length > 0) {
+                // Show details about selected edges
+                const edgeDetails = this.selectedEdges.map(edge => {
+                    const edgeDesc = edge.direction === 'long_edge' ? 'long edge' : 'short edge';
+                    return edgeDesc;
+                }).join(', ');
+                selectionInfo.textContent = `Router tool - ${this.selectedEdges.length} edge(s) selected (${edgeDetails}). Press R to choose router bit.`;
+            } else if (this.focusPart) {
+                const partName = this.focusPart.partData?.materialName || 'board';
+                selectionInfo.textContent = `Router tool - Click edges of ${partName} to select them, then press R`;
+            } else {
+                selectionInfo.textContent = 'Router tool active - Select a board first, then click its edges';
+            }
+        }
+    }
+    
+    /**
+     * Set the focus part for edge detection
+     */
+    setFocusPart(mesh) {
+        this.focusPart = mesh;
+        console.log('RouterBitSystem: Focus part set to', mesh.name || 'unnamed mesh');
+        
+        // Update UI
+        this.updateSelectionUI();
+    }
+    
+    /**
+     * Clear the focus part
+     */
+    clearFocusPart() {
+        this.focusPart = null;
+        console.log('RouterBitSystem: Focus part cleared');
+    }
+    
+    /**
+     * Check if mesh is a routable part
+     */
+    isRoutablePart(mesh) {
+        // If we have a focus part, only allow that part
+        if (this.focusPart) {
+            return mesh === this.focusPart;
+        }
+        
+        // Otherwise, allow any work bench or project part
+        return mesh && (mesh.isWorkBenchPart || mesh.isProjectPart);
+    }
+    
+    // ==================== ROUTER BIT PROFILE GENERATORS ====================
+    
+    /**
+     * Generate roundover profile points
+     */
+    generateRoundoverProfile(radius) {
+        const points = [];
+        const steps = 16;
+        
+        for (let i = 0; i <= steps; i++) {
+            const angle = (i / steps) * (Math.PI / 2);
+            const x = radius * (1 - Math.cos(angle));
+            const y = radius * Math.sin(angle);
+            points.push(new BABYLON.Vector3(x, y, 0));
+        }
+        
+        return points;
+    }
+    
+    /**
+     * Generate chamfer profile points
+     */
+    generateChamferProfile(size) {
+        // 45-degree chamfer cut from corner
+        return [
+            new BABYLON.Vector3(0, 0, 0),
+            new BABYLON.Vector3(size, 0, 0),
+            new BABYLON.Vector3(0, size, 0),
+            new BABYLON.Vector3(0, 0, 0)
+        ];
+    }
+    
+    /**
+     * Generate ogee profile points
+     */
+    generateOgeeProfile(size) {
+        const points = [];
+        const steps = 20;
+        
+        for (let i = 0; i <= steps; i++) {
+            const t = i / steps;
+            // S-curve using sine wave
+            const x = size * t;
+            const y = size * 0.5 * (1 + Math.sin(Math.PI * (t - 0.5)));
+            points.push(new BABYLON.Vector3(x, y, 0));
+        }
+        
+        return points;
+    }
+    
+    /**
+     * Generate cove profile points
+     */
+    generateCoveProfile(radius) {
+        const points = [];
+        const steps = 16;
+        
+        for (let i = 0; i <= steps; i++) {
+            const angle = (i / steps) * (Math.PI / 2);
+            const x = radius * Math.sin(angle);
+            const y = radius * (1 - Math.cos(angle));
+            points.push(new BABYLON.Vector3(x, y, 0));
+        }
+        
+        return points;
+    }
+    
+    /**
+     * Generate beading profile points
+     */
+    generateBeadingProfile(size) {
+        const points = [];
+        const steps = 24;
+        
+        for (let i = 0; i <= steps; i++) {
+            const angle = (i / steps) * Math.PI;
+            const x = size * 0.5 * (1 - Math.cos(angle));
+            const y = size * 0.5 * Math.sin(angle);
+            points.push(new BABYLON.Vector3(x, y, 0));
+        }
+        
+        return points;
+    }
+    
+    /**
+     * Generate rabbet profile points
+     */
+    generateRabbetProfile(depth, width) {
+        return [
+            new BABYLON.Vector3(0, 0, 0),
+            new BABYLON.Vector3(width, 0, 0),
+            new BABYLON.Vector3(width, depth, 0),
+            new BABYLON.Vector3(0, depth, 0)
+        ];
+    }
+    
+    /**
+     * Generate roman ogee profile points
+     */
+    generateRomanOgeeProfile(size) {
+        const points = [];
+        const steps = 24;
+        
+        for (let i = 0; i <= steps; i++) {
+            const t = i / steps;
+            // Complex S-curve with cove and bead elements
+            const x = size * t;
+            const y = size * 0.6 * (Math.sin(Math.PI * t * 2) * 0.3 + Math.sin(Math.PI * t) * 0.7);
+            points.push(new BABYLON.Vector3(x, y, 0));
+        }
+        
+        return points;
+    }
+    
+    /**
+     * Generate thumbnail profile points
+     */
+    generateThumbnailProfile(size) {
+        const points = [];
+        const steps = 12;
+        
+        // Quarter round with flat section
+        for (let i = 0; i <= steps; i++) {
+            const angle = (i / steps) * (Math.PI / 4); // Quarter circle
+            const x = size * 0.7 * Math.sin(angle);
+            const y = size * 0.7 * (1 - Math.cos(angle));
+            points.push(new BABYLON.Vector3(x, y, 0));
+        }
+        
+        // Add flat section
+        points.push(new BABYLON.Vector3(size, size * 0.3, 0));
+        
+        return points;
+    }
+    
+    /**
+     * Generate bullnose profile points
+     */
+    generateBullnoseProfile(radius) {
+        const points = [];
+        const steps = 20;
+        
+        for (let i = 0; i <= steps; i++) {
+            const angle = (i / steps) * Math.PI; // Half circle
+            const x = radius * Math.sin(angle);
+            const y = radius * (1 - Math.cos(angle));
+            points.push(new BABYLON.Vector3(x, y, 0));
+        }
+        
+        return points;
+    }
+    
+    /**
+     * Generate fillet profile points
+     */
+    generateFilletProfile(radius) {
+        const points = [];
+        const steps = 12;
+        
+        for (let i = 0; i <= steps; i++) {
+            const angle = (i / steps) * (Math.PI / 2);
+            const x = radius * (1 - Math.cos(angle));
+            const y = radius * Math.sin(angle);
+            points.push(new BABYLON.Vector3(x, y, 0));
+        }
+        
+        return points;
+    }
+    
+    /**
+     * Generate V-groove profile points
+     */
+    generateVGrooveProfile(size) {
+        return [
+            new BABYLON.Vector3(0, 0, 0),
+            new BABYLON.Vector3(size, size * 0.5, 0),
+            new BABYLON.Vector3(size * 2, 0, 0)
+        ];
+    }
+    
+    /**
+     * Generate edge bead profile points
+     */
+    generateEdgeBeadProfile(size) {
+        const points = [];
+        const steps = 16;
+        
+        // Create bead with fillets
+        for (let i = 0; i <= steps; i++) {
+            const angle = (i / steps) * Math.PI;
+            const x = size * 0.3 + size * 0.4 * Math.sin(angle);
+            const y = size * 0.5 * (1 + Math.cos(angle));
+            points.push(new BABYLON.Vector3(x, y, 0));
+        }
+        
+        return points;
+    }
+    
+    /**
+     * Generate table edge profile points
+     */
+    generateTableEdgeProfile(size) {
+        const points = [];
+        const steps = 32;
+        
+        // Complex elegant curve for table edges
+        for (let i = 0; i <= steps; i++) {
+            const t = i / steps;
+            const x = size * t;
+            const y = size * 0.8 * (
+                Math.sin(Math.PI * t * 0.5) * 0.4 +
+                Math.sin(Math.PI * t * 2) * 0.2 +
+                t * 0.4
+            );
+            points.push(new BABYLON.Vector3(x, y, 0));
+        }
+        
+        return points;
+    }
+    
+    /**
+     * Generate classical profile points
+     */
+    generateClassicalProfile(size) {
+        const points = [];
+        const steps = 16;
+        
+        // Classical edge molding - ogee-like with stepped detail
+        for (let i = 0; i <= steps; i++) {
+            const t = i / steps;
+            const x = size * t;
+            // S-curve with step detail
+            const s_curve = 0.5 * (1 + Math.sin(Math.PI * (t - 0.5)));
+            const y = size * 0.6 * s_curve;
+            points.push(new BABYLON.Vector3(x, y, 0));
+        }
+        
+        return points;
+    }
+    
+    /**
+     * Generate triple bead profile points
+     */
+    generateTripleBeadProfile(size) {
+        const points = [];
+        const steps = 24;
+        
+        // Three small beads on the edge corner
+        const beadRadius = size / 6; // Small beads
+        
+        // First bead (corner)
+        for (let i = 0; i <= steps / 3; i++) {
+            const angle = (i / (steps / 3)) * (Math.PI / 2);
+            const x = beadRadius * (1 - Math.cos(angle));
+            const y = beadRadius * Math.sin(angle);
+            points.push(new BABYLON.Vector3(x, y, 0));
+        }
+        
+        // Small step
+        points.push(new BABYLON.Vector3(size * 0.3, beadRadius, 0));
+        
+        // Second bead
+        for (let i = 0; i <= steps / 3; i++) {
+            const angle = Math.PI - (i / (steps / 3)) * (Math.PI / 2);
+            const x = size * 0.3 + beadRadius * Math.cos(angle);
+            const y = beadRadius + beadRadius * Math.sin(angle);
+            points.push(new BABYLON.Vector3(x, y, 0));
+        }
+        
+        return points;
+    }
+    
+    /**
+     * Generate wavy edge profile points
+     */
+    generateWavyEdgeProfile(size) {
+        const points = [];
+        const steps = 20;
+        
+        // Simple wavy edge treatment from corner
+        for (let i = 0; i <= steps; i++) {
+            const t = i / steps;
+            const x = size * t;
+            const y = size * 0.3 * Math.sin(Math.PI * t * 3) * (1 - t * 0.5); // Waves that diminish
+            points.push(new BABYLON.Vector3(x, Math.abs(y), 0));
+        }
+        
+        return points;
+    }
+    
+    /**
+     * Generate dovetail profile points
+     */
+    generateDovetailProfile(size, angle = 14) {
+        const angleRad = (angle * Math.PI) / 180;
+        const slope = Math.tan(angleRad);
+        
+        // Simple angled edge treatment (like a chamfer with dovetail angle)
+        const depth = size * 0.7;
+        const width = depth * slope;
+        
+        return [
+            new BABYLON.Vector3(0, 0, 0),
+            new BABYLON.Vector3(width, 0, 0),
+            new BABYLON.Vector3(0, depth, 0),
+            new BABYLON.Vector3(0, 0, 0)
+        ];
+    }
+    
+    /**
+     * Generate keyhole profile points
+     */
+    generateKeyholeProfile(size) {
+        // For edge treatment, create a small keyhole slot near the edge
+        const slotDepth = size * 0.6;
+        const slotWidth = size * 0.4;
+        const headWidth = size * 0.8;
+        
+        return [
+            new BABYLON.Vector3(0, 0, 0),
+            new BABYLON.Vector3(slotWidth, 0, 0),
+            new BABYLON.Vector3(slotWidth, slotDepth * 0.6, 0),
+            new BABYLON.Vector3(headWidth, slotDepth * 0.6, 0),
+            new BABYLON.Vector3(headWidth, slotDepth, 0),
+            new BABYLON.Vector3(0, slotDepth, 0),
+            new BABYLON.Vector3(0, 0, 0)
+        ];
+    }
+    
+    /**
+     * Generate flush trim profile points
+     */
+    generateFlushTrimProfile(diameter) {
+        const points = [];
+        const radius = diameter / 2;
+        const steps = 16;
+        
+        // Simple straight cutting edge
+        for (let i = 0; i <= steps; i++) {
+            const y = (i / steps) * radius;
+            points.push(new BABYLON.Vector3(0, y, 0));
+        }
+        
+        return points;
+    }
+    
+    /**
+     * Generate corner round profile points
+     */
+    generateCornerRoundProfile(radius) {
+        const points = [];
+        const steps = 16;
+        
+        // Quarter circle for inside corners
+        for (let i = 0; i <= steps; i++) {
+            const angle = (i / steps) * (Math.PI / 2);
+            const x = radius * Math.cos(angle);
+            const y = radius * Math.sin(angle);
+            points.push(new BABYLON.Vector3(x, y, 0));
+        }
+        
+        return points;
+    }
+    
+    /**
+     * Generate panel pilot profile points
+     */
+    generatePanelPilotProfile(size) {
+        const points = [];
+        const bevelHeight = size * 0.7;
+        const flatWidth = size * 0.3;
+        
+        // Raised panel cutting profile
+        points.push(new BABYLON.Vector3(0, 0, 0));
+        points.push(new BABYLON.Vector3(flatWidth, 0, 0));
+        points.push(new BABYLON.Vector3(size, bevelHeight, 0));
+        
+        return points;
+    }
+    
+    /**
+     * Generate stile and rail profile points
+     */
+    generateStileRailProfile(size) {
+        const points = [];
+        const stepHeight = size / 3;
+        
+        // Door frame joinery profile
+        points.push(new BABYLON.Vector3(0, 0, 0));
+        points.push(new BABYLON.Vector3(size * 0.3, 0, 0));
+        points.push(new BABYLON.Vector3(size * 0.3, stepHeight, 0));
+        points.push(new BABYLON.Vector3(size * 0.7, stepHeight, 0));
+        points.push(new BABYLON.Vector3(size * 0.7, stepHeight * 2, 0));
+        points.push(new BABYLON.Vector3(size, stepHeight * 2, 0));
+        points.push(new BABYLON.Vector3(size, size, 0));
+        
+        return points;
+    }
+    
+    /**
+     * Generate finger joint profile points
+     */
+    generateFingerJointProfile(size) {
+        const points = [];
+        const fingerWidth = size;
+        const fingerHeight = size;
+        
+        // Box joint cutting profile
+        points.push(new BABYLON.Vector3(0, 0, 0));
+        points.push(new BABYLON.Vector3(fingerWidth, 0, 0));
+        points.push(new BABYLON.Vector3(fingerWidth, fingerHeight, 0));
+        points.push(new BABYLON.Vector3(0, fingerHeight, 0));
+        points.push(new BABYLON.Vector3(0, 0, 0));
+        
+        return points;
+    }
+    
+    /**
+     * Generate slot cutter profile points
+     */
+    generateSlotCutterProfile(width, depth) {
+        // Edge slot - small groove along the edge
+        const slotDepth = (depth || width) * 0.5;
+        const slotWidth = width * 0.6;
+        
+        return [
+            new BABYLON.Vector3(0, 0, 0),
+            new BABYLON.Vector3(slotWidth, 0, 0),
+            new BABYLON.Vector3(slotWidth, slotDepth, 0),
+            new BABYLON.Vector3(0, slotDepth, 0),
+            new BABYLON.Vector3(0, 0, 0)
+        ];
+    }
+    
+    /**
+     * Generate spiral upcut profile points
+     */
+    generateSpiralUpcutProfile(diameter) {
+        // Spiral bits for edge work create clean straight cuts
+        const depth = diameter * 0.8;
+        
+        return [
+            new BABYLON.Vector3(0, 0, 0),
+            new BABYLON.Vector3(diameter * 0.6, 0, 0),
+            new BABYLON.Vector3(diameter * 0.6, depth, 0),
+            new BABYLON.Vector3(0, depth, 0),
+            new BABYLON.Vector3(0, 0, 0)
+        ];
+    }
+    
+    /**
+     * Generate spiral downcut profile points
+     */
+    generateSpiralDowncutProfile(diameter) {
+        // Spiral downcut for clean edge cuts
+        const depth = diameter * 0.8;
+        
+        return [
+            new BABYLON.Vector3(0, 0, 0),
+            new BABYLON.Vector3(diameter * 0.6, 0, 0),
+            new BABYLON.Vector3(diameter * 0.6, depth, 0),
+            new BABYLON.Vector3(0, depth, 0),
+            new BABYLON.Vector3(0, 0, 0)
+        ];
+    }
+    
+    /**
+     * Generate compression profile points
+     */
+    generateCompressionProfile(diameter) {
+        // Compression bit for clean edge cuts on both faces
+        const depth = diameter * 0.8;
+        
+        return [
+            new BABYLON.Vector3(0, 0, 0),
+            new BABYLON.Vector3(diameter * 0.6, 0, 0),
+            new BABYLON.Vector3(diameter * 0.6, depth, 0),
+            new BABYLON.Vector3(0, depth, 0),
+            new BABYLON.Vector3(0, 0, 0)
+        ];
+    }
+    
+    /**
+     * Generate bowl bit profile points
+     */
+    generateBowlBitProfile(radius) {
+        const points = [];
+        const steps = 20;
+        
+        // Large radius bowl carving profile
+        for (let i = 0; i <= steps; i++) {
+            const angle = (i / steps) * Math.PI;
+            const x = radius * Math.sin(angle);
+            const y = radius * (1 - Math.cos(angle));
+            points.push(new BABYLON.Vector3(x, y, 0));
+        }
+        
+        return points;
+    }
+    
+    /**
+     * Generate mortise profile points
+     */
+    generateMortiseProfile(width, depth) {
+        // Edge mortise - small rectangular pocket on edge
+        const mortiseDepth = (depth || width) * 0.4;
+        const mortiseWidth = width * 0.7;
+        
+        return [
+            new BABYLON.Vector3(0, 0, 0),
+            new BABYLON.Vector3(mortiseWidth, 0, 0),
+            new BABYLON.Vector3(mortiseWidth, mortiseDepth, 0),
+            new BABYLON.Vector3(0, mortiseDepth, 0),
+            new BABYLON.Vector3(0, 0, 0)
+        ];
+    }
+    
+    /**
+     * Generate hinge mortise profile points
+     */
+    generateHingeMortiseProfile(size) {
+        const points = [];
+        const hingeWidth = size;
+        const hingeDepth = size * 0.1; // Shallow depth for hinge
+        const cornerRadius = size * 0.05;
+        
+        // Rounded corner rectangle for hinge pocket
+        points.push(new BABYLON.Vector3(cornerRadius, 0, 0));
+        points.push(new BABYLON.Vector3(hingeWidth - cornerRadius, 0, 0));
+        points.push(new BABYLON.Vector3(hingeWidth, cornerRadius, 0));
+        points.push(new BABYLON.Vector3(hingeWidth, hingeDepth - cornerRadius, 0));
+        points.push(new BABYLON.Vector3(hingeWidth - cornerRadius, hingeDepth, 0));
+        points.push(new BABYLON.Vector3(cornerRadius, hingeDepth, 0));
+        points.push(new BABYLON.Vector3(0, hingeDepth - cornerRadius, 0));
+        points.push(new BABYLON.Vector3(0, cornerRadius, 0));
+        points.push(new BABYLON.Vector3(cornerRadius, 0, 0));
+        
+        return points;
+    }
+    
+    /**
+     * Generate lock mortise profile points
+     */
+    generateLockMortiseProfile(size) {
+        const points = [];
+        const lockWidth = size;
+        const lockDepth = size * 0.75;
+        
+        // Deep rectangular mortise for lock hardware
+        points.push(new BABYLON.Vector3(0, 0, 0));
+        points.push(new BABYLON.Vector3(lockWidth, 0, 0));
+        points.push(new BABYLON.Vector3(lockWidth, lockDepth, 0));
+        points.push(new BABYLON.Vector3(0, lockDepth, 0));
+        points.push(new BABYLON.Vector3(0, 0, 0));
+        
+        return points;
+    }
+    
+    /**
+     * Generate inlay profile points
+     */
+    generateInlayProfile(width, depth) {
+        const inlayDepth = depth || width * 0.5;
+        
+        return [
+            new BABYLON.Vector3(0, 0, 0),
+            new BABYLON.Vector3(width, 0, 0),
+            new BABYLON.Vector3(width, inlayDepth, 0),
+            new BABYLON.Vector3(0, inlayDepth, 0),
+            new BABYLON.Vector3(0, 0, 0)
+        ];
+    }
+    
+    /**
+     * Generate sign making profile points
+     */
+    generateSignMakingProfile(angle = 60) {
+        const angleRad = (angle * Math.PI) / 180;
+        const depth = 0.125; // 1/8" deep V-carving
+        const width = depth * 2 * Math.tan(angleRad / 2);
+        
+        return [
+            new BABYLON.Vector3(0, 0, 0),
+            new BABYLON.Vector3(width / 2, depth, 0),
+            new BABYLON.Vector3(width, 0, 0)
+        ];
+    }
+    
+    /**
+     * Generate core box profile points
+     */
+    generateCoreBoxProfile(radius) {
+        const points = [];
+        const steps = 16;
+        
+        // Semicircular groove
+        for (let i = 0; i <= steps; i++) {
+            const angle = (i / steps) * Math.PI;
+            const x = radius * Math.cos(angle);
+            const y = radius * Math.sin(angle);
+            points.push(new BABYLON.Vector3(x + radius, y, 0));
+        }
+        
+        return points;
+    }
+    
+    /**
+     * Generate point cut profile points
+     */
+    generatePointCutProfile(angle = 90) {
+        const angleRad = (angle * Math.PI) / 180;
+        const depth = 0.25;
+        const width = depth * 2 * Math.tan(angleRad / 2);
+        
+        return [
+            new BABYLON.Vector3(0, 0, 0),
+            new BABYLON.Vector3(width / 2, depth, 0),
+            new BABYLON.Vector3(width, 0, 0)
+        ];
+    }
+    
+    // ==================== ROUTER BIT MODAL ====================
+    
+    /**
+     * Setup the router bit selection modal
+     */
+    setupRouterBitModal() {
+        // Get modal elements
+        this.routerBitModal = document.getElementById('router-bit-modal');
+        this.routerBitGrid = document.getElementById('router-bit-grid');
+        this.bitSizeSelector = document.getElementById('bit-size-selector');
+        this.selectedBitName = document.getElementById('selected-bit-name');
+        this.sizeButtons = document.getElementById('size-buttons');
+        
+        // Setup modal event listeners
+        const closeButton = document.getElementById('close-router-bit-modal');
+        const cancelButton = document.getElementById('cancel-router-bit');
+        const applyButton = document.getElementById('apply-router-bit');
+        
+        if (closeButton) {
+            closeButton.addEventListener('click', () => this.hideRouterBitModal());
+        }
+        
+        if (cancelButton) {
+            cancelButton.addEventListener('click', () => this.showRouterBitGrid());
+        }
+        
+        if (applyButton) {
+            applyButton.addEventListener('click', () => this.applySelectedBit());
+        }
+        
+        // Close modal when clicking outside
+        this.routerBitModal?.addEventListener('click', (e) => {
+            if (e.target === this.routerBitModal) {
+                this.hideRouterBitModal();
+            }
+        });
+        
+        // Populate router bit grid
+        this.populateRouterBitGrid();
+        
+        console.log('RouterBitSystem: Router bit modal setup complete');
+    }
+
+    /**
+     * Show router bit library in properties panel
+     */
+    showRouterBitsInPropertiesPanel() {
+        const selectionInfo = document.getElementById('selection-info');
+        if (!selectionInfo) return;
+
+        const edgeCount = this.selectedEdges.length;
+        if (edgeCount === 0) return;
+
+        // Create router bit selection UI in properties panel
+        const routerBitHTML = `
+            <strong>Router Tool:</strong><br>
+            ${edgeCount} edge${edgeCount > 1 ? 's' : ''} selected<br>
+            <br>
+            <div style="background: rgba(52, 152, 219, 0.1); padding: 10px; border-radius: 5px; margin-top: 10px;">
+                <strong>Router Bit Library:</strong><br>
+                <div style="max-height: 200px; overflow-y: auto; margin: 8px 0;">
+                    ${this.generateRouterBitOptions()}
+                </div>
+                <div style="margin-top: 10px;">
+                    <strong>Bit Size:</strong><br>
+                    <select id="router-bit-size" style="width: 100%; margin: 4px 0;">
+                        <option value="0.125">1/8" (0.125")</option>
+                        <option value="0.25" selected>1/4" (0.25")</option>
+                        <option value="0.375">3/8" (0.375")</option>
+                        <option value="0.5">1/2" (0.5")</option>
+                        <option value="0.75">3/4" (0.75")</option>
+                    </select>
+                </div>
+                <button onclick="window.drawingWorld.routerBitSystem.applySelectedBitFromPanel()" 
+                        style="width: 100%; padding: 8px; background: #27ae60; color: white; border: none; border-radius: 4px; margin-top: 8px;">
+                    Apply Router Bit to ${edgeCount} Edge${edgeCount > 1 ? 's' : ''}
+                </button>
+            </div>
+        `;
+
+        selectionInfo.innerHTML = routerBitHTML;
+
+        // Add event listener for bit size changes
+        const sizeSelector = document.getElementById('router-bit-size');
+        if (sizeSelector) {
+            sizeSelector.addEventListener('change', (e) => {
+                this.currentBitSize = parseFloat(e.target.value);
+            });
+        }
+    }
+
+    /**
+     * Generate HTML for router bit options
+     */
+    generateRouterBitOptions() {
+        if (!this.routerBitLibrary) return '';
+
+        const bitTypes = [
+            { key: 'roundover', label: 'Roundover', icon: '⌒' },
+            { key: 'chamfer', label: 'Chamfer', icon: '▸' },
+            { key: 'ogee', label: 'Ogee', icon: '〰' },
+            { key: 'cove', label: 'Cove', icon: '⌢' },
+            { key: 'beading', label: 'Beading', icon: '●' },
+            { key: 'rabbet', label: 'Rabbet', icon: '⌊' }
+        ];
+
+        return bitTypes.map(bit => `
+            <div style="display: flex; align-items: center; padding: 4px; margin: 2px 0; cursor: pointer; border-radius: 3px; background: rgba(255,255,255,0.1);"
+                 onclick="window.drawingWorld.routerBitSystem.selectRouterBit('${bit.key}')"
+                 onmouseover="this.style.background='rgba(52,152,219,0.3)'"
+                 onmouseout="this.style.background='rgba(255,255,255,0.1)'">
+                <span style="font-size: 1.2em; margin-right: 8px;">${bit.icon}</span>
+                <span>${bit.label}</span>
+            </div>
+        `).join('');
+    }
+
+    /**
+     * Select a router bit type (new method for properties panel)
+     */
+    selectRouterBit(bitType) {
+        // Get the bit profile from the library
+        const bitProfile = this.routerBitLibrary ? this.routerBitLibrary[bitType] : null;
+        
+        if (bitProfile) {
+            this.selectedBitProfile = bitType;
+            this.selectedBitInfo = bitProfile;
+            console.log('RouterBitSystem: Selected router bit:', bitType);
+            
+            // Update UI to show selection
+            this.showRouterBitsInPropertiesPanel();
+            
+            // Highlight selected bit
+            const bitOptions = document.querySelectorAll('[onclick*="selectRouterBit"]');
+            bitOptions.forEach(option => {
+                if (option.onclick.toString().includes(bitType)) {
+                    option.style.background = 'rgba(52,152,219,0.5)';
+                    option.style.borderLeft = '3px solid #3498db';
+                } else {
+                    option.style.background = 'rgba(255,255,255,0.1)';
+                    option.style.borderLeft = 'none';
+                }
+            });
+        } else {
+            console.error('RouterBitSystem: Bit profile not found:', bitType);
+        }
+    }
+
+    /**
+     * Select a router bit type (original method for modal)
+     */
+    selectRouterBitOriginal(bitKey, bitProfile) {
+        this.selectedBitProfile = bitKey;
+        this.selectedBitInfo = bitProfile;
+        this.showBitSizeSelector(bitProfile);
+    }
+
+    /**
+     * Apply selected router bit from properties panel
+     */
+    applySelectedBitFromPanel() {
+        if (!this.selectedBitProfile) {
+            alert('Please select a router bit type first');
+            return;
+        }
+
+        if (this.selectedEdges.length === 0) {
+            alert('No edges selected');
+            return;
+        }
+
+        // Apply the router bit to selected edges
+        this.setBitSize(this.currentBitSize);
+        this.applyProfileToSelectedEdges();
+        
+        console.log(`RouterBitSystem: Applied ${this.selectedBitProfile} bit (${this.currentBitSize}") to ${this.selectedEdges.length} edges`);
+    }
+    
+    /**
+     * Show the router bit selection modal
+     */
+    showRouterBitModal() {
+        if (this.routerBitModal) {
+            this.routerBitModal.style.display = 'flex';
+            this.showRouterBitGrid();
+            
+            // Update apply button text with edge count
+            const applyButton = document.getElementById('apply-router-bit');
+            if (applyButton) {
+                applyButton.textContent = `Apply to ${this.selectedEdges.length} Selected Edge(s)`;
+            }
+        }
+    }
+    
+    /**
+     * Hide the router bit selection modal
+     */
+    hideRouterBitModal() {
+        if (this.routerBitModal) {
+            this.routerBitModal.style.display = 'none';
+        }
+    }
+    
+    /**
+     * Show the router bit grid (first step)
+     */
+    showRouterBitGrid() {
+        if (this.routerBitGrid && this.bitSizeSelector) {
+            this.routerBitGrid.style.display = 'grid';
+            this.bitSizeSelector.style.display = 'none';
+        }
+    }
+    
+    /**
+     * Show the bit size selector (second step)
+     */
+    showBitSizeSelector(bitProfile) {
+        if (this.routerBitGrid && this.bitSizeSelector) {
+            this.routerBitGrid.style.display = 'none';
+            this.bitSizeSelector.style.display = 'block';
+            
+            // Update selected bit name
+            if (this.selectedBitName) {
+                this.selectedBitName.textContent = `${bitProfile.name} - Select Size`;
+            }
+            
+            // Populate size buttons
+            this.populateSizeButtons(bitProfile);
+        }
+    }
+    
+    /**
+     * Populate the router bit grid with available bits
+     */
+    populateRouterBitGrid() {
+        if (!this.routerBitGrid) return;
+        
+        this.routerBitGrid.innerHTML = '';
+        
+        Object.entries(this.routerBitLibrary).forEach(([key, bitProfile]) => {
+            const bitCard = document.createElement('div');
+            bitCard.className = 'router-bit-card';
+            bitCard.dataset.bitKey = key;
+            
+            bitCard.innerHTML = `
+                <span class="router-bit-icon">${bitProfile.icon}</span>
+                <div class="router-bit-name">${bitProfile.name}</div>
+                <div class="router-bit-description">${bitProfile.description}</div>
+            `;
+            
+            bitCard.addEventListener('click', () => {
+                this.selectRouterBit(key, bitProfile);
+            });
+            
+            this.routerBitGrid.appendChild(bitCard);
+        });
+    }
+    
+    /**
+     * Select a router bit and show size selector
+     */
+    selectRouterBit(bitKey, bitProfile) {
+        this.selectedBitProfile = bitKey;
+        this.selectedBitInfo = bitProfile;
+        this.showBitSizeSelector(bitProfile);
+    }
+    
+    /**
+     * Populate size buttons for selected bit
+     */
+    populateSizeButtons(bitProfile) {
+        if (!this.sizeButtons) return;
+        
+        this.sizeButtons.innerHTML = '';
+        
+        bitProfile.defaultSizes.forEach(size => {
+            const sizeButton = document.createElement('button');
+            sizeButton.className = 'size-button';
+            sizeButton.textContent = `${size}"`;
+            sizeButton.dataset.size = size;
+            
+            sizeButton.addEventListener('click', () => {
+                // Clear previous selection
+                this.sizeButtons.querySelectorAll('.size-button').forEach(btn => {
+                    btn.classList.remove('selected');
+                });
+                
+                // Select this size
+                sizeButton.classList.add('selected');
+                this.selectedBitSize = size;
+            });
+            
+            this.sizeButtons.appendChild(sizeButton);
+        });
+        
+        // Auto-select default size (0.25")
+        const defaultButton = this.sizeButtons.querySelector('[data-size="0.25"]');
+        if (defaultButton) {
+            defaultButton.click();
+        }
+    }
+    
+    /**
+     * Apply the selected router bit to selected edges
+     */
+    applySelectedBit() {
+        if (!this.selectedBitProfile || !this.selectedBitSize) {
+            console.log('RouterBitSystem: No bit or size selected');
+            return;
+        }
+        
+        console.log('RouterBitSystem: Applying', this.selectedBitProfile, 'bit, size', this.selectedBitSize);
+        
+        // Set the current bit profile and size
+        this.setBitSize(this.selectedBitSize);
+        
+        // Apply to selected edges
+        this.applyProfileToSelectedEdges();
+        
+        // Hide modal
+        this.hideRouterBitModal();
+    }
+
+    // ==================== SYSTEM CONTROL ====================
+    
+    /**
+     * Activate the router bit system
+     */
+    activate(bitProfile = 'roundover') {
+        console.log('RouterBitSystem: Activating router bit system with', bitProfile, 'profile');
+        this.isActive = true;
+        this.selectedBitProfile = bitProfile;
+        this.clearAll();
+    }
+    
+    /**
+     * Deactivate the router bit system
+     */
+    deactivate() {
+        console.log('RouterBitSystem: Deactivating router bit system');
+        this.isActive = false;
+        this.selectedBitProfile = null;
+        this.clearFocusPart();
+        this.clearAll();
+    }
+    
+    /**
+     * Clear all selections and previews
+     */
+    clearAll() {
+        this.clearEdgeHover();
+        this.selectedEdges.forEach(edge => {
+            if (edge.selectionHighlight) {
+                edge.selectionHighlight.dispose();
+            }
+        });
+        this.selectedEdges = [];
+        this.clearProfilePreviews();
+    }
+    
+    /**
+     * Clear profile preview meshes
+     */
+    clearProfilePreviews() {
+        this.profilePreviewMeshes.forEach(mesh => mesh.dispose());
+        this.profilePreviewMeshes = [];
+    }
+    
+    /**
+     * Get available router bit profiles
+     */
+    getAvailableProfiles() {
+        return Object.keys(this.routerBitLibrary);
+    }
+    
+    /**
+     * Get profile information
+     */
+    getProfileInfo(profileName) {
+        return this.routerBitLibrary[profileName];
+    }
+    
+    /**
+     * Set current bit size
+     */
+    setBitSize(size) {
+        this.currentBitSize = size;
+        console.log('RouterBitSystem: Bit size set to', size, 'inches');
+    }
+    
+    /**
+     * Apply router bit profile to selected edges
+     */
+    applyProfileToSelectedEdges() {
+        if (this.selectedEdges.length === 0) {
+            console.log('RouterBitSystem: No edges selected for routing');
+            return;
+        }
+        
+        if (!this.selectedBitProfile) {
+            console.log('RouterBitSystem: No router bit profile selected');
+            return;
+        }
+        
+        console.log('RouterBitSystem: Applying', this.selectedBitProfile, 'profile to', this.selectedEdges.length, 'edges');
+        
+        // Apply profile to each selected edge
+        this.selectedEdges.forEach(edge => {
+            this.applyProfileToEdge(edge, this.selectedBitProfile, this.currentBitSize);
+        });
+        
+        // Clear selections after application
+        this.clearAll();
+    }
+    
+    /**
+     * Apply profile to a specific edge
+     */
+    applyProfileToEdge(edge, profileName, size) {
+        console.log('RouterBitSystem: Applying', profileName, 'profile to edge', edge.type);
+        
+        // Get profile generator
+        const profileInfo = this.routerBitLibrary[profileName];
+        if (!profileInfo) {
+            console.error('RouterBitSystem: Unknown profile:', profileName);
+            return;
+        }
+        
+        // Generate profile points
+        const profilePoints = profileInfo.generateProfile(size);
+        
+        // Apply actual geometry modification
+        this.modifyMeshWithProfile(edge, profilePoints, profileName, size);
+        
+        console.log('RouterBitSystem: Profile applied with', profilePoints.length, 'points');
+    }
+    
+    /**
+     * Modify the mesh geometry with the router bit profile
+     */
+    modifyMeshWithProfile(edge, profilePoints, profileName, size) {
+        const mesh = edge.mesh;
+        const meshBounds = mesh.getBoundingInfo();
+        const meshSize = meshBounds.maximum.subtract(meshBounds.minimum);
+        
+        console.log('RouterBitSystem: Modifying mesh geometry for', profileName, 'profile');
+        
+        // Create the cutting tool geometry
+        const cuttingTool = this.createCuttingToolGeometry(edge, profileName, size);
+        
+        if (cuttingTool) {
+            // Perform CSG subtraction to actually modify the board geometry
+            this.performCSGSubtraction(mesh, cuttingTool, profileName);
+        }
+        
+        // Update the work bench display to show the modification
+        if (this.drawingWorld.updateWorkBenchDisplay) {
+            this.drawingWorld.updateWorkBenchDisplay();
+        }
+    }
+    
+    /**
+     * Create cutting tool geometry for CSG subtraction
+     */
+    createCuttingToolGeometry(edge, profileName, size) {
+        const mesh = edge.mesh;
+        const meshBounds = mesh.getBoundingInfo();
+        const meshSize = meshBounds.maximum.subtract(meshBounds.minimum);
+        const meshCenter = mesh.position;
+        
+        let cuttingTool = null;
+        const sizeInCm = size * 2.54; // Convert inches to cm
+        
+        if (profileName === 'roundover') {
+            // Create a quarter-cylinder positioned at the corner for proper roundover
+            const radius = sizeInCm;
+            cuttingTool = BABYLON.CylinderBuilder.CreateCylinder('roundover_cutter', {
+                height: Math.max(meshSize.x, meshSize.z) + 2, // Length of edge + buffer
+                diameter: radius * 2, // Full diameter
+                tessellation: 32
+            }, this.scene);
+            
+        } else if (profileName === 'chamfer') {
+            // Create a proper 45-degree wedge for chamfer cutting
+            const chamferSize = sizeInCm;
+            cuttingTool = BABYLON.BoxBuilder.CreateBox('chamfer_cutter', {
+                width: chamferSize * 2, // Width of chamfer cut
+                height: chamferSize * 2, // Height of chamfer cut
+                depth: Math.max(meshSize.x, meshSize.z) + 2 // Length of edge + buffer
+            }, this.scene);
+            // No initial rotation - will be positioned correctly
+            
+        } else if (profileName === 'cove') {
+            // Create a cylinder for cove cutting
+            cuttingTool = BABYLON.CylinderBuilder.CreateCylinder('cove_cutter', {
+                height: Math.max(meshSize.x, meshSize.z),
+                diameter: sizeInCm * 2,
+                tessellation: 16
+            }, this.scene);
+            cuttingTool.rotation.z = Math.PI / 2;
+            
+        } else if (profileName === 'rabbeting') {
+            // Create a rectangular notch for rabbet cutting
+            cuttingTool = BABYLON.BoxBuilder.CreateBox('rabbet_cutter', {
+                width: Math.max(meshSize.x, meshSize.z),
+                height: sizeInCm,
+                depth: sizeInCm
+            }, this.scene);
+            
+        } else {
+            // Generic groove cutter
+            cuttingTool = BABYLON.CylinderBuilder.CreateCylinder('groove_cutter', {
+                height: Math.max(meshSize.x, meshSize.z),
+                diameter: sizeInCm,
+                tessellation: 12
+            }, this.scene);
+            cuttingTool.rotation.z = Math.PI / 2;
+        }
+        
+        if (cuttingTool) {
+            // Position the cutting tool at the edge
+            this.positionCuttingTool(cuttingTool, edge, meshSize, sizeInCm);
+        }
+        
+        return cuttingTool;
+    }
+    
+    /**
+     * Position the cutting tool at the correct edge location
+     */
+    positionCuttingTool(cuttingTool, edge, meshSize, sizeInCm) {
+        const mesh = edge.mesh;
+        const meshCenter = mesh.position;
+        const toolName = cuttingTool.name;
+        
+        // Start at mesh center
+        cuttingTool.position = meshCenter.clone();
+        
+        if (edge.type === 'top_front_edge') {
+            // Front edge of top face (along X axis) 
+            if (toolName.includes('roundover')) {
+                // Position cylinder to cut INTO the corner edge
+                cuttingTool.position.y += (meshSize.y / 2) - (sizeInCm / 2); // Overlap top surface by radius
+                cuttingTool.position.z += (meshSize.z / 2) - (sizeInCm / 2); // Overlap front surface by radius
+                cuttingTool.rotation.x = Math.PI / 2; // Rotate to align with edge
+            } else if (toolName.includes('chamfer')) {
+                // Position chamfer cutter to cut INTO the corner edge
+                cuttingTool.position.y += (meshSize.y / 2) - (sizeInCm / 2); // Overlap top surface
+                cuttingTool.position.z += (meshSize.z / 2) - (sizeInCm / 2); // Overlap front surface
+                cuttingTool.rotation.x = Math.PI / 4; // 45-degree rotation
+                cuttingTool.rotation.z = Math.PI / 4; // Additional rotation for proper chamfer
+            }
+            
+            console.log('RouterBitSystem: Positioned on top FRONT edge');
+            
+        } else if (edge.type === 'top_back_edge') {
+            // Back edge of top face (along X axis)
+            if (toolName.includes('roundover')) {
+                cuttingTool.position.y += (meshSize.y / 2) - (sizeInCm / 2); // Overlap top surface
+                cuttingTool.position.z -= (meshSize.z / 2) - (sizeInCm / 2); // Overlap back surface
+                cuttingTool.rotation.x = Math.PI / 2;
+            } else if (toolName.includes('chamfer')) {
+                cuttingTool.position.y += (meshSize.y / 2) - (sizeInCm / 2); // Overlap top surface
+                cuttingTool.position.z -= (meshSize.z / 2) - (sizeInCm / 2); // Overlap back surface
+                cuttingTool.rotation.x = Math.PI / 4;
+                cuttingTool.rotation.z = Math.PI / 4;
+            }
+            
+            console.log('RouterBitSystem: Positioned on top BACK edge');
+            
+        } else if (edge.type === 'top_left_edge') {
+            // Left edge of top face (along Z axis)
+            if (toolName.includes('roundover')) {
+                cuttingTool.position.y += (meshSize.y / 2) - (sizeInCm / 2); // Overlap top surface
+                cuttingTool.position.x -= (meshSize.x / 2) - (sizeInCm / 2); // Overlap left surface
+                cuttingTool.rotation.z = Math.PI / 2; // Rotate for vertical edge
+            } else if (toolName.includes('chamfer')) {
+                cuttingTool.position.y += (meshSize.y / 2) - (sizeInCm / 2); // Overlap top surface
+                cuttingTool.position.x -= (meshSize.x / 2) - (sizeInCm / 2); // Overlap left surface
+                cuttingTool.rotation.x = Math.PI / 4;
+                cuttingTool.rotation.y = Math.PI / 4;
+            }
+            
+            console.log('RouterBitSystem: Positioned on top LEFT edge');
+            
+        } else if (edge.type === 'top_right_edge') {
+            // Right edge of top face (along Z axis)
+            if (toolName.includes('roundover')) {
+                cuttingTool.position.y += (meshSize.y / 2) - (sizeInCm / 2); // Overlap top surface
+                cuttingTool.position.x += (meshSize.x / 2) - (sizeInCm / 2); // Overlap right surface
+                cuttingTool.rotation.z = Math.PI / 2;
+            } else if (toolName.includes('chamfer')) {
+                cuttingTool.position.y += (meshSize.y / 2) - (sizeInCm / 2); // Overlap top surface
+                cuttingTool.position.x += (meshSize.x / 2) - (sizeInCm / 2); // Overlap right surface
+                cuttingTool.rotation.x = Math.PI / 4;
+                cuttingTool.rotation.y = -Math.PI / 4;
+            }
+            
+            cuttingTool.rotation.y = Math.PI / 2; // Align along Z axis
+            console.log('RouterBitSystem: Positioned on top RIGHT edge (', edge.direction, ')');
+            
+        } else if (edge.type === 'right_edge') {
+            // Right side edge (vertical)
+            cuttingTool.position.x = meshCenter.x + meshSize.x / 2;
+            cuttingTool.rotation.z = Math.PI / 2; // Vertical orientation
+            console.log('RouterBitSystem: Positioned on right vertical edge (', edge.direction, ')');
+            
+        } else if (edge.type === 'left_edge') {
+            // Left side edge (vertical)
+            cuttingTool.position.x = meshCenter.x - meshSize.x / 2;
+            cuttingTool.rotation.z = Math.PI / 2; // Vertical orientation
+            console.log('RouterBitSystem: Positioned on left vertical edge (', edge.direction, ')');
+            
+        } else if (edge.type === 'front_edge') {
+            // Front side edge (vertical)
+            cuttingTool.position.z = meshCenter.z + meshSize.z / 2;
+            cuttingTool.rotation.x = Math.PI / 2; // Vertical orientation
+            console.log('RouterBitSystem: Positioned on front vertical edge (', edge.direction, ')');
+            
+        } else if (edge.type === 'back_edge') {
+            // Back side edge (vertical)
+            cuttingTool.position.z = meshCenter.z - meshSize.z / 2;
+            cuttingTool.rotation.x = Math.PI / 2; // Vertical orientation
+            console.log('RouterBitSystem: Positioned on back vertical edge (', edge.direction, ')');
+            
+        } else {
+            console.log('RouterBitSystem: Unknown edge type, using fallback positioning');
+        }
+        
+        console.log('RouterBitSystem: Final cutting tool position:', cuttingTool.position);
+        console.log('RouterBitSystem: Final cutting tool rotation:', cuttingTool.rotation);
+    }
+    
+    /**
+     * Perform CSG subtraction to actually modify the board geometry
+     */
+    performCSGSubtraction(boardMesh, cuttingTool, profileName) {
+        console.log('RouterBitSystem: Performing CSG subtraction for', profileName);
+        
+        try {
+            // Create CSG objects
+            const boardCSG = BABYLON.CSG.FromMesh(boardMesh);
+            const toolCSG = BABYLON.CSG.FromMesh(cuttingTool);
+            
+            // Subtract the cutting tool from the board
+            const resultCSG = boardCSG.subtract(toolCSG);
+            
+            // Create new mesh from the result
+            const newMesh = resultCSG.toMesh(boardMesh.name + '_routed', boardMesh.material, this.scene);
+            
+            // Copy properties from original mesh
+            newMesh.position = boardMesh.position.clone();
+            newMesh.rotation = boardMesh.rotation.clone();
+            newMesh.scaling = boardMesh.scaling.clone();
+            
+            // Copy custom properties
+            newMesh.isWorkBenchPart = boardMesh.isWorkBenchPart;
+            newMesh.isProjectPart = boardMesh.isProjectPart;
+            newMesh.partData = boardMesh.partData;
+            
+            // Replace the original mesh
+            boardMesh.dispose();
+            
+            // Update the focus part reference
+            this.focusPart = newMesh;
+            
+            // Clean up cutting tool
+            cuttingTool.dispose();
+            
+            console.log('RouterBitSystem: CSG subtraction completed successfully');
+            
+        } catch (error) {
+            console.error('RouterBitSystem: CSG operation failed:', error);
+            
+            // Fallback: Create a visual effect instead
+            console.log('RouterBitSystem: Falling back to visual effect');
+            this.createRouterBitEffect({mesh: boardMesh, type: 'fallback'}, [], profileName, this.currentBitSize);
+            
+            // Clean up cutting tool
+            cuttingTool.dispose();
+        }
+    }
+    
+    /**
+     * Create a visual effect to show router bit modification
+     */
+    createRouterBitEffect(edge, profilePoints, profileName, size) {
+        const mesh = edge.mesh;
+        const meshBounds = mesh.getBoundingInfo();
+        const meshSize = meshBounds.maximum.subtract(meshBounds.minimum);
+        const meshCenter = mesh.position;
+        
+        // Create a visual groove/chamfer effect based on the profile
+        let effectMesh;
+        
+        if (profileName === 'roundover') {
+            // Create a rounded edge effect
+            effectMesh = this.createRoundoverEffect(edge, size);
+        } else if (profileName === 'chamfer') {
+            // Create a chamfered edge effect
+            effectMesh = this.createChamferEffect(edge, size);
+        } else if (profileName === 'cove') {
+            // Create a cove effect
+            effectMesh = this.createCoveEffect(edge, size);
+        } else {
+            // Generic groove for other profiles
+            effectMesh = this.createGenericGrooveEffect(edge, size);
+        }
+        
+        if (effectMesh) {
+            // Position the effect on the edge
+            effectMesh.position = meshCenter.clone();
+            effectMesh.parent = mesh;
+            
+            // Make it slightly darker than the main material
+            if (mesh.material) {
+                const effectMaterial = mesh.material.clone(mesh.material.name + '_router_effect');
+                if (effectMaterial.diffuseColor) {
+                    effectMaterial.diffuseColor = effectMaterial.diffuseColor.scale(0.8); // Darker
+                }
+                effectMesh.material = effectMaterial;
+            }
+            
+            console.log('RouterBitSystem: Created', profileName, 'effect on edge');
+        }
+    }
+    
+    /**
+     * Create a roundover visual effect
+     */
+    createRoundoverEffect(edge, radius) {
+        const mesh = edge.mesh;
+        const meshBounds = mesh.getBoundingInfo();
+        const meshSize = meshBounds.maximum.subtract(meshBounds.minimum);
+        
+        // Create a small cylinder to represent the rounded edge
+        const roundoverMesh = BABYLON.CylinderBuilder.CreateCylinder('roundover_effect', {
+            height: Math.min(meshSize.x, meshSize.z),
+            diameterTop: radius * 2 * 2.54, // Convert inches to cm
+            diameterBottom: radius * 2 * 2.54,
+            tessellation: 12
+        }, this.scene);
+        
+        // Position along the top edge
+        roundoverMesh.position.y = meshSize.y / 2 - radius * 2.54 / 2;
+        
+        return roundoverMesh;
+    }
+    
+    /**
+     * Create a chamfer visual effect
+     */
+    createChamferEffect(edge, size) {
+        const mesh = edge.mesh;
+        const meshBounds = mesh.getBoundingInfo();
+        const meshSize = meshBounds.maximum.subtract(meshBounds.minimum);
+        
+        // Create a thin box to represent the chamfer
+        const chamferMesh = BABYLON.BoxBuilder.CreateBox('chamfer_effect', {
+            width: Math.min(meshSize.x, meshSize.z),
+            height: size * 2.54, // Convert inches to cm
+            depth: size * 2.54
+        }, this.scene);
+        
+        // Position at the corner
+        chamferMesh.position.y = meshSize.y / 2 - size * 2.54 / 2;
+        chamferMesh.rotation.z = Math.PI / 4; // 45 degree angle
+        
+        return chamferMesh;
+    }
+    
+    /**
+     * Create a cove visual effect
+     */
+    createCoveEffect(edge, radius) {
+        const mesh = edge.mesh;
+        const meshBounds = mesh.getBoundingInfo();
+        const meshSize = meshBounds.maximum.subtract(meshBounds.minimum);
+        
+        // Create a torus to represent the cove
+        const coveMesh = BABYLON.TorusBuilder.CreateTorus('cove_effect', {
+            diameter: radius * 2 * 2.54, // Convert inches to cm
+            thickness: radius * 0.5 * 2.54,
+            tessellation: 16
+        }, this.scene);
+        
+        // Position along the edge
+        coveMesh.position.y = meshSize.y / 2 - radius * 2.54 / 2;
+        coveMesh.rotation.x = Math.PI / 2;
+        
+        return coveMesh;
+    }
+    
+    /**
+     * Create a generic groove effect for other profiles
+     */
+    createGenericGrooveEffect(edge, size) {
+        const mesh = edge.mesh;
+        const meshBounds = mesh.getBoundingInfo();
+        const meshSize = meshBounds.maximum.subtract(meshBounds.minimum);
+        
+        // Create a small groove representation
+        const grooveMesh = BABYLON.BoxBuilder.CreateBox('groove_effect', {
+            width: Math.min(meshSize.x, meshSize.z) * 0.9,
+            height: size * 2.54 * 0.5, // Convert inches to cm
+            depth: size * 2.54 * 0.5
+        }, this.scene);
+        
+        // Position slightly inset from the edge
+        grooveMesh.position.y = meshSize.y / 2 - size * 2.54 / 4;
+        
+        return grooveMesh;
+    }
+    
+    // ==================== DISPOSAL ====================
+    
+    /**
+     * Dispose of the router bit system
+     */
+    dispose() {
+        console.log('RouterBitSystem: Disposing router bit system');
+        
+        // Remove observer
+        if (this.pointerObserver) {
+            this.scene.onPointerObservable.remove(this.pointerObserver);
+            this.pointerObserver = null;
+        }
+        
+        // Clean up materials
+        if (this.edgePreviewMaterial) {
+            this.edgePreviewMaterial.dispose();
+            this.edgePreviewMaterial = null;
+        }
+        
+        if (this.selectedEdgeMaterial) {
+            this.selectedEdgeMaterial.dispose();
+            this.selectedEdgeMaterial = null;
+        }
+        
+        // Clear all selections and previews
+        this.clearAll();
+        
+        // Clear state
+        this.isActive = false;
+        this.selectedBitProfile = null;
+        this.routerBitLibrary = null;
+    }
+}

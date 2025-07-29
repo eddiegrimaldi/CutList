@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Changes</title>
+</head>
+<body>
+    <h1>Testing File Changes</h1>
+    <p>Current timestamp: <script>document.write(new Date().toISOString());</script></p>
+    
+    <script type="module">
+        // Test if our render2D method exists
+        import CutListCAD from './src/main.js';
+        
+        console.log('Testing render2D method exists:', typeof CutListCAD.prototype.render2D);
+        
+        // Check if our files are being loaded
+        fetch('./src/main.js')
+            .then(response => response.text())
+            .then(content => {
+                console.log('Main.js contains render2D:', content.includes('render2D'));
+                console.log('Main.js size:', content.length, 'characters');
+            });
+    </script>
+</body>
+</html>

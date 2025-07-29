@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Master's WORKING Grid Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: white;
+        }
+        
+        #testCanvas {
+            border: 3px solid lime;
+            background: #333333;
+            display: block;
+            margin: 20px 0;
+        }
+        
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            margin: 10px;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        
+        button:hover {
+            background: #45a049;
+        }
+        
+        .info {
+            background: #2a2a2a;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎯 Master's WORKING Grid Test</h1>
+    
+    <div class="info">
+        <strong>Status:</strong> <span id="status">Ready to test...</span>
+    </div>
+    
+    <button onclick="drawSimpleGrid()">✅ Draw Simple Grid</button>
+    <button onclick="drawAdvancedGrid()">🎯 Draw Advanced Grid</button>
+    <button onclick="clearCanvas()">🧹 Clear Canvas</button>
+    
+    <canvas id="testCanvas" width="800" height="600"></canvas>
+    
+    <div class="info">
+        <h3>Test Results:</h3>
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('testCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        function log(message) {
+            console.log(message);
+            document.getElementById('results').innerHTML += `<div>${message}</div>`;
+            document.getElementById('status').textContent = message;
+        }
+        
+        function clearCanvas() {
+            ctx.fillStyle = '#333333';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            log('🧹 Canvas cleared');
+            document.getElementById('results').innerHTML = '';
+        }
+        
+        function drawSimpleGrid() {
+            log('🎯 Drawing simple grid...');
+            
+            // Clear canvas first
+            clearCanvas();
+            
+            // Set grid style
+            ctx.strokeStyle = '#888888';
+            ctx.lineWidth = 1;
+            ctx.globalAlpha = 0.8;
+            
+            const gridSize = 50;
+            let linesDrawn = 0;
+            
+            ctx.beginPath();
+            
+            // Draw vertical lines
+            for (let x = 0; x <= canvas.width; x += gridSize) {
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                linesDrawn++;
+            }
+            
+            // Draw horizontal lines  
+            for (let y = 0; y <= canvas.height; y += gridSize) {
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                linesDrawn++;
+            }
+            
+            ctx.stroke();
+            ctx.globalAlpha = 1.0;
+            
+            log(`✅ Simple grid drawn! Lines: ${linesDrawn}`);
+        }
+        
+        function drawAdvancedGrid() {
+            log('🎯 Drawing advanced grid...');
+            
+            // Clear canvas first
+            clearCanvas();
+            
+            // Major grid lines
+            ctx.strokeStyle = '#aaaaaa';
+            ctx.lineWidth = 1;
+            ctx.globalAlpha = 0.8;
+            
+            const majorGrid = 100;
+            let majorLines = 0;
+            
+            ctx.beginPath();
+            for (let x = 0; x <= canvas.width; x += majorGrid) {
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                majorLines++;
+            }
+            for (let y = 0; y <= canvas.height; y += majorGrid) {
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                majorLines++;
+            }
+            ctx.stroke();
+            
+            // Minor grid lines
+            ctx.strokeStyle = '#666666';
+            ctx.lineWidth = 0.5;
+            ctx.globalAlpha = 0.4;
+            
+            const minorGrid = 25;
+            let minorLines = 0;
+            
+            ctx.beginPath();
+            for (let x = 0; x <= canvas.width; x += minorGrid) {
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                minorLines++;
+            }
+            for (let y = 0; y <= canvas.height; y += minorGrid) {
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                minorLines++;
+            }
+            ctx.stroke();
+            
+            // Add coordinate axes
+            ctx.strokeStyle = '#ff0000';
+            ctx.lineWidth = 2;
+            ctx.globalAlpha = 1.0;
+            
+            // X-axis
+            ctx.beginPath();
+            ctx.moveTo(0, canvas.height / 2);
+            ctx.lineTo(canvas.width, canvas.height / 2);
+            ctx.stroke();
+            
+            // Y-axis  
+            ctx.beginPath();
+            ctx.moveTo(canvas.width / 2, 0);
+            ctx.lineTo(canvas.width / 2, canvas.height);
+            ctx.stroke();
+            
+            ctx.globalAlpha = 1.0;
+            
+            log(`✅ Advanced grid drawn! Major: ${majorLines}, Minor: ${minorLines}, Axes: 2`);
+        }
+        
+        // Initialize
+        window.addEventListener('load', () => {
+            log('🚀 Master\'s Working Grid Test Loaded');
+            drawSimpleGrid();
+        });
+    </script>
+</body>
+</html>

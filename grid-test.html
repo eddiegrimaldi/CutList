@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Grid Test</title>
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script src="https://cdn.babylonjs.com/materialsLibrary/babylonjs.materials.min.js"></script>
+    <style>
+        canvas { width: 100%; height: 100vh; }
+    </style>
+</head>
+<body>
+    <canvas id="renderCanvas"></canvas>
+    <script>
+        const canvas = document.getElementById('renderCanvas');
+        const engine = new BABYLON.Engine(canvas, true);
+        const scene = new BABYLON.Scene(engine);
+        
+        // Create camera
+        const camera = new BABYLON.ArcRotateCamera("camera", 0, Math.PI/3, 20, BABYLON.Vector3.Zero(), scene);
+        camera.attachControl(canvas, true);
+        
+        // Create light
+        const light = new BABYLON.DirectionalLight("dirLight", new BABYLON.Vector3(-1, -1, -1), scene);
+        
+        // Test if GridMaterial exists
+        console.log('BABYLON.GridMaterial exists:', typeof BABYLON.GridMaterial);
+        
+        // Create grid
+        try {
+            const ground = BABYLON.MeshBuilder.CreateGround("grid", { width: 100, height: 100 }, scene);
+            const gridMaterial = new BABYLON.GridMaterial("gridMaterial", scene);
+            gridMaterial.mainColor = new BABYLON.Color3(0.95, 0.95, 0.95);
+            gridMaterial.lineColor = new BABYLON.Color3(0.4, 0.4, 0.4);
+            gridMaterial.minorLineColor = new BABYLON.Color3(0.7, 0.7, 0.7);
+            gridMaterial.gridRatio = 1.0;
+            gridMaterial.majorUnitFrequency = 10;
+            ground.material = gridMaterial;
+            console.log('Grid created successfully');
+        } catch (error) {
+            console.error('Grid creation error:', error);
+        }
+        
+        engine.runRenderLoop(() => scene.render());
+        window.addEventListener('resize', () => engine.resize());
+    </script>
+</body>
+</html>

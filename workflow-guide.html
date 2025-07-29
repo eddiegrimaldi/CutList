@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CutList - Main App Workflow Guide</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: white;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .step {
+            background: rgba(255, 255, 255, 0.1);
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 5px solid #4CAF50;
+        }
+        
+        .step h3 {
+            margin-top: 0;
+            color: #4CAF50;
+        }
+        
+        .code {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            margin: 10px 0;
+        }
+        
+        .warning {
+            background: rgba(255, 193, 7, 0.2);
+            border-left-color: #FFC107;
+            color: #FFF3CD;
+        }
+        
+        .success {
+            background: rgba(76, 175, 80, 0.2);
+            border-left-color: #4CAF50;
+        }
+        
+        .btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            margin: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .btn:hover {
+            background: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Master - CutList Face Extrusion Workflow</h1>
+        <p>Spanky's complete guide to testing the Opus robust solution in the main CutList app.</p>
+        
+        <div class="step success">
+            <h3>✅ Code Status Confirmed</h3>
+            <p>The Opus robust solution with enhanced debug logging is uploaded and running on the server:</p>
+            <div class="code">
+                ✅ main.js contains "OPUS ROBUST SOLUTION"<br>
+                ✅ extrusionGizmo.js version v20250630_003<br>
+                ✅ Face normal calculation logic implemented<br>
+                ✅ Enhanced debug logging active
+            </div>
+        </div>
+        
+        <div class="step">
+            <h3>🚀 Step 1: Open Main CutList App</h3>
+            <p>Start by opening the main application:</p>
+            <a href="https://www.kettlebread.com/cutlist/" class="btn" target="_blank">Open CutList App</a>
+        </div>
+        
+        <div class="step">
+            <h3>📝 Step 2: Draw 2D Shapes (CRITICAL)</h3>
+            <p>You MUST draw shapes in 2D mode first. The extrusion system requires existing 2D objects:</p>
+            <ul>
+                <li>Click the <strong>Rectangle</strong> tool in the toolbar</li>
+                <li>Draw a rectangle on the 2D canvas by clicking and dragging</li>
+                <li>Click the <strong>Circle</strong> tool</li>
+                <li>Draw a circle on the 2D canvas</li>
+            </ul>
+            <div class="code">
+                🔍 Look for: "MAIN.JS: addObject called with:" in the console
+            </div>
+        </div>
+        
+        <div class="step warning">
+            <h3>⚠️ Step 3: Switch to 3D Mode</h3>
+            <p>This is where the magic happens - the 2D shapes become 3D:</p>
+            <ul>
+                <li>Use mouse wheel to zoom out or rotate the view</li>
+                <li>The app should automatically switch to "3D Model" mode</li>
+                <li>Your 2D shapes will appear as thin 3D objects</li>
+            </ul>
+            <div class="code">
+                🔍 Look for: "MAIN.JS: Synchronizing 2D objects to 3D meshes..." in console<br>
+                🔍 Status bar should show: "3D Model" instead of "2D Sketch"
+            </div>
+        </div>
+        
+        <div class="step">
+            <h3>🎯 Step 4: Click on Faces for Extrusion</h3>
+            <p>Now you can test the face-based extrusion:</p>
+            <ul>
+                <li>Click directly on any <strong>face</strong> of the blue 3D shapes</li>
+                <li>Look for a <strong>blue gizmo</strong> appearing at the click point</li>
+                <li>Drag the gizmo cone to extrude the shape</li>
+                <li>The clicked face should stay anchored in place</li>
+            </ul>
+            <div class="code">
+                🔍 Console logs to look for:<br>
+                "🎯 MAIN.JS: Handling extrusion update"<br>
+                "🔍 EXTRUSION DEBUG:"<br>
+                "✅ OPUS ROBUST SOLUTION: Offset direction calculation"<br>
+                "Face normal calculation: WORKING"
+            </div>
+        </div>
+        
+        <div class="step">
+            <h3>🔧 Troubleshooting</h3>
+            <p>If nothing happens when clicking:</p>
+            <ul>
+                <li><strong>Check the console</strong> - Press F12 and look for error messages</li>
+                <li><strong>Verify you're in 3D mode</strong> - Status bar should say "3D Model"</li>
+                <li><strong>Make sure you drew 2D shapes first</strong> - No shapes = nothing to extrude</li>
+                <li><strong>Click directly on the blue faces</strong> - Not on empty space</li>
+                <li><strong>Try the isolated test</strong> - Use the complete test file to verify the logic works</li>
+            </ul>
+        </div>
+        
+        <div class="step success">
+            <h3>🧪 Alternative: Test with Pre-made Objects</h3>
+            <p>If you want to skip the 2D drawing step, use our complete test:</p>
+            <a href="https://www.kettlebread.com/cutlist/complete-extrusion-test.html" class="btn" target="_blank">Open Complete Test</a>
+            <p>This test has objects ready to click and shows debug visualization.</p>
+        </div>
+        
+        <div class="step">
+            <h3>🎯 Expected Behavior</h3>
+            <p>When the Opus robust solution is working correctly, you should see:</p>
+            <ul>
+                <li>🔴 <strong>Red sphere</strong> at the click point</li>
+                <li>🟢 <strong>Green sphere</strong> showing face normal direction</li>
+                <li>🔵 <strong>Blue gizmo</strong> positioned along the face normal</li>
+                <li>📏 <strong>Face stays anchored</strong> during extrusion</li>
+                <li>📊 <strong>Debug logs</strong> showing correct calculations</li>
+            </ul>
+        </div>
+        
+        <h2>🎯 Master's Next Steps</h2>
+        <p>Try the workflow above and let Spanky know:</p>
+        <ul>
+            <li>Can you see the 2D shapes you draw?</li>
+            <li>Do they convert to 3D when you switch modes?</li>
+            <li>What happens when you click on the 3D faces?</li>
+            <li>What console messages do you see?</li>
+        </ul>
+        
+        <div class="code">
+            🔥 REMEMBER: The extrusion system needs 2D shapes FIRST!<br>
+            Draw → Switch to 3D → Click faces → Extrude
+        </div>
+    </div>
+</body>
+</html>

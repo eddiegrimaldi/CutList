@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CutList Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .test-box { background: #f0f0f0; padding: 20px; margin: 20px 0; }
+        button { padding: 10px 20px; margin: 10px; }
+    </style>
+</head>
+<body>
+    <h1>CutList Test Page</h1>
+    <p>If you can see this, the upload worked!</p>
+    
+    <div class="test-box">
+        <h3>Right-Click Test</h3>
+        <div id="canvas-area" style="width: 300px; height: 200px; background: #ddd; border: 2px solid #999;">
+            Right-click in this area
+        </div>
+        <p id="status">Status: Ready</p>
+    </div>
+
+    <script>
+        document.getElementById('canvas-area').addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            document.getElementById('status').textContent = 'Status: Right-click detected!';
+            console.log('Right-click detected!');
+        });
+    </script>
+</body>
+</html>

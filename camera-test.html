@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camera Test - CutList</title>
+    <style>
+        body { margin: 0; background: #2a2a2a; font-family: Arial, sans-serif; }
+        #renderCanvas { 
+            width: 100vw; 
+            height: 100vh; 
+            display: block; 
+            cursor: grab;
+        }
+        #renderCanvas:active { cursor: grabbing; }
+        
+        .controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 100;
+            background: rgba(0,0,0,0.8);
+            padding: 15px;
+            border-radius: 8px;
+            color: white;
+        }
+        
+        .controls button {
+            background: #4a90e2;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .controls button:hover { background: #357abd; }
+        .controls button.active { background: #27ae60; }
+        
+        .info {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            color: white;
+            background: rgba(0,0,0,0.8);
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            max-width: 400px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="renderCanvas"></canvas>
+    
+    <div class="controls">
+        <h3>Camera Test - Spanky's Debug</h3>
+        <button id="sketchMode">Sketch Mode (Ortho)</button>
+        <button id="modelingMode">Modeling Mode (Perspective)</button>
+        <button id="resetCamera">Reset Camera</button>
+        <button id="toggleGrid">Toggle Grid</button>
+    </div>
+    
+    <div class="info">
+        <strong>Controls:</strong><br>
+        • Left Click + Drag: Rotate<br>
+        • Right Click + Drag: Pan<br>
+        • Mouse Wheel: Zoom<br>
+        • Middle Click + Drag: Pan<br>
+        <br>
+        <strong>Current Mode:</strong> <span id="currentMode">Sketch</span><br>
+        <strong>Camera Type:</strong> <span id="cameraType">Orthographic</span>
+    </div>
+
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script src="https://cdn.babylonjs.com/materialsLibrary/babylonjs.materials.min.js"></script>
+    <script>
+        class CameraTest {
+            constructor() {
+                this.canvas = document.getElementById('renderCanvas');
+                this.engine = new BABYLON.Engine(this.canvas, true);
+                this.scene = new BABYLON.Scene(this.engine);
+                this.scene.clearColor = new BABYLON.Color3(0.15, 0.15, 0.15);
+                
+                this.currentMode = 'sketch';
+                this.gridVisible = true;
+                
+                this.init();
+            }
+            
+            init() {
+                // Camera
+                this.camera = new BABYLON.ArcRotateCamera(
+                    'camera',
+                    Math.PI / 4,
+                    Math.PI / 3,
+                    150,
+                    BABYLON.Vector3.Zero(),
+                    this.scene
+                );
+                
+                this.camera.attachControl(this.canvas, true);
+                this.camera.inertia = 0.01;
+                this.camera.panningInertia = 0.01;
+                this.camera.wheelPrecision = 20;
+                this.camera.panningSensibility = 30;
+                this.camera.lowerRadiusLimit = 5;
+                this.camera.upperRadiusLimit = 500;
+                
+                // Lighting
+                const light = new BABYLON.HemisphericLight('light', new BABYLON.Vector3(0, 1, 0), this.scene);
+                light.intensity = 0.9;
+                
+                // Grid
+                this.createGrid();
+                this.createTestObjects();
+                this.setupEventListeners();
+                
+                // Start in sketch mode
+                this.switchMode('sketch');
+                
+                // Render loop
+                this.engine.runRenderLoop(() => {
+                    this.scene.render();
+                });
+                
+                // Resize
+                window.addEventListener('resize', () => {
+                    this.engine.resize();
+                });
+                
+                // Prevent context menu
+                this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+            }
+            
+            createGrid() {
+                const gridMaterial = new BABYLON.GridMaterial('gridMaterial', this.scene);
+                gridMaterial.majorUnitFrequency = 10;
+                gridMaterial.minorUnitVisibility = 0.6;
+                gridMaterial.gridRatio = 2;
+                gridMaterial.backFaceCulling = false;
+                gridMaterial.mainColor = new BABYLON.Color3(0.8, 0.8, 0.8);
+                gridMaterial.lineColor = new BABYLON.Color3(0.4, 0.4, 0.4);
+                gridMaterial.opacity = 0.8;
+                
+                this.gridMesh = BABYLON.MeshBuilder.CreateGround('grid', {
+                    width: 200, 
+                    height: 200, 
+                    subdivisions: 100
+                }, this.scene);
+                this.gridMesh.material = gridMaterial;
+                this.gridMesh.receiveShadows = false;
+                this.gridMesh.isPickable = false;
+            }
+            
+            createTestObjects() {
+                // Create some test objects to see depth and perspective
+                const box = BABYLON.MeshBuilder.CreateBox('box', {size: 10}, this.scene);
+                box.position.x = 20;
+                box.position.y = 5;
+                
+                const sphere = BABYLON.MeshBuilder.CreateSphere('sphere', {diameter: 15}, this.scene);
+                sphere.position.x = -20;
+                sphere.position.y = 7.5;
+                
+                const cylinder = BABYLON.MeshBuilder.CreateCylinder('cylinder', {height: 20, diameter: 8}, this.scene);
+                cylinder.position.z = 25;
+                cylinder.position.y = 10;
+                
+                // Materials
+                const boxMaterial = new BABYLON.StandardMaterial('boxMat', this.scene);
+                boxMaterial.diffuseColor = new BABYLON.Color3(1, 0.2, 0.2);
+                box.material = boxMaterial;
+                
+                const sphereMaterial = new BABYLON.StandardMaterial('sphereMat', this.scene);
+                sphereMaterial.diffuseColor = new BABYLON.Color3(0.2, 1, 0.2);
+                sphere.material = sphereMaterial;
+                
+                const cylMaterial = new BABYLON.StandardMaterial('cylMat', this.scene);
+                cylMaterial.diffuseColor = new BABYLON.Color3(0.2, 0.2, 1);
+                cylinder.material = cylMaterial;
+            }
+            
+            setupEventListeners() {
+                document.getElementById('sketchMode').addEventListener('click', () => {
+                    this.switchMode('sketch');
+                });
+                
+                document.getElementById('modelingMode').addEventListener('click', () => {
+                    this.switchMode('modeling');
+                });
+                
+                document.getElementById('resetCamera').addEventListener('click', () => {
+                    this.resetCamera();
+                });
+                
+                document.getElementById('toggleGrid').addEventListener('click', () => {
+                    this.gridVisible = !this.gridVisible;
+                    this.gridMesh.setEnabled(this.gridVisible);
+                });
+            }
+            
+            switchMode(mode) {
+                console.log(`Switching to ${mode} mode`);
+                this.currentMode = mode;
+                
+                // Update UI
+                document.querySelectorAll('.controls button').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                document.getElementById(mode + 'Mode').classList.add('active');
+                
+                if (mode === 'sketch') {
+                    // Orthographic view
+                    this.camera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
+                    const size = 75;
+                    this.camera.orthoLeft = -size;
+                    this.camera.orthoRight = size;
+                    this.camera.orthoTop = size;
+                    this.camera.orthoBottom = -size;
+                    
+                    // Top-down view
+                    this.camera.alpha = 0;
+                    this.camera.beta = 0;
+                    this.camera.radius = 150;
+                    
+                    document.getElementById('cameraType').textContent = 'Orthographic';
+                } else {
+                    // Perspective view
+                    this.camera.mode = BABYLON.Camera.PERSPECTIVE_CAMERA;
+                    
+                    // 3D view
+                    this.camera.alpha = Math.PI / 4;
+                    this.camera.beta = Math.PI / 3;
+                    this.camera.radius = 150;
+                    
+                    document.getElementById('cameraType').textContent = 'Perspective';
+                }
+                
+                document.getElementById('currentMode').textContent = mode.charAt(0).toUpperCase() + mode.slice(1);
+            }
+            
+            resetCamera() {
+                if (this.currentMode === 'sketch') {
+                    this.camera.alpha = 0;
+                    this.camera.beta = 0;
+                    this.camera.radius = 150;
+                } else {
+                    this.camera.alpha = Math.PI / 4;
+                    this.camera.beta = Math.PI / 3;
+                    this.camera.radius = 150;
+                }
+                this.camera.target = BABYLON.Vector3.Zero();
+            }
+        }
+        
+        // Start when page loads
+        window.addEventListener('load', () => {
+            new CameraTest();
+        });
+    </script>
+</body>
+</html>

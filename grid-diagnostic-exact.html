@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Master's Grid Diagnostic</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: white;
+        }
+        
+        #testCanvas {
+            border: 3px solid lime;
+            background: transparent;
+            display: block;
+            margin: 20px 0;
+        }
+        
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            margin: 10px;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        
+        .info {
+            background: #2a2a2a;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Master's Grid Function Diagnostic</h1>
+    
+    <div class="info">
+        <strong>Testing:</strong> Direct grid drawing with exact main app variables
+    </div>
+    
+    <button onclick="testMainAppGrid()">🎯 Test Main App Grid Logic</button>
+    <button onclick="testSimpleGrid()">✅ Test Simple Grid</button>
+    <button onclick="clearCanvas()">🧹 Clear</button>
+    
+    <canvas id="testCanvas" width="800" height="600"></canvas>
+    
+    <div id="log" style="background: #000; padding: 10px; height: 300px; overflow-y: auto; font-family: monospace;"></div>
+
+    <script>
+        const canvas = document.getElementById('testCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // EXACT VARIABLES FROM MAIN APP
+        let showGrid = true;
+        let camera = {
+            x: 0,
+            y: 0,
+            zoom: 1,
+            mode: 'sketch'
+        };
+        
+        function log(msg) {
+            console.log(msg);
+            document.getElementById('log').innerHTML += msg + '<br>';
+            document.getElementById('log').scrollTop = document.getElementById('log').scrollHeight;
+        }
+        
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            document.getElementById('log').innerHTML = '';
+            log('🧹 Canvas cleared');
+        }
+        
+        function testMainAppGrid() {
+            log('🎯 Testing EXACT main app grid logic...');
+            clearCanvas();
+            
+            // EXACT COPY of drawGrid2D from main app
+            if (!showGrid) {
+                log('❌ showGrid is false');
+                return;
+            }
+            
+            log('✅ showGrid is true, drawing grid...');
+            
+            const minorGridSize = 20;
+            const majorGridSize = minorGridSize * 10;
+            
+            // Calculate grid bounds based on current camera view
+            const viewBounds = {
+                left: -canvas.width / 2 / camera.zoom + camera.x,
+                right: canvas.width / 2 / camera.zoom + camera.x,
+                top: -canvas.height / 2 / camera.zoom + camera.y,
+                bottom: canvas.height / 2 / camera.zoom + camera.y
+            };
+            
+            log(`📐 ViewBounds: left=${viewBounds.left.toFixed(1)}, right=${viewBounds.right.toFixed(1)}, top=${viewBounds.top.toFixed(1)}, bottom=${viewBounds.bottom.toFixed(1)}`);
+            
+            // Extend bounds slightly
+            const padding = Math.max(minorGridSize, majorGridSize);
+            viewBounds.left -= padding;
+            viewBounds.right += padding;
+            viewBounds.top -= padding;
+            viewBounds.bottom += padding;
+            
+            // Draw minor grid lines first
+            ctx.strokeStyle = '#666666';
+            ctx.lineWidth = 1 / camera.zoom;
+            ctx.globalAlpha = 0.5;
+            
+            let linesDrawn = 0;
+            
+            // Minor vertical lines
+            const startX = Math.floor(viewBounds.left / minorGridSize) * minorGridSize;
+            const endX = Math.ceil(viewBounds.right / minorGridSize) * minorGridSize;
+            
+            log(`📏 Drawing vertical lines from x=${startX} to x=${endX}, step=${minorGridSize}`);
+            
+            for (let x = startX; x <= endX; x += minorGridSize) {
+                if (x % majorGridSize !== 0) {
+                    ctx.beginPath();
+                    ctx.moveTo(x, viewBounds.top);
+                    ctx.lineTo(x, viewBounds.bottom);
+                    ctx.stroke();
+                    linesDrawn++;
+                }
+            }
+            
+            // Minor horizontal lines
+            const startY = Math.floor(viewBounds.top / minorGridSize) * minorGridSize;
+            const endY = Math.ceil(viewBounds.bottom / minorGridSize) * minorGridSize;
+            
+            log(`📏 Drawing horizontal lines from y=${startY} to y=${endY}, step=${minorGridSize}`);
+            
+            for (let y = startY; y <= endY; y += minorGridSize) {
+                if (y % majorGridSize !== 0) {
+                    ctx.beginPath();
+                    ctx.moveTo(viewBounds.left, y);
+                    ctx.lineTo(viewBounds.right, y);
+                    ctx.stroke();
+                    linesDrawn++;
+                }
+            }
+            
+            // Draw major grid lines
+            ctx.strokeStyle = '#888888';
+            ctx.lineWidth = 2 / camera.zoom;
+            ctx.globalAlpha = 0.8;
+            
+            // Major vertical lines
+            const majorStartX = Math.floor(viewBounds.left / majorGridSize) * majorGridSize;
+            const majorEndX = Math.ceil(viewBounds.right / majorGridSize) * majorGridSize;
+            
+            for (let x = majorStartX; x <= majorEndX; x += majorGridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, viewBounds.top);
+                ctx.lineTo(x, viewBounds.bottom);
+                ctx.stroke();
+                linesDrawn++;
+            }
+            
+            // Major horizontal lines
+            const majorStartY = Math.floor(viewBounds.top / majorGridSize) * majorGridSize;
+            const majorEndY = Math.ceil(viewBounds.bottom / majorGridSize) * majorGridSize;
+            
+            for (let y = majorStartY; y <= majorEndY; y += majorGridSize) {
+                ctx.beginPath();
+                ctx.moveTo(viewBounds.left, y);
+                ctx.lineTo(viewBounds.right, y);
+                ctx.stroke();
+                linesDrawn++;
+            }
+            
+            ctx.globalAlpha = 1.0;
+            log(`✅ Main app grid complete! Lines drawn: ${linesDrawn}`);
+        }
+        
+        function testSimpleGrid() {
+            log('✅ Testing simple grid...');
+            clearCanvas();
+            
+            ctx.strokeStyle = '#888888';
+            ctx.lineWidth = 1;
+            ctx.globalAlpha = 0.8;
+            
+            const gridSize = 50;
+            let lines = 0;
+            
+            ctx.beginPath();
+            
+            // Vertical lines
+            for (let x = 0; x <= canvas.width; x += gridSize) {
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                lines++;
+            }
+            
+            // Horizontal lines
+            for (let y = 0; y <= canvas.height; y += gridSize) {
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                lines++;
+            }
+            
+            ctx.stroke();
+            ctx.globalAlpha = 1.0;
+            
+            log(`✅ Simple grid complete! Lines: ${lines}`);
+        }
+        
+        // Initialize
+        window.addEventListener('load', () => {
+            log('🚀 Master\'s Grid Diagnostic Loaded');
+            testMainAppGrid();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Minimal Grid Test</title>
+    <style>
+        body { margin: 0; padding: 20px; background: #f0f0f0; }
+        canvas { border: 2px solid #000; background: white; }
+        .controls { margin: 10px 0; }
+        button { margin: 5px; padding: 10px; background: #007acc; color: white; border: none; }
+        #info { font-family: monospace; background: #fff; padding: 10px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>MINIMAL GRID TEST - BYPASS ALL TRANSFORMS</h1>
+    <div class="controls">
+        <button onclick="drawDirectGrid()">Draw Grid Directly</button>
+        <button onclick="testProjection()">Test Projection</button>
+        <button onclick="clearCanvas()">Clear</button>
+    </div>
+    <canvas id="canvas" width="800" height="600"></canvas>
+    <div id="info"></div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const info = document.getElementById('info');
+
+        // Simple camera
+        const camera = {
+            position: { x: 0, y: 200, z: 400 },
+            rotation: { x: -0.4, y: 0 },
+            fov: 60
+        };
+
+        function log(text) {
+            info.innerHTML += text + '<br>';
+            console.log(text);
+        }
+
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            info.innerHTML = '';
+        }
+
+        function project3D(x, y, z) {
+            // NO CANVAS TRANSFORMS - DIRECT PROJECTION
+            const dx = x - camera.position.x;
+            const dy = y - camera.position.y;  
+            const dz = z - camera.position.z;
+            
+            const cos_pitch = Math.cos(camera.rotation.x);
+            const sin_pitch = Math.sin(camera.rotation.x);
+            const cos_yaw = Math.cos(camera.rotation.y);
+            const sin_yaw = Math.sin(camera.rotation.y);
+            
+            // Yaw rotation
+            const x1 = dx * cos_yaw - dz * sin_yaw;
+            const z1 = dx * sin_yaw + dz * cos_yaw;
+            
+            // Pitch rotation
+            const y2 = dy * cos_pitch - z1 * sin_pitch;
+            const z2 = dy * sin_pitch + z1 * cos_pitch;
+            
+            if (z2 <= 1) return null;
+            
+            const fovScale = (canvas.height / 2) / Math.tan((camera.fov * Math.PI / 180) / 2);
+            const screenX = (x1 * fovScale) / z2 + canvas.width / 2;
+            const screenY = -(y2 * fovScale) / z2 + canvas.height / 2;
+            
+            return { x: screenX, y: screenY, depth: z2 };
+        }
+
+        function testProjection() {
+            clearCanvas();
+            
+            // Test key points
+            const testPoints = [
+                [0, 0, 0, 'ORIGIN'],
+                [100, 0, 0, 'X+100'],
+                [-100, 0, 0, 'X-100'],
+                [0, 0, 100, 'Z+100'],
+                [0, 0, -100, 'Z-100']
+            ];
+
+            testPoints.forEach(([x, y, z, name]) => {
+                const proj = project3D(x, y, z);
+                if (proj) {
+                    log(`${name} [${x},${y},${z}] -> screen (${proj.x.toFixed(1)}, ${proj.y.toFixed(1)}) depth=${proj.depth.toFixed(1)}`);
+                    
+                    // Draw point
+                    ctx.fillStyle = 'red';
+                    ctx.beginPath();
+                    ctx.arc(proj.x, proj.y, 5, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Label
+                    ctx.fillStyle = 'black';
+                    ctx.font = '12px Arial';
+                    ctx.fillText(name, proj.x + 10, proj.y);
+                } else {
+                    log(`${name} [${x},${y},${z}] -> BEHIND CAMERA`);
+                }
+            });
+        }
+
+        function drawDirectGrid() {
+            clearCanvas();
+            
+            // DIRECT GRID DRAWING - NO TRANSFORMS
+            ctx.strokeStyle = '#ccc';
+            ctx.lineWidth = 1;
+            
+            const gridSize = 50;
+            const extent = 200;
+            let drawnLines = 0;
+            
+            // X-direction lines
+            for (let z = -extent; z <= extent; z += gridSize) {
+                const start = project3D(-extent, 0, z);
+                const end = project3D(extent, 0, z);
+                
+                if (start && end) {
+                    ctx.beginPath();
+                    ctx.moveTo(start.x, start.y);
+                    ctx.lineTo(end.x, end.y);
+                    ctx.stroke();
+                    drawnLines++;
+                }
+            }
+            
+            // Z-direction lines  
+            for (let x = -extent; x <= extent; x += gridSize) {
+                const start = project3D(x, 0, -extent);
+                const end = project3D(x, 0, extent);
+                
+                if (start && end) {
+                    ctx.beginPath();
+                    ctx.moveTo(start.x, start.y);
+                    ctx.lineTo(end.x, end.y);
+                    ctx.stroke();
+                    drawnLines++;
+                }
+            }
+            
+            // Draw axes
+            ctx.lineWidth = 3;
+            
+            // X-axis RED
+            ctx.strokeStyle = 'red';
+            const xStart = project3D(-extent, 0, 0);
+            const xEnd = project3D(extent, 0, 0);
+            if (xStart && xEnd) {
+                ctx.beginPath();
+                ctx.moveTo(xStart.x, xStart.y);
+                ctx.lineTo(xEnd.x, xEnd.y);
+                ctx.stroke();
+            }
+            
+            // Z-axis BLUE
+            ctx.strokeStyle = 'blue';
+            const zStart = project3D(0, 0, -extent);
+            const zEnd = project3D(0, 0, extent);
+            if (zStart && zEnd) {
+                ctx.beginPath();
+                ctx.moveTo(zStart.x, zStart.y);
+                ctx.lineTo(zEnd.x, zEnd.y);
+                ctx.stroke();
+            }
+            
+            // Origin point
+            const origin = project3D(0, 0, 0);
+            if (origin) {
+                ctx.fillStyle = 'magenta';
+                ctx.beginPath();
+                ctx.arc(origin.x, origin.y, 8, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            log(`Drew ${drawnLines} grid lines`);
+            log(`Camera: pos(${camera.position.x}, ${camera.position.y}, ${camera.position.z}) rot(${camera.rotation.x.toFixed(2)}, ${camera.rotation.y.toFixed(2)})`);
+        }
+
+        // Auto-test on load
+        drawDirectGrid();
+    </script>
+</body>
+</html>

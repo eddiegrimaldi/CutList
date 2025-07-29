@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CutList Grid Final Test - Master's Diagnostic</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #2a2a2a;
+            color: white;
+        }
+        
+        #testContainer {
+            border: 2px solid lime;
+            width: 800px;
+            height: 600px;
+            position: relative;
+            margin: 20px 0;
+        }
+        
+        #drawingCanvas {
+            border: 1px solid yellow;
+            background: rgba(0,0,0,0.1);
+        }
+        
+        #babylonCanvas {
+            border: 1px solid cyan;
+            position: absolute;
+            top: 0;
+            left: 0;
+            display: none;
+        }
+        
+        .controls {
+            margin: 10px 0;
+        }
+        
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        
+        button:hover {
+            background: #45a049;
+        }
+        
+        #log {
+            background: #1a1a1a;
+            border: 1px solid #666;
+            padding: 10px;
+            height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+    <!-- Babylon.js Core Library -->
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+</head>
+<body>
+    <h1>🎯 Master's Grid System Final Test</h1>
+    
+    <div class="controls">
+        <button onclick="test2DGrid()">Test 2D Grid</button>
+        <button onclick="test3DGrid()">Test 3D Grid (Babylon.js)</button>
+        <button onclick="toggleGridVisibility()">Toggle Grid</button>
+        <button onclick="clearLog()">Clear Log</button>
+    </div>
+    
+    <div id="testContainer">
+        <canvas id="drawingCanvas" width="800" height="600"></canvas>
+        <canvas id="babylonCanvas" width="800" height="600"></canvas>
+    </div>
+    
+    <h3>Test Log:</h3>
+    <div id="log"></div>
+
+    <script>
+        // Global variables
+        let canvas = document.getElementById('drawingCanvas');
+        let ctx = canvas.getContext('2d');
+        let babylonCanvas = document.getElementById('babylonCanvas');
+        let babylonEngine = null;
+        let babylonScene = null;
+        let gridHelper = null;
+        let showGrid = true;
+        let currentMode = '2D';
+
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${timestamp}] ${message}<br>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+
+        function test2DGrid() {
+            log('🎯 Testing 2D Grid System...');
+            currentMode = '2D';
+            
+            // Show 2D canvas, hide Babylon
+            canvas.style.display = 'block';
+            babylonCanvas.style.display = 'none';
+            
+            // Clear canvas
+            ctx.fillStyle = '#333333';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            log('✅ Canvas cleared with dark background');
+            
+            if (!showGrid) {
+                log('❌ Grid is disabled - toggle it on first');
+                return;
+            }
+            
+            // Draw simple 2D grid
+            ctx.strokeStyle = '#888888';
+            ctx.lineWidth = 1;
+            ctx.globalAlpha = 0.7;
+            
+            const gridSize = 50;
+            let lineCount = 0;
+            
+            ctx.beginPath();
+            
+            // Vertical lines
+            for (let x = 0; x <= canvas.width; x += gridSize) {
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                lineCount++;
+            }
+            
+            // Horizontal lines
+            for (let y = 0; y <= canvas.height; y += gridSize) {
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                lineCount++;
+            }
+            
+            ctx.stroke();
+            ctx.globalAlpha = 1.0;
+            
+            log(`✅ 2D Grid drawn successfully! Lines: ${lineCount}`);
+        }
+
+        function test3DGrid() {
+            log('🏗️ Testing 3D Grid System (Babylon.js)...');
+            currentMode = '3D';
+            
+            // Show Babylon canvas, hide 2D
+            canvas.style.display = 'none';
+            babylonCanvas.style.display = 'block';
+            
+            if (!babylonEngine) {
+                log('🔄 Initializing Babylon.js engine...');
+                initializeBabylon();
+            } else {
+                log('✅ Babylon.js already initialized');
+            }
+            
+            if (gridHelper) {
+                gridHelper.isVisible = showGrid;
+                log(`✅ Grid visibility set to: ${showGrid}`);
+            } else {
+                log('❌ No grid helper found!');
+            }
+        }
+
+        function initializeBabylon() {
+            try {
+                // Create engine
+                babylonEngine = new BABYLON.Engine(babylonCanvas, true, {
+                    preserveDrawingBuffer: true,
+                    stencil: true,
+                    antialias: true
+                });
+                log('✅ Babylon.js engine created');
+                
+                // Create scene
+                babylonScene = new BABYLON.Scene(babylonEngine);
+                babylonScene.clearColor = new BABYLON.Color4(0.2, 0.2, 0.2, 1.0);
+                log('✅ Babylon.js scene created');
+                
+                // Create camera
+                const camera = new BABYLON.ArcRotateCamera(
+                    "camera", 
+                    Math.PI / 4,
+                    Math.PI / 3,
+                    200,
+                    new BABYLON.Vector3(0, 0, 0),
+                    babylonScene
+                );
+                camera.attachControls(babylonCanvas);
+                log('✅ Babylon.js camera created');
+                
+                // Create light
+                const light = new BABYLON.HemisphericLight(
+                    "light", 
+                    new BABYLON.Vector3(0, 1, 0), 
+                    babylonScene
+                );
+                light.intensity = 0.8;
+                log('✅ Babylon.js light created');
+                
+                // Create grid
+                createGrid();
+                
+                // Start render loop
+                babylonEngine.runRenderLoop(() => {
+                    babylonScene.render();
+                });
+                
+                log('🎯 Babylon.js initialization complete!');
+                
+            } catch (error) {
+                log(`❌ Babylon.js initialization failed: ${error.message}`);
+            }
+        }
+
+        function createGrid() {
+            try {
+                // Create ground plane with grid
+                const ground = BABYLON.MeshBuilder.CreateGround("ground", {
+                    width: 1000,
+                    height: 1000,
+                    subdivisions: 20
+                }, babylonScene);
+                
+                // Create grid material
+                const gridMaterial = new BABYLON.StandardMaterial("gridMaterial", babylonScene);
+                gridMaterial.diffuseColor = new BABYLON.Color3(0.8, 0.8, 0.8);
+                gridMaterial.wireframe = true;
+                gridMaterial.alpha = 0.5;
+                
+                ground.material = gridMaterial;
+                ground.position.y = 0;
+                
+                gridHelper = ground;
+                log('✅ Babylon.js grid created successfully!');
+                
+                // Create test cube to verify 3D rendering
+                const box = BABYLON.MeshBuilder.CreateBox("box", {size: 50}, babylonScene);
+                box.position.y = 25;
+                
+                const boxMaterial = new BABYLON.StandardMaterial("boxMaterial", babylonScene);
+                boxMaterial.diffuseColor = new BABYLON.Color3(1, 0, 0);
+                box.material = boxMaterial;
+                
+                log('✅ Test cube added for verification');
+                
+            } catch (error) {
+                log(`❌ Grid creation failed: ${error.message}`);
+            }
+        }
+
+        function toggleGridVisibility() {
+            showGrid = !showGrid;
+            log(`🎯 Grid toggled: ${showGrid ? 'ON' : 'OFF'}`);
+            
+            if (currentMode === '2D') {
+                test2DGrid();
+            } else if (currentMode === '3D' && gridHelper) {
+                gridHelper.isVisible = showGrid;
+                log(`✅ 3D Grid visibility updated: ${showGrid}`);
+            }
+        }
+
+        // Initialize with 2D test
+        window.addEventListener('load', () => {
+            log('🚀 Master\'s Grid Test System Loaded');
+            test2DGrid();
+        });
+
+        // Handle resize
+        window.addEventListener('resize', () => {
+            if (babylonEngine) {
+                babylonEngine.resize();
+            }
+        });
+    </script>
+</body>
+</html>

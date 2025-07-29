@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CutList CAD Debug</title>
+    <style>
+        #debug { 
+            position: fixed; 
+            top: 10px; 
+            right: 10px; 
+            background: black; 
+            color: lime; 
+            padding: 10px; 
+            font-family: monospace; 
+            max-height: 300px; 
+            overflow-y: scroll;
+            z-index: 1000;
+            width: 400px;
+        }
+        canvas { border: 1px solid #ccc; }
+    </style>
+</head>
+<body>
+    <div id="debug">Debug Console:<br></div>
+    <canvas id="workspace-canvas" width="800" height="600"></canvas>
+    
+    <script>
+        const debugDiv = document.getElementById('debug');
+        function debug(msg) {
+            console.log(msg);
+            debugDiv.innerHTML += msg + '<br>';
+            debugDiv.scrollTop = debugDiv.scrollHeight;
+        }
+        
+        debug('Starting debug version...');
+          try {
+            debug('Attempting to import modules...');
+            Promise.all([
+                import('./src/modules/camera.js'),
+                import('./src/modules/grid.js')
+            ]).then(modules => {
+                const CameraController = modules[0].CameraController;
+                const GridRenderer = modules[1].GridRenderer;
+                
+                debug('Modules loaded: Camera, Grid');
+                  const canvas = document.getElementById('workspace-canvas');
+                const ctx = canvas.getContext('2d');
+                  // Define render function first
+                function render() {
+                    debug('Rendering...');
+                    
+                    // Clear canvas
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    
+                    // Save context state
+                    ctx.save();
+                    
+                    // Apply camera transforms
+                    ctx.translate(canvas.width / 2, canvas.height / 2);
+                    ctx.scale(camera.zoom, camera.zoom);
+                    ctx.rotate(camera.rotation);
+                    ctx.translate(-camera.x, -camera.y);
+                    
+                    // Draw grid - set context first
+                    grid.ctx = ctx;
+                    grid.render();
+                    
+                    // Restore context
+                    ctx.restore();
+                    
+                    debug('Render complete - zoom: ' + camera.zoom.toFixed(2) + ', rotation: ' + (camera.rotation * 180 / Math.PI).toFixed(1) + '°');
+                }
+                
+                const camera = new CameraController(canvas, render);
+                camera.updateViewport(canvas.width, canvas.height);
+                
+                const grid = new GridRenderer();
+                
+                // Initial render
+                render();
+                
+                debug('Initial render complete - try mouse interactions!');
+                
+            }).catch(err => {
+                debug('Error loading modules: ' + err.message);
+                debug('Stack: ' + err.stack);
+            });
+        } catch(err) {
+            debug('Error in main script: ' + err.message);
+        }
+    </script>
+</body>
+</html>

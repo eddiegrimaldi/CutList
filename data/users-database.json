@@ -1,0 +1,15 @@
+{
+  "users": [
+    {
+      "userID": "user_001",
+      "name": "Eddie Grimaldi",
+      "email": "eddie@kettlebread.com",
+      "phone": "413-262-1435",
+      "createdAt": "2025-01-16T00:00:00Z",
+      "lastLogin": "2025-01-16T00:00:00Z",
+      "isActive": true,
+      "role": "admin"
+    }
+  ],
+  "projects": []
+}

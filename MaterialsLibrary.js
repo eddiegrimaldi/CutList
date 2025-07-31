@@ -129,10 +129,10 @@ class MaterialsLibrary {
             }
             
             // Price range filter
-            if (filters.priceMin && material.economic_properties.price_per_board_foot < filters.priceMin) {
+            if (filters.priceMin && material.cost_structure.base_price_bf < filters.priceMin) {
                 return false;
             }
-            if (filters.priceMax && material.economic_properties.price_per_board_foot > filters.priceMax) {
+            if (filters.priceMax && material.cost_structure.base_price_bf > filters.priceMax) {
                 return false;
             }
             
@@ -185,24 +185,38 @@ class MaterialsLibrary {
         }
         
         const boardFeet = this.calculateBoardFeet(lengthInches, widthInches, thicknessInches);
-        let pricePerBoardFoot = material.economic_properties.price_per_board_foot;
+        const costStructure = material.cost_structure;
+        
+        // Base price per board foot
+        let pricePerBoardFoot = costStructure.base_price_bf;
+        
+        // Add freight cost per board foot
+        pricePerBoardFoot += costStructure.freight_cost_bf;
         
         // Apply grade multiplier if specified
         if (grade && this.lumberGrades[grade]) {
             pricePerBoardFoot *= this.lumberGrades[grade].price_multiplier;
         }
         
-        const totalCost = boardFeet * pricePerBoardFoot;
+        // Calculate base cost
+        let totalCost = boardFeet * pricePerBoardFoot;
+        
+        // Apply waste factor (15% waste means you need 15% more material)
+        const wasteMultiplier = 1 + costStructure.waste_factor;
+        totalCost *= wasteMultiplier;
         
         return {
             boardFeet: parseFloat(boardFeet.toFixed(3)),
-            pricePerBoardFoot: parseFloat(pricePerBoardFoot.toFixed(2)),
+            basePricePerBoardFoot: parseFloat(costStructure.base_price_bf.toFixed(2)),
+            freightCostPerBoardFoot: parseFloat(costStructure.freight_cost_bf.toFixed(2)),
+            totalPricePerBoardFoot: parseFloat(pricePerBoardFoot.toFixed(2)),
+            wasteFactor: parseFloat((costStructure.waste_factor * 100).toFixed(1)), // as percentage
+            subtotalCost: parseFloat((boardFeet * pricePerBoardFoot).toFixed(2)),
             totalCost: parseFloat(totalCost.toFixed(2)),
             grade: grade || material.default_configuration.grade,
-            material: material.basic_info.common_name
+            materialName: material.name
         };
     }
-
     /**
      * Get available standard dimensions for a material
      * @param {string} materialId - Material identifier

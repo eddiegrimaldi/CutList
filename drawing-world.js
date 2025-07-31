@@ -3795,7 +3795,18 @@ class DrawingWorld {
         const grid = document.getElementById('material-grid');
         if (!grid || !this.materialsLibrary.materials) return;
 
-        const materials = filteredMaterials || this.materialsLibrary.materials;
+        let materials;
+        if (filteredMaterials && typeof filteredMaterials === 'string') {
+            // Filter by category
+            materials = {};
+            Object.entries(this.materialsLibrary.materials).forEach(([materialId, material]) => {
+                if (material.category === filteredMaterials) {
+                    materials[materialId] = material;
+                }
+            });
+        } else {
+            materials = filteredMaterials || this.materialsLibrary.materials;
+        }
         grid.innerHTML = '';
 
         Object.entries(materials).forEach(([materialId, material]) => {
@@ -3805,9 +3816,9 @@ class DrawingWorld {
             
             // Get proper thumbnail and material info
             const thumbnail = material.visual_assets?.thumbnail || 'placeholder-material.jpg';
-            const materialName = material.basic_info?.common_name || material.name || 'Unknown Material';
+            const materialName = material.name || 'Unknown Material';
             const scientificName = material.basic_info?.scientific_name || material.species || '';
-            const pricePerBF = material.economic_properties?.price_per_board_foot || material.base_price_per_bf || 'N/A';
+            const pricePerBF = material.cost_structure?.base_price_bf || 'N/A';
             
             console.log("🔍 Material ID:", materialId, "- Name:", materialName);
             console.log("🔍 Full material object:", material);
@@ -3894,7 +3905,7 @@ class DrawingWorld {
         if (materialName) materialName.textContent = `${material.name} Configuration`;
 
         // Populate configuration options
-        this.populateConfigOptions(material);
+        this.populateConfigOptions(material.id);
         this.updateMaterialCost();
     }
 
@@ -3906,55 +3917,6 @@ class DrawingWorld {
         if (config) config.style.display = 'none';
     }
 
-    populateConfigOptions(material) {
-        // Populate length options
-        const lengthSelect = document.getElementById('config-length');
-        if (lengthSelect && material.available_lengths) {
-            lengthSelect.innerHTML = '';
-            material.available_lengths.forEach(length => {
-                const option = document.createElement('option');
-                option.value = length;
-                option.textContent = `${length}"`;
-                lengthSelect.appendChild(option);
-            });
-        }
-
-        // Populate width options
-        const widthSelect = document.getElementById('config-width');
-        if (widthSelect && material.available_widths) {
-            widthSelect.innerHTML = '';
-            material.available_widths.forEach(width => {
-                const option = document.createElement('option');
-                option.value = width;
-                option.textContent = `${width}"`;
-                widthSelect.appendChild(option);
-            });
-        }
-
-        // Populate thickness options
-        const thicknessSelect = document.getElementById('config-thickness');
-        if (thicknessSelect && material.available_thicknesses) {
-            thicknessSelect.innerHTML = '';
-            material.available_thicknesses.forEach(thickness => {
-                const option = document.createElement('option');
-                option.value = thickness;
-                option.textContent = `${thickness}"`;
-                thicknessSelect.appendChild(option);
-            });
-        }
-
-        // Populate grade options
-        const gradeSelect = document.getElementById('config-grade');
-        if (gradeSelect && material.available_grades) {
-            gradeSelect.innerHTML = '';
-            material.available_grades.forEach(grade => {
-                const option = document.createElement('option');
-                option.value = grade;
-                option.textContent = grade;
-                gradeSelect.appendChild(option);
-            });
-        }
-    }
 
     updateMaterialCost() {
         if (!this.selectedMaterialId) return;
@@ -6856,12 +6818,15 @@ class DrawingWorld {
         }
 
         // Populate dimension options
-        const dimensions = material.standard_dimensions;
-        const defaultConfig = material.default_configuration;
+        // Use actual database schema
+        const defaultConfig = material.default_configuration || {};
+        const standardLengths = [48, 72, 96, 120, 144];
+        const standardWidths = [3, 4, 6, 8, 10, 12];
+        const standardThicknesses = [0.75, 1, 1.5, 2, 2.5, 3];
 
-        this.populateSelectOptions('config-length', dimensions.available_lengths, defaultConfig.length_inches);
-        this.populateSelectOptions('config-width', dimensions.available_widths, defaultConfig.width_inches);
-        this.populateSelectOptions('config-thickness', dimensions.available_thicknesses, defaultConfig.thickness_inches);
+        this.populateSelectOptions('config-length', standardLengths, defaultConfig.length || 96);
+        this.populateSelectOptions('config-width', standardWidths, defaultConfig.width || 6);
+        this.populateSelectOptions('config-thickness', standardThicknesses, defaultConfig.thickness || 0.75);
 
         // Populate grade options
         const grades = this.materialsLibrary.getLumberGrades();

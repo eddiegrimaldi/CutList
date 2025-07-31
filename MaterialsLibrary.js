@@ -32,6 +32,7 @@ class MaterialsLibrary {
             }
             
             this.materials = data.materials;
+            console.log("🔍 MaterialsLibrary loaded:", typeof this.materials, Object.keys(this.materials).length, "materials");
             this.categories = data.categories;
             this.databaseInfo = data.database_info;
             this.lumberGrades = data.lumber_grades;
@@ -314,6 +315,17 @@ class MaterialsLibrary {
      * Get database information
      * @returns {Object} Database metadata
      */
+    /**
+     * Get all materials as an array
+     * @returns {Array} Array of all material objects
+     */
+    getAllMaterials() {
+        if (!this.isLoaded || !this.materials) {
+            return [];
+        }
+        return Object.values(this.materials).filter(material => material.enabled !== false);
+    }
+
     getDatabaseInfo() {
         return this.databaseInfo || {};
     }

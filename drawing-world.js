@@ -107,13 +107,15 @@ class DrawingWorld {
         // this.setupSketchPlanes();
         
         // Set up event listeners
-        this.setupEventListeners();
         
         // Set up selection system
         this.setupSelectionSystem();
         
         // Initialize materials system
         await this.initializeMaterialsSystem();
+
+        // Set up event listeners (moved after materials system)
+        this.setupEventListeners();
         
         // Initialize drag handle interaction
         this.enableDragHandleInteraction();
@@ -1069,6 +1071,16 @@ class DrawingWorld {
         this.createAxes();
         
         // Sketch ground will be created when entering sketch mode
+    }
+
+    toggleGrid() {
+        if (this.gridSystem) {
+            this.gridSystem.isVisible = !this.gridSystem.isVisible;
+            this.gridSystem.setVisible(this.gridSystem.isVisible);
+            console.log("Grid toggled:", this.gridSystem.isVisible ? "ON" : "OFF");
+        } else {
+            console.error("GridSystem not initialized");
+        }
     }
 
     
@@ -3714,106 +3726,14 @@ class DrawingWorld {
         this.setupMaterialModalListeners();
     }
 
-    setupMaterialModalListeners() {
-        // Initialize materials library if not already done
-        if (!window.materialsLibrary) {
-            window.materialsLibrary = new MaterialsLibrary();
-        }
-
-        // 1. Material button click handler to open the modal (round button at bottom center)
-        const addMaterialBtn = document.getElementById('add-material-btn-grid');
-        if (addMaterialBtn) {
-            addMaterialBtn.addEventListener('click', () => {
-                this.openMaterialModal();
-            });
-        }
-
-        // 2. Close modal button handler
-        const closeModalBtn = document.getElementById('close-material-modal');
-        if (closeModalBtn) {
-            closeModalBtn.addEventListener('click', () => {
-                this.closeMaterialModal();
-            });
-        }
-
-        // Close modal when clicking outside
-        const modalOverlay = document.getElementById('material-modal');
-        if (modalOverlay) {
-            modalOverlay.addEventListener('click', (e) => {
-                if (e.target === modalOverlay) {
-                    this.closeMaterialModal();
-                }
-            });
-        }
-
-        // 3. Material selection handlers (delegated event handling)
-        const materialGrid = document.getElementById('material-grid');
-        if (materialGrid) {
-            materialGrid.addEventListener('click', (e) => {
-                const materialCard = e.target.closest('.material-card');
-                if (materialCard) {
-                    this.selectMaterial(materialCard.dataset.materialId);
-                }
-            });
-        }
-
-        // 4. Configuration handlers
-        const configLength = document.getElementById('config-length');
-        const configWidth = document.getElementById('config-width');
-        const configThickness = document.getElementById('config-thickness');
-        const configGrade = document.getElementById('config-grade');
-
-        [configLength, configWidth, configThickness, configGrade].forEach(select => {
-            if (select) {
-                select.addEventListener('change', () => {
-                    this.updateMaterialCost();
-                });
-            }
-        });
-
-        // Search functionality
-        const materialSearch = document.getElementById('material-search');
-        if (materialSearch) {
-            materialSearch.addEventListener('input', (e) => {
-                this.filterMaterials(e.target.value);
-            });
-        }
-
-        // Category tabs (delegated event handling)
-        const categoryTabs = document.getElementById('material-category-tabs');
-        if (categoryTabs) {
-            categoryTabs.addEventListener('click', (e) => {
-                const tab = e.target.closest('.category-tab');
-                if (tab) {
-                    this.filterByCategory(tab.dataset.category);
-                }
-            });
-        }
-
-        // 5. Add to project button handler
-        const addToProjectBtn = document.getElementById('add-material-to-project');
-        if (addToProjectBtn) {
-            addToProjectBtn.addEventListener('click', () => {
-                this.addMaterialToProject();
-            });
-        }
-
-        // Cancel configuration button
-        const cancelConfigBtn = document.getElementById('cancel-material-config');
-        if (cancelConfigBtn) {
-            cancelConfigBtn.addEventListener('click', () => {
-                this.showMaterialGrid();
-            });
-        }
-    }
 
     async openMaterialModal() {
         const modal = document.getElementById('material-modal');
         if (!modal) return;
 
         // Load materials database if not loaded
-        if (!window.materialsLibrary.isLoaded) {
-            const loaded = await window.materialsLibrary.loadDatabase();
+        if (!this.materialsLibrary.isLoaded) {
+            const loaded = await this.materialsLibrary.loadDatabase();
             if (!loaded) {
                 console.error('Failed to load materials database');
                 return;
@@ -3850,7 +3770,7 @@ class DrawingWorld {
 
     populateMaterialCategories() {
         const tabsContainer = document.getElementById('material-category-tabs');
-        if (!tabsContainer || !window.materialsLibrary.categories) return;
+        if (!tabsContainer || !this.materialsLibrary.categories) return;
 
         tabsContainer.innerHTML = '';
         
@@ -3862,7 +3782,7 @@ class DrawingWorld {
         tabsContainer.appendChild(allTab);
 
         // Add category tabs
-        Object.entries(window.materialsLibrary.categories).forEach(([categoryId, category]) => {
+        Object.entries(this.materialsLibrary.categories).forEach(([categoryId, category]) => {
             const tab = document.createElement('div');
             tab.className = 'category-tab';
             tab.dataset.category = categoryId;
@@ -3873,9 +3793,9 @@ class DrawingWorld {
 
     populateMaterialGrid(filteredMaterials = null) {
         const grid = document.getElementById('material-grid');
-        if (!grid || !window.materialsLibrary.materials) return;
+        if (!grid || !this.materialsLibrary.materials) return;
 
-        const materials = filteredMaterials || window.materialsLibrary.materials;
+        const materials = filteredMaterials || this.materialsLibrary.materials;
         grid.innerHTML = '';
 
         Object.entries(materials).forEach(([materialId, material]) => {
@@ -3889,6 +3809,8 @@ class DrawingWorld {
             const scientificName = material.basic_info?.scientific_name || material.species || '';
             const pricePerBF = material.economic_properties?.price_per_board_foot || material.base_price_per_bf || 'N/A';
             
+            console.log("🔍 Material ID:", materialId, "- Name:", materialName);
+            console.log("🔍 Full material object:", material);
             // Debug logging for thumbnails
             if (material.visual_assets?.thumbnail) {
                 console.log(`Material ${materialName} has thumbnail:`, material.visual_assets.thumbnail.substring(0, 50) + '...');
@@ -3898,7 +3820,7 @@ class DrawingWorld {
             
             card.innerHTML = `
                 <div class="material-image">
-                    <img src="${thumbnail}" alt="${materialName}" loading="lazy" onerror="this.src='placeholder-material.jpg'">
+                    <img src="${thumbnail}" alt="${materialName}" loading="lazy" onerror="this.style.display='none'; console.error('Failed to load material image:', this.src)">
                 </div>
                 <div class="material-info">
                     <h4>${materialName}</h4>
@@ -3912,12 +3834,12 @@ class DrawingWorld {
     }
 
     filterMaterials(searchTerm) {
-        if (!window.materialsLibrary.materials) return;
+        if (!this.materialsLibrary.materials) return;
 
         const filtered = {};
         const term = searchTerm.toLowerCase();
 
-        Object.entries(window.materialsLibrary.materials).forEach(([id, material]) => {
+        Object.entries(this.materialsLibrary.materials).forEach(([id, material]) => {
             if (material.name.toLowerCase().includes(term) ||
                 (material.species && material.species.toLowerCase().includes(term)) ||
                 (material.description && material.description.toLowerCase().includes(term))) {
@@ -3940,10 +3862,10 @@ class DrawingWorld {
             return;
         }
 
-        if (!window.materialsLibrary.materials) return;
+        if (!this.materialsLibrary.materials) return;
 
         const filtered = {};
-        Object.entries(window.materialsLibrary.materials).forEach(([id, material]) => {
+        Object.entries(this.materialsLibrary.materials).forEach(([id, material]) => {
             if (material.category === categoryId) {
                 filtered[id] = material;
             }
@@ -3954,7 +3876,7 @@ class DrawingWorld {
 
     selectMaterial(materialId) {
         this.selectedMaterialId = materialId;
-        const material = window.materialsLibrary.materials[materialId];
+        const material = this.materialsLibrary.materials[materialId];
         
         if (!material) return;
 
@@ -4037,7 +3959,7 @@ class DrawingWorld {
     updateMaterialCost() {
         if (!this.selectedMaterialId) return;
 
-        const material = window.materialsLibrary.materials[this.selectedMaterialId];
+        const material = this.materialsLibrary.materials[this.selectedMaterialId];
         const length = parseFloat(document.getElementById('config-length')?.value || 0);
         const width = parseFloat(document.getElementById('config-width')?.value || 0);
         const thickness = parseFloat(document.getElementById('config-thickness')?.value || 0);
@@ -4075,7 +3997,7 @@ class DrawingWorld {
     addMaterialToProject() {
         if (!this.selectedMaterialId) return;
 
-        const material = window.materialsLibrary.materials[this.selectedMaterialId];
+        const material = this.materialsLibrary.materials[this.selectedMaterialId];
         const length = document.getElementById('config-length')?.value;
         const width = document.getElementById('config-width')?.value;
         const thickness = document.getElementById('config-thickness')?.value;
@@ -4235,13 +4157,6 @@ class DrawingWorld {
         }
     }
 
-    toggleGrid() {
-        this.grid.isVisible = !this.grid.isVisible;
-        this.gridSystem.setVisible(this.grid.isVisible);
-        
-        document.getElementById('grid-enabled').checked = this.grid.isVisible;
-
-    }
 
     resetView() {
         this.camera.setTarget(BABYLON.Vector3.Zero());
@@ -6818,7 +6733,7 @@ class DrawingWorld {
         if (modal && this.materialsLibrary) {
             modal.style.display = 'flex';
             this.populateMaterialCategories();
-            this.populateMaterialGrid('hardwood'); // Start with hardwoods
+            this.populateMaterialGrid();
             this.showMaterialGrid();
         }
     }
@@ -6878,38 +6793,6 @@ class DrawingWorld {
         }
     }
 
-    populateMaterialGrid(categoryId = null) {
-        const gridContainer = document.getElementById('material-grid');
-        if (!gridContainer || !this.materialsLibrary) return;
-
-        let materials;
-        if (categoryId) {
-            materials = this.materialsLibrary.getMaterialsByCategory(categoryId);
-        } else {
-            materials = [
-                ...this.materialsLibrary.getMaterialsByCategory('hardwood'),
-                ...this.materialsLibrary.getMaterialsByCategory('sheet_goods')
-            ];
-        }
-
-        gridContainer.innerHTML = materials.map(material => {
-            const summary = this.materialsLibrary.getMaterialSummary(material.material_id);
-            const thumbnail = summary.thumbnail || this.getMaterialIcon(material.category);
-            
-            // Create thumbnail HTML - use image if available, fallback to icon
-            const thumbnailHtml = summary.thumbnail ? 
-                `<img src="${summary.thumbnail}" alt="${summary.name}" loading="lazy" onerror="this.outerHTML='${this.getMaterialIcon(material.category)}'">` :
-                thumbnail;
-            
-            return `
-                <div class="material-card" data-material-id="${material.material_id}">
-                    <div class="material-thumbnail">${thumbnailHtml}</div>
-                    <div class="material-name">${summary.name}</div>
-                    <div class="material-price">$${summary.pricePerBoardFoot}/bf</div>
-                </div>
-            `;
-        }).join('');
-    }
 
     getMaterialIcon(category) {
         const icons = {
@@ -6934,7 +6817,7 @@ class DrawingWorld {
                 
                 // Create thumbnail HTML - use image if available, fallback to icon
                 const thumbnailHtml = summary.thumbnail ? 
-                    `<img src="${summary.thumbnail}" alt="${summary.name}" loading="lazy" onerror="this.outerHTML='${this.getMaterialIcon(material.category)}'">` :
+                    `<img src="${summary.thumbnail}" alt="${summary.name}" loading="lazy" onerror="this.style.display='none'">` :
                     thumbnail;
                 
                 return `
@@ -6969,7 +6852,7 @@ class DrawingWorld {
 
         const nameElement = document.getElementById('selected-material-name');
         if (nameElement) {
-            nameElement.textContent = `${material.basic_info.common_name} Configuration`;
+            nameElement.textContent = `${material.name} Configuration`;
         }
 
         // Populate dimension options
@@ -7041,7 +6924,7 @@ class DrawingWorld {
         const part = {
             id: `workpart_${Date.now()}`,
             materialId: this.selectedMaterial,
-            materialName: material.basic_info.common_name,
+            materialName: material.name,
             dimensions: { length, width, thickness },
             grade: grade,
             cost: costInfo.totalCost,

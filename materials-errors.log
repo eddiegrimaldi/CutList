@@ -1,0 +1,11 @@
+[2025-07-31 18:33:06] Successfully saved 1 materials to database
+[2025-07-31 18:35:14] Successfully saved 7 materials to database
+[2025-07-31 18:35:32] Successfully saved 7 materials to database
+[2025-07-31 18:45:34] IMAGE UPLOAD: Upload script started
+[2025-07-31 18:45:34] IMAGE UPLOAD: Processing upload - Material: walnut_001, Type: texture, File: wallnut.jpg
+[2025-07-31 18:45:34] IMAGE UPLOAD: Creating directories: data/materials, data/materials/walnut_001
+[2025-07-31 18:45:34] IMAGE UPLOAD: Directory already exists: data/materials
+[2025-07-31 18:45:34] IMAGE UPLOAD: Directory already exists: data/materials/walnut_001
+[2025-07-31 18:45:34] IMAGE UPLOAD: Target path: data/materials/walnut_001/walnut_001_texture.jpg
+[2025-07-31 18:45:34] IMAGE UPLOAD: Successfully uploaded image: data/materials/walnut_001/walnut_001_texture.jpg
+[2025-07-31 18:45:34] Successfully saved 7 materials to database

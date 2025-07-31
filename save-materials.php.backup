@@ -8,7 +8,6 @@
 header('Content-Type: application/json');
 ini_set('display_errors', 0);
 error_reporting(E_ALL);
-error_log("[" . date("Y-m-d H:i:s") . "] save-materials.php called with method: " . $_SERVER["REQUEST_METHOD"]);
 
 // Database file path
 $database_file = 'materials-database.json';
@@ -55,26 +54,26 @@ function validateMaterialsData($data) {
         return "Missing or invalid 'categories' array";
     }
     
-    // Validate each material has required fields (actual database schema)
+    // Validate each material has required fields
     foreach ($data['materials'] as $material_id => $material) {
-        if (!isset($material['id'])) {
-            return "Missing id for material: $material_id";
+        if (!isset($material['material_id']) || $material['material_id'] !== $material_id) {
+            return "Material ID mismatch for material: $material_id";
         }
         
         if (!isset($material['category'])) {
             return "Missing category for material: $material_id";
         }
         
-        if (!isset($material['name'])) {
-            return "Missing name for material: $material_id";
+        if (!isset($material['basic_info']['common_name'])) {
+            return "Missing common name for material: $material_id";
         }
         
-        if (!isset($material['default_configuration'])) {
-            return "Missing default_configuration for material: $material_id";
+        if (!isset($material['physical_properties'])) {
+            return "Missing physical properties for material: $material_id";
         }
         
-        if (!isset($material['cost_structure'])) {
-            return "Missing cost_structure for material: $material_id";
+        if (!isset($material['economic_properties'])) {
+            return "Missing economic properties for material: $material_id";
         }
     }
     

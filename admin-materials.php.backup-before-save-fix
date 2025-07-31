@@ -758,8 +758,8 @@
             document.getElementById('length').value = material.default_configuration.length;
             document.getElementById('width').value = material.default_configuration.width;
             document.getElementById('thickness').value = material.default_configuration.thickness;
-            document.getElementById('density').value = material.physical_properties?.density_lbs_ft3 || '';
-            document.getElementById('hardness').value = material.physical_properties?.hardness_janka || '';
+            document.getElementById('density').value = material.physical_properties.density_lbs_ft3 || '';
+            document.getElementById('hardness').value = material.physical_properties.hardness_janka || '';
             
             document.getElementById('price-per-bf').value = material.cost_structure.base_price_bf;
             document.getElementById('availability').value = 'readily_available';
@@ -817,9 +817,7 @@
                     body: formData
                 });
                 
-                console.log("📡 Response status:", response.status);
                 const result = await response.json();
-                console.log("📥 Response data:", result);
                 console.log('Upload result:', result);
                 
                 if (result.success) {
@@ -849,30 +847,30 @@
             const materialId = editingMaterialId || `material_${Date.now()}`;
             
             const material = {
-                id: materialId,
-                name: document.getElementById('common-name').value,
+                material_id: materialId,
                 category: document.getElementById('category').value,
-                species: document.getElementById('scientific-name').value,
-                visual_assets: {
-                    // Preserve existing visual assets when editing
-                    ...(editingMaterialId && materials[editingMaterialId]?.visual_assets || {})
+                basic_info: {
+                    common_name: document.getElementById('common-name').value,
+                    scientific_name: document.getElementById('scientific-name').value,
+                    origin: document.getElementById('origin').value,
+                    description: document.getElementById('description').value
                 },
                 physical_properties: {
-                    density_lbs_ft3: parseFloat(document.getElementById('density').value) || 38,
-                    hardness_janka: parseInt(document.getElementById('hardness').value) || 1000,
-                    shrinkage_tangential: 7.8
+                    length_inches: parseFloat(document.getElementById('length').value),
+                    width_inches: parseFloat(document.getElementById('width').value),
+                    thickness_inches: parseFloat(document.getElementById('thickness').value),
+                    density_lbs_per_cubic_foot: parseFloat(document.getElementById('density').value) || null,
+                    janka_hardness: parseInt(document.getElementById('hardness').value) || null
                 },
-                default_configuration: {
-                    grade: "select",
-                    thickness: parseFloat(document.getElementById('thickness').value) || 0.75,
-                    width: parseFloat(document.getElementById('width').value) || 6,
-                    length: parseFloat(document.getElementById('length').value) || 96
+                economic_properties: {
+                    price_per_board_foot: parseFloat(document.getElementById('price-per-bf').value),
+                    availability: document.getElementById('availability').value
                 },
-                cost_structure: {
-                    base_price_bf: parseFloat(document.getElementById('price-per-bf').value) || 5.0,
-                    freight_cost_bf: 0.75,
-                    waste_factor: 0.15
-                }
+                workability_properties: {
+                    overall: document.getElementById('workability').value,
+                    finishing: document.getElementById('finishing').value
+                },
+                visual_assets: {}
             };
             
             // Handle image uploads - upload files to server and get paths
@@ -905,9 +903,6 @@
             
             // Add to materials
             materials[materialId] = material;
-
-            // Auto-save to server
-            await saveMaterialsToServer();
             
             showAlert(editingMaterialId ? 'Material updated successfully!' : 'Material added successfully!', 'success');
             
@@ -928,8 +923,6 @@
         }
 
         async function saveMaterialsToServer() {
-            console.log("🚀 saveMaterialsToServer called");
-            console.log("📦 Sending materials:", materials);
             try {
                 const response = await fetch('save-materials.php', {
                     method: 'POST',
@@ -948,9 +941,7 @@
                     })
                 });
                 
-                console.log("📡 Response status:", response.status);
                 const result = await response.json();
-                console.log("📥 Response data:", result);
                 if (result.success) {
                     showAlert('Materials saved to server successfully!', 'success');
                 } else {

@@ -3726,14 +3726,106 @@ class DrawingWorld {
         this.setupMaterialModalListeners();
     }
 
+    setupMaterialModalListeners() {
+        // Initialize materials library if not already done
+        if (!window.materialsLibrary) {
+            window.materialsLibrary = this.materialsLibrary;
+        }
+
+        // 1. Material button click handler to open the modal (round button at bottom center)
+        const addMaterialBtn = document.getElementById('add-material-btn-grid');
+        if (addMaterialBtn) {
+            addMaterialBtn.addEventListener('click', () => {
+                this.openMaterialModal();
+            });
+        }
+
+        // 2. Close modal button handler
+        const closeModalBtn = document.getElementById('close-material-modal');
+        if (closeModalBtn) {
+            closeModalBtn.addEventListener('click', () => {
+                this.closeMaterialModal();
+            });
+        }
+
+        // Close modal when clicking outside
+        const modalOverlay = document.getElementById('material-modal');
+        if (modalOverlay) {
+            modalOverlay.addEventListener('click', (e) => {
+                if (e.target === modalOverlay) {
+                    this.closeMaterialModal();
+                }
+            });
+        }
+
+        // 3. Material selection handlers (delegated event handling)
+        const materialGrid = document.getElementById('material-grid');
+        if (materialGrid) {
+            materialGrid.addEventListener('click', (e) => {
+                const materialCard = e.target.closest('.material-card');
+                if (materialCard) {
+                    this.selectMaterial(materialCard.dataset.materialId);
+                }
+            });
+        }
+
+        // 4. Configuration handlers
+        const configLength = document.getElementById('config-length');
+        const configWidth = document.getElementById('config-width');
+        const configThickness = document.getElementById('config-thickness');
+        const configGrade = document.getElementById('config-grade');
+
+        [configLength, configWidth, configThickness, configGrade].forEach(select => {
+            if (select) {
+                select.addEventListener('change', () => {
+                    this.updateMaterialCost();
+                });
+            }
+        });
+
+        // Search functionality
+        const materialSearch = document.getElementById('material-search');
+        if (materialSearch) {
+            materialSearch.addEventListener('input', (e) => {
+                this.filterMaterials(e.target.value);
+            });
+        }
+
+        // Category tabs (delegated event handling)
+        const categoryTabs = document.getElementById('material-category-tabs');
+        if (categoryTabs) {
+            categoryTabs.addEventListener('click', (e) => {
+                const tab = e.target.closest('.category-tab');
+                if (tab) {
+                    this.filterByCategory(tab.dataset.category);
+                }
+            });
+        }
+
+        // 5. Add to project button handler
+        const addToProjectBtn = document.getElementById('add-material-to-project');
+        if (addToProjectBtn) {
+            addToProjectBtn.addEventListener('click', () => {
+                this.addMaterialToProject();
+            });
+        }
+
+        // Cancel configuration button
+        const cancelConfigBtn = document.getElementById('cancel-material-config');
+        if (cancelConfigBtn) {
+            cancelConfigBtn.addEventListener('click', () => {
+                this.showMaterialGrid();
+            });
+        }
+    }
 
     async openMaterialModal() {
         const modal = document.getElementById('material-modal');
         if (!modal) return;
 
         // Load materials database if not loaded
-        if (!this.materialsLibrary.isLoaded) {
-            const loaded = await this.materialsLibrary.loadDatabase();
+        if (!window.materialsLibrary.isLoaded) {
+            const loaded = await window.materialsLibrary.loadDatabase();
             if (!loaded) {
                 console.error('Failed to load materials database');
                 return;
@@ -3770,7 +3862,7 @@ class DrawingWorld {
 
     populateMaterialCategories() {
         const tabsContainer = document.getElementById('material-category-tabs');
-        if (!tabsContainer || !this.materialsLibrary.categories) return;
+        if (!tabsContainer || !window.materialsLibrary.categories) return;
 
         tabsContainer.innerHTML = '';
         
@@ -3782,7 +3874,7 @@ class DrawingWorld {
         tabsContainer.appendChild(allTab);
 
         // Add category tabs
-        Object.entries(this.materialsLibrary.categories).forEach(([categoryId, category]) => {
+        Object.entries(window.materialsLibrary.categories).forEach(([categoryId, category]) => {
             const tab = document.createElement('div');
             tab.className = 'category-tab';
             tab.dataset.category = categoryId;
@@ -3793,20 +3885,9 @@ class DrawingWorld {
 
     populateMaterialGrid(filteredMaterials = null) {
         const grid = document.getElementById('material-grid');
-        if (!grid || !this.materialsLibrary.materials) return;
+        if (!grid || !window.materialsLibrary.materials) return;
 
-        let materials;
-        if (filteredMaterials && typeof filteredMaterials === 'string') {
-            // Filter by category
-            materials = {};
-            Object.entries(this.materialsLibrary.materials).forEach(([materialId, material]) => {
-                if (material.category === filteredMaterials) {
-                    materials[materialId] = material;
-                }
-            });
-        } else {
-            materials = filteredMaterials || this.materialsLibrary.materials;
-        }
+        const materials = filteredMaterials || window.materialsLibrary.materials;
         grid.innerHTML = '';
 
         Object.entries(materials).forEach(([materialId, material]) => {
@@ -3816,12 +3897,10 @@ class DrawingWorld {
             
             // Get proper thumbnail and material info
             const thumbnail = material.visual_assets?.thumbnail || 'placeholder-material.jpg';
-            const materialName = material.name || 'Unknown Material';
+            const materialName = material.basic_info?.common_name || material.name || 'Unknown Material';
             const scientificName = material.basic_info?.scientific_name || material.species || '';
-            const pricePerBF = material.cost_structure?.base_price_bf || 'N/A';
+            const pricePerBF = material.economic_properties?.price_per_board_foot || material.base_price_per_bf || 'N/A';
             
-            console.log("🔍 Material ID:", materialId, "- Name:", materialName);
-            console.log("🔍 Full material object:", material);
             // Debug logging for thumbnails
             if (material.visual_assets?.thumbnail) {
                 console.log(`Material ${materialName} has thumbnail:`, material.visual_assets.thumbnail.substring(0, 50) + '...');
@@ -3831,7 +3910,7 @@ class DrawingWorld {
             
             card.innerHTML = `
                 <div class="material-image">
-                    <img src="${thumbnail}" alt="${materialName}" loading="lazy" onerror="this.style.display='none'; console.error('Failed to load material image:', this.src)">
+                    <img src="${thumbnail}" alt="${materialName}" loading="lazy" onerror="this.src='placeholder-material.jpg'">
                 </div>
                 <div class="material-info">
                     <h4>${materialName}</h4>
@@ -3845,12 +3924,12 @@ class DrawingWorld {
     }
 
     filterMaterials(searchTerm) {
-        if (!this.materialsLibrary.materials) return;
+        if (!window.materialsLibrary.materials) return;
 
         const filtered = {};
         const term = searchTerm.toLowerCase();
 
-        Object.entries(this.materialsLibrary.materials).forEach(([id, material]) => {
+        Object.entries(window.materialsLibrary.materials).forEach(([id, material]) => {
             if (material.name.toLowerCase().includes(term) ||
                 (material.species && material.species.toLowerCase().includes(term)) ||
                 (material.description && material.description.toLowerCase().includes(term))) {
@@ -3873,10 +3952,10 @@ class DrawingWorld {
             return;
         }
 
-        if (!this.materialsLibrary.materials) return;
+        if (!window.materialsLibrary.materials) return;
 
         const filtered = {};
-        Object.entries(this.materialsLibrary.materials).forEach(([id, material]) => {
+        Object.entries(window.materialsLibrary.materials).forEach(([id, material]) => {
             if (material.category === categoryId) {
                 filtered[id] = material;
             }
@@ -3887,7 +3966,7 @@ class DrawingWorld {
 
     selectMaterial(materialId) {
         this.selectedMaterialId = materialId;
-        const material = this.materialsLibrary.materials[materialId];
+        const material = window.materialsLibrary.materials[materialId];
         
         if (!material) return;
 
@@ -3905,7 +3984,7 @@ class DrawingWorld {
         if (materialName) materialName.textContent = `${material.name} Configuration`;
 
         // Populate configuration options
-        this.populateConfigOptions(material.id);
+        this.populateConfigOptions(material);
         this.updateMaterialCost();
     }
 
@@ -3917,11 +3996,60 @@ class DrawingWorld {
         if (config) config.style.display = 'none';
     }
 
+    populateConfigOptions(material) {
+        // Populate length options
+        const lengthSelect = document.getElementById('config-length');
+        if (lengthSelect && material.available_lengths) {
+            lengthSelect.innerHTML = '';
+            material.available_lengths.forEach(length => {
+                const option = document.createElement('option');
+                option.value = length;
+                option.textContent = `${length}"`;
+                lengthSelect.appendChild(option);
+            });
+        }
+
+        // Populate width options
+        const widthSelect = document.getElementById('config-width');
+        if (widthSelect && material.available_widths) {
+            widthSelect.innerHTML = '';
+            material.available_widths.forEach(width => {
+                const option = document.createElement('option');
+                option.value = width;
+                option.textContent = `${width}"`;
+                widthSelect.appendChild(option);
+            });
+        }
+
+        // Populate thickness options
+        const thicknessSelect = document.getElementById('config-thickness');
+        if (thicknessSelect && material.available_thicknesses) {
+            thicknessSelect.innerHTML = '';
+            material.available_thicknesses.forEach(thickness => {
+                const option = document.createElement('option');
+                option.value = thickness;
+                option.textContent = `${thickness}"`;
+                thicknessSelect.appendChild(option);
+            });
+        }
+
+        // Populate grade options
+        const gradeSelect = document.getElementById('config-grade');
+        if (gradeSelect && material.available_grades) {
+            gradeSelect.innerHTML = '';
+            material.available_grades.forEach(grade => {
+                const option = document.createElement('option');
+                option.value = grade;
+                option.textContent = grade;
+                gradeSelect.appendChild(option);
+            });
+        }
+    }
 
     updateMaterialCost() {
         if (!this.selectedMaterialId) return;
 
-        const material = this.materialsLibrary.materials[this.selectedMaterialId];
+        const material = window.materialsLibrary.materials[this.selectedMaterialId];
         const length = parseFloat(document.getElementById('config-length')?.value || 0);
         const width = parseFloat(document.getElementById('config-width')?.value || 0);
         const thickness = parseFloat(document.getElementById('config-thickness')?.value || 0);
@@ -3959,7 +4087,7 @@ class DrawingWorld {
     addMaterialToProject() {
         if (!this.selectedMaterialId) return;
 
-        const material = this.materialsLibrary.materials[this.selectedMaterialId];
+        const material = window.materialsLibrary.materials[this.selectedMaterialId];
         const length = document.getElementById('config-length')?.value;
         const width = document.getElementById('config-width')?.value;
         const thickness = document.getElementById('config-thickness')?.value;
@@ -6695,7 +6823,7 @@ class DrawingWorld {
         if (modal && this.materialsLibrary) {
             modal.style.display = 'flex';
             this.populateMaterialCategories();
-            this.populateMaterialGrid();
+            this.populateMaterialGrid('hardwood'); // Start with hardwoods
             this.showMaterialGrid();
         }
     }
@@ -6779,7 +6907,7 @@ class DrawingWorld {
                 
                 // Create thumbnail HTML - use image if available, fallback to icon
                 const thumbnailHtml = summary.thumbnail ? 
-                    `<img src="${summary.thumbnail}" alt="${summary.name}" loading="lazy" onerror="this.style.display='none'">` :
+                    `<img src="${summary.thumbnail}" alt="${summary.name}" loading="lazy" onerror="this.outerHTML='${this.getMaterialIcon(material.category)}'">` :
                     thumbnail;
                 
                 return `
@@ -6814,19 +6942,16 @@ class DrawingWorld {
 
         const nameElement = document.getElementById('selected-material-name');
         if (nameElement) {
-            nameElement.textContent = `${material.name} Configuration`;
+            nameElement.textContent = `${material.basic_info.common_name} Configuration`;
         }
 
         // Populate dimension options
-        // Use actual database schema
-        const defaultConfig = material.default_configuration || {};
-        const standardLengths = [48, 72, 96, 120, 144];
-        const standardWidths = [3, 4, 6, 8, 10, 12];
-        const standardThicknesses = [0.75, 1, 1.5, 2, 2.5, 3];
+        const dimensions = material.standard_dimensions;
+        const defaultConfig = material.default_configuration;
 
-        this.populateSelectOptions('config-length', standardLengths, defaultConfig.length || 96);
-        this.populateSelectOptions('config-width', standardWidths, defaultConfig.width || 6);
-        this.populateSelectOptions('config-thickness', standardThicknesses, defaultConfig.thickness || 0.75);
+        this.populateSelectOptions('config-length', dimensions.available_lengths, defaultConfig.length_inches);
+        this.populateSelectOptions('config-width', dimensions.available_widths, defaultConfig.width_inches);
+        this.populateSelectOptions('config-thickness', dimensions.available_thicknesses, defaultConfig.thickness_inches);
 
         // Populate grade options
         const grades = this.materialsLibrary.getLumberGrades();
@@ -6889,7 +7014,7 @@ class DrawingWorld {
         const part = {
             id: `workpart_${Date.now()}`,
             materialId: this.selectedMaterial,
-            materialName: material.name,
+            materialName: material.basic_info.common_name,
             dimensions: { length, width, thickness },
             grade: grade,
             cost: costInfo.totalCost,
@@ -6956,7 +7081,6 @@ class DrawingWorld {
     }
 
     getMaterialColor(materialId) {
-        console.log("🎨 getMaterialColor called for:", materialId);
         // Basic color mapping - could be enhanced with actual textures
         const colorMap = {
             'walnut_001': new BABYLON.Color3(0.36, 0.25, 0.22), // Dark brown

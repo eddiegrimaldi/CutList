@@ -6956,7 +6956,6 @@ class DrawingWorld {
     }
 
     getMaterialColor(materialId) {
-        console.log("🎨 getMaterialColor called for:", materialId);
         // Basic color mapping - could be enhanced with actual textures
         const colorMap = {
             'walnut_001': new BABYLON.Color3(0.36, 0.25, 0.22), // Dark brown

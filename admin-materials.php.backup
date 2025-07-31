@@ -628,11 +628,9 @@
         });
 
         async function loadMaterials() {
-console.log("loadMaterials called");
             const success = await materialsLibrary.loadDatabase();
             if (success) {
                 materials = materialsLibrary.materials;
-                console.log('Loaded materials:', Object.keys(materials).length);
             } else {
                 console.error('Failed to load materials database');
                 materials = {};
@@ -640,10 +638,8 @@ console.log("loadMaterials called");
         }
 
         function renderMaterials() {
-console.log("renderMaterials called with materials:", materials);            console.log("Object.keys(materials):", Object.keys(materials));            console.log("currentFilter:", currentFilter);
             const grid = document.getElementById('materials-grid');
             const filteredMaterials = Object.values(materials).filter(material => {
-console.log("filteredMaterials count:", filteredMaterials.length);            console.log("filteredMaterials:", filteredMaterials);
                 if (currentFilter !== 'all' && material.category !== currentFilter) {
                     return false;
                 }
@@ -663,36 +659,36 @@ console.log("filteredMaterials count:", filteredMaterials.length);            co
             grid.innerHTML = filteredMaterials.map(material => `
                 <div class="material-card">
                     <div class="material-header">
-                        <div class="material-name">${material.basic_info.common_name}</div>
+                        <div class="material-name">${material.name}</div>
                         <div class="material-category">${material.category.replace('_', ' ')}</div>
                     </div>
                     <div class="material-image">
                         ${material.visual_assets && material.visual_assets.thumbnail ? 
-                            `<img src="${material.visual_assets.thumbnail}" alt="${material.basic_info.common_name}">` :
+                            `<img src="${material.visual_assets.thumbnail}" alt="${material.name}">` :
                             '🪵'
                         }
                     </div>
                     <div class="material-details">
                         <div class="material-property">
                             <span>Scientific Name:</span>
-                            <strong>${material.basic_info.scientific_name || 'N/A'}</strong>
+                            <strong>${material.species || 'N/A'}</strong>
                         </div>
                         <div class="material-property">
                             <span>Dimensions:</span>
-                            <strong>${material.physical_properties.length_inches}" × ${material.physical_properties.width_inches}" × ${material.physical_properties.thickness_inches}"</strong>
+                            <strong>${material.default_configuration.length}" × ${material.default_configuration.width}" × ${material.default_configuration.thickness}"</strong>
                         </div>
                         <div class="material-property">
                             <span>Price/BF:</span>
-                            <strong>$${material.economic_properties.price_per_board_foot}</strong>
+                            <strong>$${material.cost_structure.base_price_bf}</strong>
                         </div>
                         <div class="material-property">
                             <span>Availability:</span>
-                            <strong>${material.economic_properties.availability?.replace('_', ' ') || 'N/A'}</strong>
+                            <strong>${"Available"}</strong>
                         </div>
                     </div>
                     <div class="material-actions">
-                        <button class="btn btn-primary" onclick="editMaterial('${material.material_id}')">Edit</button>
-                        <button class="btn btn-danger" onclick="deleteMaterial('${material.material_id}')">Delete</button>
+                        <button class="btn btn-primary" onclick="editMaterial('${material.id}')">Edit</button>
+                        <button class="btn btn-danger" onclick="deleteMaterial('${material.id}')">Delete</button>
                     </div>
                 </div>
             `).join('');
@@ -754,24 +750,24 @@ console.log("filteredMaterials count:", filteredMaterials.length);            co
             document.getElementById('material-id').value = materialId;
             
             // Populate form
-            document.getElementById('common-name').value = material.basic_info.common_name;
-            document.getElementById('scientific-name').value = material.basic_info.scientific_name || '';
+            document.getElementById('common-name').value = material.name;
+            document.getElementById('scientific-name').value = material.species || '';
             document.getElementById('category').value = material.category;
-            document.getElementById('origin').value = material.basic_info.origin || '';
+            document.getElementById('origin').value = "" || '';
             
-            document.getElementById('length').value = material.physical_properties.length_inches;
-            document.getElementById('width').value = material.physical_properties.width_inches;
-            document.getElementById('thickness').value = material.physical_properties.thickness_inches;
-            document.getElementById('density').value = material.physical_properties.density_lbs_per_cubic_foot || '';
-            document.getElementById('hardness').value = material.physical_properties.janka_hardness || '';
+            document.getElementById('length').value = material.default_configuration.length;
+            document.getElementById('width').value = material.default_configuration.width;
+            document.getElementById('thickness').value = material.default_configuration.thickness;
+            document.getElementById('density').value = material.physical_properties.density_lbs_ft3 || '';
+            document.getElementById('hardness').value = material.physical_properties.hardness_janka || '';
             
-            document.getElementById('price-per-bf').value = material.economic_properties.price_per_board_foot;
+            document.getElementById('price-per-bf').value = material.cost_structure.base_price_bf;
             document.getElementById('availability').value = material.economic_properties.availability || 'readily_available';
             
             document.getElementById('workability').value = material.workability_properties?.overall || 'good';
             document.getElementById('finishing').value = material.workability_properties?.finishing || 'good';
             
-            document.getElementById('description').value = material.basic_info.description || '';
+            document.getElementById('description').value = "" || '';
             
             // Show existing images
             if (material.visual_assets?.thumbnail) {
@@ -780,7 +776,7 @@ console.log("filteredMaterials count:", filteredMaterials.length);            co
             }
             
             if (material.visual_assets?.texture) {
-                document.getElementById('texture-preview').innerHTML = `<img src="${material.visual_assets.texture}" alt="Texture">`;
+                document.getElementById('texture-preview').innerHTML = `<img src="${material.visual_assets.texture_diffuse}" alt="Texture">`;
                 document.getElementById('texture-preview').style.display = 'block';
             }
             
@@ -897,7 +893,7 @@ console.log("filteredMaterials count:", filteredMaterials.length);            co
                 const texturePromise = uploadImageFile(textureFile, materialId, 'texture');
                 uploadPromises.push(texturePromise.then(filePath => {
                     if (filePath) {
-                        material.visual_assets.texture = filePath;
+                        material.visual_assets.texture_diffuse = filePath;
                     }
                 }));
             }

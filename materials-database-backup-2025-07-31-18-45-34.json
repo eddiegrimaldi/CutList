@@ -184,7 +184,7 @@
         }
     },
     "version": "1.0",
-    "last_updated": "2025-07-31T18:45:34+00:00",
+    "last_updated": "2025-07-31T18:35:32+00:00",
     "categories": {
         "hardwood": {
             "name": "Hardwood",
@@ -200,7 +200,7 @@
         }
     },
     "server_info": {
-        "saved_at": "2025-07-31T18:45:34+00:00",
+        "saved_at": "2025-07-31T18:35:32+00:00",
         "server_version": "8.3.6",
         "material_count": 7
     }

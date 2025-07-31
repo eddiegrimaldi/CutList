@@ -1,8 +1,11 @@
-// Drawing World with Babylon.js - UPDATED FOR CAMERA FOCUS FIX
+// Drawing World with Babylon.js - UPDATED FOR MATERIALS LIBRARY FIX
 // UNIT STANDARD: 1 unit = 1 cm (eventually selectable between metric/imperial)
-console.log("🚀 DRAWING-WORLD.JS LOADED - CAMERA FIX VERSION 2024-07-14 18:43:00 TIMESTAMP");
+console.log("🚀 DRAWING-WORLD.JS LOADED - MATERIALS FIX VERSION 2025-01-30 15:15:00 TIMESTAMP - CLAUDE MATERIALS DEBUG");
 import { GridSystem } from './grid/GridSystem.js';
 import { Shape2D } from './modules/Shape2D.js?v=20250112001';
+import { ExtrusionGizmo } from './modules/ExtrusionGizmo.js';
+import { SelectionSystem } from './modules/SelectionSystem.js';
+import { SketchMode } from './modules/SketchMode.js';
 import { CutToolSystem } from './modules/CutToolSystem.js';
 import { RouterBitSystem } from './modules/RouterBitSystem.js';
 import { ScrollCuttingSystem } from './modules/ScrollCuttingSystem.js';
@@ -30,9 +33,7 @@ class DrawingWorld {
         // Initialize shape2D system
         this.shape2D = null;
         
-        // Sketch tool state
-        this.sketchToolSelected = false;
-        this.waitingForSurface = false;
+        // Extrusion state
         this.isExtruding = false;
         
         // Active tool state
@@ -116,54 +117,31 @@ class DrawingWorld {
 
         // Set up event listeners (moved after materials system)
         this.setupEventListeners();
-        
-        // Initialize drag handle interaction
-        this.enableDragHandleInteraction();
-        
-        // Initialize cut tool system
-        this.cutToolSystem = new CutToolSystem(this);
-        
-        // Initialize router bit system
-        this.routerBitSystem = new RouterBitSystem(this);
-        
-        // Initialize scroll cutting system
-        this.scrollCuttingSystem = new ScrollCuttingSystem(this);
-        
-        // Initialize plane tool system
-        this.planeToolSystem = new PlaneToolSystem(this);
-        
-        
-        // Initialize join tool system
-        this.joinToolSystem = new JoinToolSystem(this);
-        
-        // Initialize drill press system
-        this.drillPressSystem = new DrillPressSystem(this);
-        
-        // Initialize preferences system
-        this.initializePreferencesSystem();
-        
-        // Start render loop (simplified - no render loop modifications)
-        this.engine.runRenderLoop(() => {
-            // Update gizmo scaling based on camera distance
-            this.updateExtrusionGizmoScale();
-            
-            // Enforce camera height constraint - cannot go below 4 units above XY plane
-            this.enforceMinimumCameraHeight();
-            
-            this.scene.render();
-        });
-        
-        // Handle window resize
-        window.addEventListener('resize', () => {
-            this.engine.resize();
-        });
-        
-        // Initialize tool groups to correct state
-        this.updateToolGroups();
-        
-        // DRAMATIC OPENING: Professional opening animation
-        this.performOpeningAnimation();
-        
+    }
+
+    setupSelectionSystem() {
+        console.log("Selection system initialized");
+    }
+
+    updateCoordinates(event) {
+    }
+
+    enableDragHandleInteraction() {
+        console.log("Drag handle interaction enabled");
+        // Placeholder for coordinate updates
+    }
+
+    async initializeMaterialsSystem() {
+        try {
+            console.log("🔄 Initializing MaterialsLibrary...");
+            this.materialsLibrary = new MaterialsLibrary();
+            console.log("✅ MaterialsLibrary instance created:", this.materialsLibrary);
+            await this.materialsLibrary.loadDatabase();
+            console.log("✅ Materials database loaded, isLoaded:", this.materialsLibrary.isLoaded);
+            console.log("Materials system initialized successfully");
+        } catch (error) {
+            console.error("Failed to initialize materials system:", error);
+        }
     }
     
     /**
@@ -352,8 +330,7 @@ class DrawingWorld {
         this.preferences = {
             panSpeed: 0.3,
             rotateSpeed: 0.003,
-            zoomSpeed: 12,
-            units: "imperial"
+            zoomSpeed: 12
         };
         
         // Load preferences from localStorage
@@ -1056,7 +1033,14 @@ class DrawingWorld {
 
     setupGrid() {
         // Create modular grid system
-        this.gridSystem = new GridSystem(this.scene, this.camera);
+        console.log('DrawingWorld: About to create GridSystem');
+        try {
+            this.gridSystem = new GridSystem(this.scene, this.camera);
+            console.log('DrawingWorld: GridSystem created successfully');
+        } catch (error) {
+            console.error('DrawingWorld: Error creating GridSystem:', error);
+            this.gridSystem = null;
+        }
         
         // Create legacy grid object for compatibility
         this.grid = { 
@@ -1067,20 +1051,13 @@ class DrawingWorld {
         // Initialize shape2D system
         this.shape2D = new Shape2D(this.scene, null); // Will be updated by sketch mode
         
+        // Initialize sketch mode system
+        this.sketchMode = new SketchMode(this.scene, this.camera, this.shape2D, this);
+        
         // Create coordinate axes
         this.createAxes();
         
         // Sketch ground will be created when entering sketch mode
-    }
-
-    toggleGrid() {
-        if (this.gridSystem) {
-            this.gridSystem.isVisible = !this.gridSystem.isVisible;
-            this.gridSystem.setVisible(this.gridSystem.isVisible);
-            console.log("Grid toggled:", this.gridSystem.isVisible ? "ON" : "OFF");
-        } else {
-            console.error("GridSystem not initialized");
-        }
     }
 
     
@@ -1251,7 +1228,7 @@ class DrawingWorld {
 
         
         // Prevent entering sketch mode if already in sketch mode
-        if (this.isSketchMode) {
+        if (this.sketchMode.isSketchMode) {
 
             return;
         }
@@ -1296,7 +1273,7 @@ class DrawingWorld {
         // STEP 2: Animate camera to surface position
         this.animateCameraToSurface(pickPoint, surfaceNormal, () => {
             // STEP 3: After camera animation completes, create grid and enable tools
-            this.createSketchEnvironment();
+            this.sketchMode.createSketchEnvironment();
         });
         
 
@@ -1501,10 +1478,10 @@ class DrawingWorld {
         this.createSketchPlaneGrid();
         
         // Add sketch drawing toolbar
-        this.showSketchToolbar();
+        this.sketchMode.showSketchToolbar();
         
         // Set up mouse handlers for sketching
-        this.setupSketchingMouseHandlers();
+        this.sketchMode.setupSketchingMouseHandlers();
         
 
     }
@@ -1538,9 +1515,9 @@ class DrawingWorld {
             
             btn.addEventListener('click', () => {
                 if (tool.name === 'exit') {
-                    this.exitSketchMode();
+                    this.sketchMode.exitSketchMode();
                 } else {
-                    this.selectSketchTool(tool.name);
+                    this.sketchMode.selectSketchTool(tool.name);
                 }
             });
             
@@ -1553,11 +1530,11 @@ class DrawingWorld {
         
         if (toolName === 'sketch') {
             // Sketch tool selected - enter surface selection mode
-            this.sketchToolSelected = true;
-            this.waitingForSurface = true;
+            this.sketchMode.sketchToolSelected = true;
+            this.sketchMode.waitingForSurface = true;
             
             // Show the 3 default sketch planes
-            this.showSketchTargets();
+            this.sketchMode.showSketchTargets();
             
             // Update mode indicator
             const modeIndicator = document.getElementById('mode-indicator');
@@ -1574,7 +1551,7 @@ class DrawingWorld {
             
         } else if (toolName === 'exit-sketch') {
             // Exit sketch mode
-            this.exitSketchMode();
+            this.sketchMode.exitSketchMode();
             
         } else if (toolName === 'extrude') {
             // Activate extrude tool
@@ -1887,7 +1864,7 @@ class DrawingWorld {
             }
             
             // Hide the default sketch planes
-            this.hideSketchTargets();
+            this.sketchMode.hideSketchTargets();
             
             // Reset mode indicator
             const modeIndicator = document.getElementById('mode-indicator');
@@ -1927,11 +1904,11 @@ class DrawingWorld {
     enterSketchModeOnSurface(mesh, pickPoint, normal) {
         
         // Clear sketch tool selection state
-        this.sketchToolSelected = false;
-        this.waitingForSurface = false;
+        this.sketchMode.sketchToolSelected = false;
+        this.sketchMode.waitingForSurface = false;
         
         // Hide the sketch targets
-        this.hideSketchTargets();
+        this.sketchMode.hideSketchTargets();
         
         // Deselect the sketch tool button
         document.querySelectorAll('[data-tool="sketch"]').forEach(btn => {
@@ -1945,7 +1922,7 @@ class DrawingWorld {
         const faceCenter = cubePosition.add(normal.scale(cubeSize));
         
         this.setMode('sketch');
-        this.enterSketchMode(mesh, faceCenter, normal);
+        this.sketchMode.enterSketchMode(mesh, faceCenter, normal);
     }
 
     createDefaultSketchTarget() {
@@ -1989,7 +1966,7 @@ class DrawingWorld {
     showSketchTargets() {
         // Show default sketch target if no other geometry exists
         if (!this.defaultSketchTarget) {
-            this.createDefaultSketchTarget();
+            this.sketchMode.createDefaultSketchTarget();
         }
         
         // Enable and animate the target to fade in
@@ -2200,14 +2177,14 @@ class DrawingWorld {
             switch (pointerInfo.type) {
                 case BABYLON.PointerEventTypes.POINTERDOWN:
 
-                    this.handleBabylonPointerDown(pointerInfo);
+                    this.sketchMode.handleBabylonPointerDown(pointerInfo);
                     break;
                 case BABYLON.PointerEventTypes.POINTERUP:
 
-                    this.handleBabylonPointerUp(pointerInfo);
+                    this.sketchMode.handleBabylonPointerUp(pointerInfo);
                     break;
                 case BABYLON.PointerEventTypes.POINTERMOVE:
-                    this.handleBabylonPointerMove(pointerInfo);
+                    this.sketchMode.handleBabylonPointerMove(pointerInfo);
                     break;
             }
         });
@@ -2223,7 +2200,7 @@ class DrawingWorld {
             const event = pointerInfo.event;
             
             // Handle surface selection for sketch tool
-            if (this.waitingForSurface && event.button === 0) {
+            if (this.sketchMode.waitingForSurface && event.button === 0) {
                 const rect = this.canvas.getBoundingClientRect();
                 const x = event.clientX - rect.left;
                 const y = event.clientY - rect.top;
@@ -2238,14 +2215,14 @@ class DrawingWorld {
                 
                 
                 if (pickInfo.hit && pickInfo.pickedMesh) {
-                    this.enterSketchModeOnSurface(pickInfo.pickedMesh, pickInfo.pickedPoint, pickInfo.getNormal());
+                    this.sketchMode.enterSketchModeOnSurface(pickInfo.pickedMesh, pickInfo.pickedPoint, pickInfo.getNormal());
                     return; // Stop processing - we handled the surface selection
                 } else {
                 }
             }
 
             // Check for part selection (only if not waiting for surface)
-            if (!this.waitingForSurface && event.button === 0) {
+            if (!this.sketchMode.waitingForSurface && event.button === 0) {
                 const rect = this.canvas.getBoundingClientRect();
                 const x = event.clientX - rect.left;
                 const y = event.clientY - rect.top;
@@ -2261,7 +2238,7 @@ class DrawingWorld {
 
             if (event.button === 0) {
                 // Left click - drawing
-                console.log('LEFT CLICK - sketch mode:', this.isSketchMode, 'current tool:', this.currentSketch?.currentTool);
+                console.log('LEFT CLICK - sketch mode:', this.sketchMode.isSketchMode, 'current tool:', this.sketchMode.currentSketch?.currentTool);
                 try {
                     this.mouseDownTime = Date.now();
                     this.mouseDownPos = { x: event.clientX, y: event.clientY };
@@ -2479,14 +2456,14 @@ class DrawingWorld {
         
         // Add escape key handler
         this.sketchEscapeHandler = (e) => {
-            if (e.key === 'Escape' && this.isSketchMode) {
+            if (e.key === 'Escape' && this.sketchMode.isSketchMode) {
                 if (this.currentSketch && this.currentSketch.isDrawing) {
                     {
                         // Cancel current drawing
                         this.cancelCurrentDrawing();
                     }
                 } else {
-                    this.exitSketchMode();
+                    this.sketchMode.exitSketchMode();
                 }
             }
         };
@@ -3503,11 +3480,11 @@ class DrawingWorld {
         this.setMode('model');
         
         // Reset sketch tool selection state
-        this.sketchToolSelected = false;
-        this.waitingForSurface = false;
+        this.sketchMode.sketchToolSelected = false;
+        this.sketchMode.waitingForSurface = false;
         
         // Hide any sketch targets that might still be visible
-        this.hideSketchTargets();
+        this.sketchMode.hideSketchTargets();
         
         // Remove sketch mouse handlers
         if (this.sketchMouseDownHandler) {
@@ -3662,7 +3639,7 @@ class DrawingWorld {
                 
                 // Set the current tool
                 const tool = button.dataset.tool;
-                this.selectSketchTool(tool);
+                this.sketchMode.selectSketchTool(tool);
             });
         });
 
@@ -3726,29 +3703,147 @@ class DrawingWorld {
         this.setupMaterialModalListeners();
     }
 
+    setupMaterialModalListeners() {
+        // Check if materials library is already initialized
+        if (!this.materialsLibrary) {
+            console.error("❌ MaterialsLibrary should be initialized before setupMaterialModalListeners!");
+            return;
+        }
+        console.log("✅ Using existing MaterialsLibrary instance");
+
+        // 1. Material button click handler to open the modal (round button at bottom center)
+        const addMaterialBtn = document.getElementById('add-material-btn-grid');
+        if (addMaterialBtn) {
+            console.log('✅ Material button found, setting up click handler');
+            addMaterialBtn.addEventListener('click', () => {
+                console.log('🎯 Material button clicked, opening modal...');
+                this.openMaterialModal();
+            });
+        } else {
+            console.error('❌ Material button not found: add-material-btn-grid');
+        }
+
+        // 2. Close modal button handler
+        const closeModalBtn = document.getElementById('close-material-modal');
+        if (closeModalBtn) {
+            closeModalBtn.addEventListener('click', () => {
+                this.closeMaterialModal();
+            });
+        }
+
+        // Close modal when clicking outside
+        const modalOverlay = document.getElementById('material-modal');
+        if (modalOverlay) {
+            modalOverlay.addEventListener('click', (e) => {
+                if (e.target === modalOverlay) {
+                    this.closeMaterialModal();
+                }
+            });
+        }
+
+        // 3. Material selection handlers (delegated event handling)
+        const materialGrid = document.getElementById('material-grid');
+        if (materialGrid) {
+            materialGrid.addEventListener('click', (e) => {
+                const materialCard = e.target.closest('.material-card');
+                if (materialCard) {
+                    this.selectMaterial(materialCard.dataset.materialId);
+                }
+            });
+        }
+
+        // 4. Configuration handlers
+        const configLength = document.getElementById('config-length');
+        const configWidth = document.getElementById('config-width');
+        const configThickness = document.getElementById('config-thickness');
+        const configGrade = document.getElementById('config-grade');
+
+        [configLength, configWidth, configThickness, configGrade].forEach(select => {
+            if (select) {
+                select.addEventListener('change', () => {
+                    this.updateMaterialCost();
+                });
+            }
+        });
+
+        // Search functionality
+        const materialSearch = document.getElementById('material-search');
+        if (materialSearch) {
+            materialSearch.addEventListener('input', (e) => {
+                this.filterMaterials(e.target.value);
+            });
+        }
+
+        // Category tabs (delegated event handling)
+        const categoryTabs = document.getElementById('material-category-tabs');
+        if (categoryTabs) {
+            categoryTabs.addEventListener('click', (e) => {
+                const tab = e.target.closest('.category-tab');
+                if (tab) {
+                    this.filterByCategory(tab.dataset.category);
+                }
+            });
+        }
+
+        // 5. Add to project button handler
+        const addToProjectBtn = document.getElementById('add-material-to-project');
+        if (addToProjectBtn) {
+            addToProjectBtn.addEventListener('click', () => {
+                this.addMaterialToProject();
+            });
+        }
+
+        // Cancel configuration button
+        const cancelConfigBtn = document.getElementById('cancel-material-config');
+        if (cancelConfigBtn) {
+            cancelConfigBtn.addEventListener('click', () => {
+                this.showMaterialGrid();
+            });
+        }
+    }
 
     async openMaterialModal() {
+        console.log('🔧 Opening material modal...');
+        console.log('🔍 MaterialsLibrary instance:', this.materialsLibrary);
+        console.log('🔍 MaterialsLibrary type:', typeof this.materialsLibrary);
+        
         const modal = document.getElementById('material-modal');
-        if (!modal) return;
+        if (!modal) {
+            console.error('❌ Material modal not found');
+            return;
+        }
+
+        // Check if materialsLibrary exists
+        if (!this.materialsLibrary) {
+            console.error('❌ MaterialsLibrary is null/undefined!');
+            return;
+        }
 
         // Load materials database if not loaded
         if (!this.materialsLibrary.isLoaded) {
+            console.log('📥 Loading materials database...');
             const loaded = await this.materialsLibrary.loadDatabase();
             if (!loaded) {
-                console.error('Failed to load materials database');
+                console.error('❌ Failed to load materials database');
                 return;
             }
+            console.log('✅ Materials database loaded successfully');
+        } else {
+            console.log('✅ Materials database already loaded');
         }
 
         // Show modal
+        console.log('👁️ Showing modal...');
         modal.style.display = 'flex';
         
         // Reset modal state
         this.showMaterialGrid();
         
         // Populate materials and categories
+        console.log('📋 Populating categories and materials...');
         this.populateMaterialCategories();
-        this.populateMaterialGrid();
+        this.populateMaterialGrid("hardwood");
+        console.log('✅ Material modal opened successfully');
         
         // Clear search
         const searchInput = document.getElementById('material-search');
@@ -3766,2947 +3861,6 @@ class DrawingWorld {
         // Reset state
         this.selectedMaterialId = null;
         this.showMaterialGrid();
-    }
-
-    populateMaterialCategories() {
-        const tabsContainer = document.getElementById('material-category-tabs');
-        if (!tabsContainer || !this.materialsLibrary.categories) return;
-
-        tabsContainer.innerHTML = '';
-        
-        // Add "All" tab
-        const allTab = document.createElement('div');
-        allTab.className = 'category-tab active';
-        allTab.dataset.category = 'all';
-        allTab.textContent = 'All';
-        tabsContainer.appendChild(allTab);
-
-        // Add category tabs
-        Object.entries(this.materialsLibrary.categories).forEach(([categoryId, category]) => {
-            const tab = document.createElement('div');
-            tab.className = 'category-tab';
-            tab.dataset.category = categoryId;
-            tab.textContent = category.name;
-            tabsContainer.appendChild(tab);
-        });
-    }
-
-    populateMaterialGrid(filteredMaterials = null) {
-        const grid = document.getElementById('material-grid');
-        if (!grid || !this.materialsLibrary.materials) return;
-
-        let materials;
-        if (filteredMaterials && typeof filteredMaterials === 'string') {
-            // Filter by category
-            materials = {};
-            Object.entries(this.materialsLibrary.materials).forEach(([materialId, material]) => {
-                if (material.category === filteredMaterials) {
-                    materials[materialId] = material;
-                }
-            });
-        } else {
-            materials = filteredMaterials || this.materialsLibrary.materials;
-        }
-        grid.innerHTML = '';
-
-        Object.entries(materials).forEach(([materialId, material]) => {
-            const card = document.createElement('div');
-            card.className = 'material-card';
-            card.dataset.materialId = materialId;
-            
-            // Get proper thumbnail and material info
-            const thumbnail = material.visual_assets?.thumbnail || 'placeholder-material.jpg';
-            const materialName = material.name || 'Unknown Material';
-            const scientificName = material.basic_info?.scientific_name || material.species || '';
-            const pricePerBF = material.cost_structure?.base_price_bf || 'N/A';
-            
-            console.log("🔍 Material ID:", materialId, "- Name:", materialName);
-            console.log("🔍 Full material object:", material);
-            // Debug logging for thumbnails
-            if (material.visual_assets?.thumbnail) {
-                console.log(`Material ${materialName} has thumbnail:`, material.visual_assets.thumbnail.substring(0, 50) + '...');
-            } else {
-                console.log(`Material ${materialName} has no thumbnail, using placeholder`);
-            }
-            
-            card.innerHTML = `
-                <div class="material-image">
-                    <img src="${thumbnail}" alt="${materialName}" loading="lazy" onerror="this.style.display='none'; console.error('Failed to load material image:', this.src)">
-                </div>
-                <div class="material-info">
-                    <h4>${materialName}</h4>
-                    <p class="material-species">${scientificName}</p>
-                    <p class="material-price">Starting at $${pricePerBF}/bf</p>
-                </div>
-            `;
-            
-            grid.appendChild(card);
-        });
-    }
-
-    filterMaterials(searchTerm) {
-        if (!this.materialsLibrary.materials) return;
-
-        const filtered = {};
-        const term = searchTerm.toLowerCase();
-
-        Object.entries(this.materialsLibrary.materials).forEach(([id, material]) => {
-            if (material.name.toLowerCase().includes(term) ||
-                (material.species && material.species.toLowerCase().includes(term)) ||
-                (material.description && material.description.toLowerCase().includes(term))) {
-                filtered[id] = material;
-            }
-        });
-
-        this.populateMaterialGrid(filtered);
-    }
-
-    filterByCategory(categoryId) {
-        // Update active tab
-        document.querySelectorAll('.category-tab').forEach(tab => {
-            tab.classList.remove('active');
-        });
-        document.querySelector(`[data-category="${categoryId}"]`).classList.add('active');
-
-        if (categoryId === 'all') {
-            this.populateMaterialGrid();
-            return;
-        }
-
-        if (!this.materialsLibrary.materials) return;
-
-        const filtered = {};
-        Object.entries(this.materialsLibrary.materials).forEach(([id, material]) => {
-            if (material.category === categoryId) {
-                filtered[id] = material;
-            }
-        });
-
-        this.populateMaterialGrid(filtered);
-    }
-
-    selectMaterial(materialId) {
-        this.selectedMaterialId = materialId;
-        const material = this.materialsLibrary.materials[materialId];
-        
-        if (!material) return;
-
-        // Show configuration panel
-        this.showMaterialConfig(material);
-    }
-
-    showMaterialConfig(material) {
-        const grid = document.getElementById('material-grid');
-        const config = document.getElementById('material-config');
-        const materialName = document.getElementById('selected-material-name');
-
-        if (grid) grid.style.display = 'none';
-        if (config) config.style.display = 'block';
-        if (materialName) materialName.textContent = `${material.name} Configuration`;
-
-        // Populate configuration options
-        this.populateConfigOptions(material.id);
-        this.updateMaterialCost();
-    }
-
-    showMaterialGrid() {
-        const grid = document.getElementById('material-grid');
-        const config = document.getElementById('material-config');
-
-        if (grid) grid.style.display = 'grid';
-        if (config) config.style.display = 'none';
-    }
-
-
-    updateMaterialCost() {
-        if (!this.selectedMaterialId) return;
-
-        const material = this.materialsLibrary.materials[this.selectedMaterialId];
-        const length = parseFloat(document.getElementById('config-length')?.value || 0);
-        const width = parseFloat(document.getElementById('config-width')?.value || 0);
-        const thickness = parseFloat(document.getElementById('config-thickness')?.value || 0);
-        const grade = document.getElementById('config-grade')?.value || '';
-
-        if (length && width && thickness) {
-            // Calculate board feet: (length × width × thickness) / 144
-            const boardFeet = (length * width * thickness) / 144;
-            const basePriceBF = material.base_price_per_bf || 0;
-            
-            // Apply grade multiplier if available
-            let gradeMultiplier = 1;
-            if (material.grade_multipliers && material.grade_multipliers[grade]) {
-                gradeMultiplier = material.grade_multipliers[grade];
-            }
-            
-            const totalCost = boardFeet * basePriceBF * gradeMultiplier;
-
-            // Display cost information
-            const costDisplay = document.getElementById('cost-display');
-            if (costDisplay) {
-                costDisplay.innerHTML = `
-                    <div class="cost-breakdown">
-                        <p><strong>Dimensions:</strong> ${length}" × ${width}" × ${thickness}"</p>
-                        <p><strong>Board Feet:</strong> ${boardFeet.toFixed(2)} bf</p>
-                        <p><strong>Grade:</strong> ${grade}</p>
-                        <p><strong>Price per BF:</strong> $${(basePriceBF * gradeMultiplier).toFixed(2)}</p>
-                        <p class="total-cost"><strong>Total Cost: $${totalCost.toFixed(2)}</strong></p>
-                    </div>
-                `;
-            }
-        }
-    }
-
-    addMaterialToProject() {
-        if (!this.selectedMaterialId) return;
-
-        const material = this.materialsLibrary.materials[this.selectedMaterialId];
-        const length = document.getElementById('config-length')?.value;
-        const width = document.getElementById('config-width')?.value;
-        const thickness = document.getElementById('config-thickness')?.value;
-        const grade = document.getElementById('config-grade')?.value;
-
-        if (!length || !width || !thickness || !grade) {
-            alert('Please select all configuration options');
-            return;
-        }
-
-        // Create material entry for project
-        const materialEntry = {
-            id: Date.now(), // Simple ID generation
-            materialId: this.selectedMaterialId,
-            name: material.name,
-            species: material.species,
-            length: parseFloat(length),
-            width: parseFloat(width),
-            thickness: parseFloat(thickness),
-            grade: grade,
-            boardFeet: (parseFloat(length) * parseFloat(width) * parseFloat(thickness)) / 144,
-            cost: this.calculateMaterialCost(material, length, width, thickness, grade),
-            dateAdded: new Date().toISOString()
-        };
-
-        // Add to project parts list (you may need to implement this method)
-        this.addToProjectPartsList(materialEntry);
-
-        // Show success message
-        alert(`${material.name} added to project successfully!`);
-
-        // Close modal
-        this.closeMaterialModal();
-    }
-
-    calculateMaterialCost(material, length, width, thickness, grade) {
-        const boardFeet = (parseFloat(length) * parseFloat(width) * parseFloat(thickness)) / 144;
-        const basePriceBF = material.base_price_per_bf || 0;
-        
-        let gradeMultiplier = 1;
-        if (material.grade_multipliers && material.grade_multipliers[grade]) {
-            gradeMultiplier = material.grade_multipliers[grade];
-        }
-        
-        return boardFeet * basePriceBF * gradeMultiplier;
-    }
-
-    addToProjectPartsList(materialEntry) {
-        // Initialize project parts list if it doesn't exist
-        if (!this.projectPartsList) {
-            this.projectPartsList = [];
-        }
-
-        // Add material to parts list
-        this.projectPartsList.push(materialEntry);
-
-        // Update parts list display
-        this.updatePartsListDisplay();
-
-        console.log('Material added to project:', materialEntry);
-    }
-
-    updatePartsListDisplay() {
-        const partsList = document.getElementById('parts-list');
-        if (!partsList || !this.projectPartsList) return;
-
-        partsList.innerHTML = '';
-
-        this.projectPartsList.forEach(part => {
-            const listItem = document.createElement('li');
-            listItem.className = 'parts-list-item';
-            listItem.innerHTML = `
-                <div class="part-info">
-                    <strong>${part.name}</strong>
-                    <span class="part-dimensions">${part.length}" × ${part.width}" × ${part.thickness}"</span>
-                    <span class="part-cost">$${part.cost.toFixed(2)}</span>
-                </div>
-            `;
-            partsList.appendChild(listItem);
-        });
-    }
-
-    setMode(mode) {
-        this.currentMode = mode;
-        
-        // Update UI
-        const modeIndicator = document.getElementById('mode-indicator');
-        if (modeIndicator) {
-            modeIndicator.textContent = mode === 'sketch' ? 'Sketch Mode' : '3D Modeling';
-        }
-        
-        // Update context-sensitive tool groups
-        this.updateToolGroups();
-
-    }
-    
-    updateToolGroups() {
-        // Debug logging
-        console.log('updateToolGroups called - currentMode:', this.currentMode, 'selectedFace:', this.selectedFace?.name, 'isSketchMode:', this.isSketchMode);
-        
-        // FORCE OVERRIDE - if mode is sketch but we're not in sketch mode, fix it
-        if (this.currentMode === 'sketch' && !this.isSketchMode) {
-            this.currentMode = 'model';
-            console.log('Mode corrected to model');
-        }
-        
-        
-        // Hide all tool groups first
-        const allGroups = [
-            'sketch-tools',
-            'model-tools-main', 
-            'model-tools-face',
-            'model-tools-object'
-        ];
-        
-        allGroups.forEach(groupId => {
-            const group = document.getElementById(groupId);
-            if (group) {
-                group.style.display = 'none';
-            }
-        });
-        
-        // Show appropriate group based on mode and selection state
-        if (this.currentMode === 'sketch') {
-            // In sketch mode, always show drawing tools
-            const sketchTools = document.getElementById('sketch-tools');
-            if (sketchTools) {
-                sketchTools.style.display = 'block';
-            }
-        } else {
-            // In model mode, always show main tools
-            const mainTools = document.getElementById('model-tools-main');
-            if (mainTools) {
-                mainTools.style.display = 'block';
-            }
-            
-            // Additionally show context tools based on selection
-            if (this.selectedFace) {
-                // Face selected - show selection info
-                console.log('Showing face info for selected face:', this.selectedFace.name);
-                const faceTools = document.getElementById('model-tools-face');
-                if (faceTools) {
-                    faceTools.style.display = 'block';
-                    // Update the info text
-                    const faceInfo = document.getElementById('face-selection-info');
-                    if (faceInfo) {
-                        faceInfo.textContent = `${this.selectedFace.name} selected - Use active tool`;
-                    }
-                }
-            } else if (this.selectedObject) {
-                // 3D object selected - show transform tools
-                const objectTools = document.getElementById('model-tools-object');
-                if (objectTools) {
-                    objectTools.style.display = 'block';
-                }
-            }
-        }
-    }
-
-
-    resetView() {
-        this.camera.setTarget(BABYLON.Vector3.Zero());
-        this.camera.alpha = -Math.PI / 2;
-        this.camera.beta = Math.PI / 2.5;
-        this.camera.radius = Math.max(200, this.camera.radius); // Ensure minimum radius
-        console.log('resetView: Set camera radius to', this.camera.radius);
-    }
-
-    switchBench(benchType) {
-        // Update current bench property
-        this.currentBench = benchType;
-        
-        // Update bench button states
-        document.querySelectorAll('.bench-btn').forEach(btn => {
-            btn.classList.remove('active');
-        });
-        
-        if (benchType === 'work') {
-            document.getElementById('work-bench-btn').classList.add('active');
-            // Show work bench tools, hide assembly bench tools
-            document.getElementById('work-bench-tools').style.display = 'block';
-            document.getElementById('assembly-bench-tools').style.display = 'none';
-        } else if (benchType === 'assembly') {
-            document.getElementById('assembly-bench-btn').classList.add('active');
-            // Show assembly bench tools, hide work bench tools
-            document.getElementById('work-bench-tools').style.display = 'none';
-            document.getElementById('assembly-bench-tools').style.display = 'block';
-        }
-        
-        // Clear any active tool selections when switching benches
-        document.querySelectorAll('[data-tool]').forEach(btn => btn.classList.remove('active'));
-        this.activeTool = null;
-        
-        // DRAMATIC BENCH REVEAL: Animate camera to showcase the bench contents
-        this.animateCameraToShowcaseBench(benchType);
-        
-        console.log(`Switched to ${benchType} bench`);
-    }
-
-    /**
-     * DRAMATIC BENCH REVEAL: Professional camera animation to showcase bench contents
-     * Automatically frames all parts optimally with cinematic camera movement
-     */
-    animateCameraToShowcaseBench(benchType) {
-        console.log(`Starting dramatic bench reveal animation for ${benchType} bench`);
-        
-        // Get all parts on the current bench
-        const parts = benchType === 'work' ? 
-            this.scene.meshes.filter(m => m.isWorkBenchPart) : 
-            this.scene.meshes.filter(m => m.isProjectPart);
-        
-        if (parts.length === 0) {
-            console.log(`No parts to showcase on ${benchType} bench`);
-            // Still animate to origin for clean empty bench view
-            this.animateCameraToPosition(new BABYLON.Vector3(0, 50, 100), BABYLON.Vector3.Zero());
-            return;
-        }
-        
-        // Calculate bounding box of all parts
-        const partPositions = parts.map(part => part.position);
-        const bounds = this.calculateSceneBounds(partPositions, parts);
-        
-        // Calculate optimal camera position for dramatic showcase
-        const centerPoint = bounds.center;
-        const sceneSize = bounds.size;
-        const maxDimension = Math.max(sceneSize.x, sceneSize.y, sceneSize.z);
-        
-        // Professional camera positioning for multiple parts
-        const cameraDistance = maxDimension * 2.2; // Extra distance for multiple parts
-        const cameraHeight = maxDimension * 0.6;   // Elevated perspective
-        
-        // Create cinematic camera angle
-        const targetCameraPosition = new BABYLON.Vector3(
-            centerPoint.x + cameraDistance * 0.8,
-            centerPoint.y + cameraHeight,
-            centerPoint.z + cameraDistance * 0.6
-        );
-        
-        // Animate to showcase position
-        this.animateCameraToPosition(targetCameraPosition, centerPoint);
-        
-        console.log(`Showcasing ${parts.length} parts on ${benchType} bench`);
-    }
-    
-    /**
-     * Calculate bounding box for multiple parts
-     */
-    calculateSceneBounds(positions, parts) {
-        if (positions.length === 0) {
-            return { center: BABYLON.Vector3.Zero(), size: new BABYLON.Vector3(10, 10, 10) };
-        }
-        
-        // Find min/max across all parts
-        let minX = Infinity, maxX = -Infinity;
-        let minY = Infinity, maxY = -Infinity;
-        let minZ = Infinity, maxZ = -Infinity;
-        
-        parts.forEach(part => {
-            const bounds = part.getBoundingInfo();
-            const worldMin = part.position.add(bounds.minimum);
-            const worldMax = part.position.add(bounds.maximum);
-            
-            minX = Math.min(minX, worldMin.x);
-            maxX = Math.max(maxX, worldMax.x);
-            minY = Math.min(minY, worldMin.y);
-            maxY = Math.max(maxY, worldMax.y);
-            minZ = Math.min(minZ, worldMin.z);
-            maxZ = Math.max(maxZ, worldMax.z);
-        });
-        
-        const center = new BABYLON.Vector3(
-            (minX + maxX) / 2,
-            (minY + maxY) / 2,
-            (minZ + maxZ) / 2
-        );
-        
-        const size = new BABYLON.Vector3(
-            maxX - minX,
-            maxY - minY,
-            maxZ - minZ
-        );
-        
-        return { center, size };
-    }
-    
-    /**
-     * Smooth camera animation to specific position and target
-     */
-    animateCameraToPosition(targetPosition, targetLookAt) {
-        // Store current camera state
-        const startPosition = this.camera.position.clone();
-        const startTarget = this.camera.getTarget().clone();
-        
-        // Crisp 2-second cutscene animation
-        const animationDuration = 2000; // 2 seconds in milliseconds
-        const startTime = Date.now();
-        
-        // Professional ease-in-out cubic (slow-fast-slow)
-        const easeInOutCubic = (t) => {
-            return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-        };
-        
-        // Immediate camera position set to prevent flash
-        this.camera.position = startPosition;
-        this.camera.setTarget(startTarget);
-        
-        // Smooth camera animation
-        const animateCamera = () => {
-            const elapsed = Date.now() - startTime;
-            const progress = Math.min(elapsed / animationDuration, 1);
-            const easedProgress = easeInOutCubic(progress);
-            
-            // Interpolate camera position
-            this.camera.position = BABYLON.Vector3.Lerp(startPosition, targetPosition, easedProgress);
-            
-            // Smooth target transition - always end centered
-            const currentTarget = BABYLON.Vector3.Lerp(startTarget, targetLookAt, easedProgress);
-            this.camera.setTarget(currentTarget);
-            
-            // Continue animation
-            if (progress < 1) {
-                requestAnimationFrame(animateCamera);
-            } else {
-                console.log(`Camera cutscene complete`);
-            }
-        };
-        
-        // Start the animation
-        requestAnimationFrame(animateCamera);
-    }
-
-    updateCoordinates(event) {
-        // Get canvas-relative coordinates
-        const rect = this.canvas.getBoundingClientRect();
-        const x = event.clientX - rect.left;
-        const y = event.clientY - rect.top;
-        
-        // Get 3D coordinates from mouse position
-        const pickInfo = this.scene.pick(x, y);
-        if (pickInfo.hit) {
-            const pos = pickInfo.pickedPoint;
-            document.getElementById('coordinates').textContent = 
-                `X: ${pos.x.toFixed(2)}, Y: ${pos.y.toFixed(2)}, Z: ${pos.z.toFixed(2)}`;
-        }
-    }
-    
-    updateSketchPreviewWithPoint(point) {
-        // Use the point directly since it's already on the sketch plane
-        const sketchPoint = point.clone();
-        
-
-
-
-
-        
-        // Update preview based on current tool
-        switch (this.currentSketch.currentTool) {
-            case 'line':
-                if (this.linePreview) {
-                    this.createLinePreview(this.currentSketch.startPoint, sketchPoint);
-                }
-                break;
-            case 'rectangle':
-
-                this.createRectanglePreview(this.currentSketch.startPoint, sketchPoint);
-                break;
-            case 'circle':
-                const radius = BABYLON.Vector3.Distance(this.currentSketch.startPoint, sketchPoint);
-                this.createCirclePreview(this.currentSketch.startPoint, radius);
-                break;
-            case 'ellipse':
-                const ellipseOffset = sketchPoint.subtract(this.currentSketch.startPoint);
-                this.createEllipsePreview(
-                    this.currentSketch.startPoint,
-                    Math.abs(BABYLON.Vector3.Dot(ellipseOffset, this.sketchRight)),
-                    Math.abs(BABYLON.Vector3.Dot(ellipseOffset, this.sketchUp))
-                );
-                break;
-            case 'triangle':
-                if (this.currentSketch.trianglePoints && this.currentSketch.trianglePoints.length > 0) {
-                    this.createTrianglePreview([...this.currentSketch.trianglePoints, sketchPoint]);
-                }
-                break;
-        }
-    }
-    
-    updateSketchPreview(event) {
-        // Legacy function - redirect to new implementation
-        const rect = this.canvas.getBoundingClientRect();
-        const x = event.clientX - rect.left;
-        const y = event.clientY - rect.top;
-        
-        const pickInfo = this.scene.pick(x, y, (mesh) => mesh.name === 'sketchGround');
-        if (pickInfo.hit) {
-            this.updateSketchPreviewWithPoint(pickInfo.pickedPoint);
-        }
-    }
-    
-    cancelCurrentDrawing() {
-        // Clean up any preview shapes
-        if (this.linePreview) {
-            this.linePreview.dispose();
-            this.linePreview = null;
-        }
-        if (this.shapePreview) {
-            this.shapePreview.dispose();
-            this.shapePreview = null;
-        }
-        
-        // Reset drawing state
-        this.currentSketch.isDrawing = false;
-        this.currentSketch.startPoint = null;
-        this.currentSketch.trianglePoints = [];
-        
-
-    }
-    
-    // ==================== SELECTION AND EXTRUSION SYSTEM ====================
-    
-    setupSelectionSystem() {
-        // Initialize selection state
-        this.selectedFace = null;
-        this.hoveredFace = null;
-        this.selectionOutlineMaterial = null;
-        this.hoverOutlineMaterial = null;
-        this.isExtruding = false;
-        
-        // Create outline materials
-        this.createOutlineMaterials();
-        
-        // Setup selection event handlers
-        this.setupSelectionEventHandlers();
-        
-
-    }
-    
-    createOutlineMaterials() {
-        // Create hover material (pale green face)
-        this.hoverOutlineMaterial = new BABYLON.StandardMaterial('hoverOutline', this.scene);
-        this.hoverOutlineMaterial.diffuseColor = new BABYLON.Color3(0.8, 1.0, 0.8); // Pale green
-        this.hoverOutlineMaterial.emissiveColor = new BABYLON.Color3(0.8, 1.0, 0.8);
-        this.hoverOutlineMaterial.wireframe = false; // Solid face
-        this.hoverOutlineMaterial.alpha = 0.7;
-        this.hoverOutlineMaterial.backFaceCulling = false;
-        
-        // Create selection outline material (orange)
-        this.selectionOutlineMaterial = new BABYLON.StandardMaterial('selectionOutline', this.scene);
-        this.selectionOutlineMaterial.diffuseColor = new BABYLON.Color3(1, 0.5, 0); // Orange
-        this.selectionOutlineMaterial.emissiveColor = new BABYLON.Color3(0.3, 0.15, 0);
-        this.selectionOutlineMaterial.wireframe = true;
-        this.selectionOutlineMaterial.alpha = 1.0;
-    }
-    
-    setupSelectionEventHandlers() {
-        // Mouse move for hover detection
-        this.scene.onPointerObservable.add((pointerInfo) => {
-            // Handle surface selection for sketch tool (highest priority)
-            if (this.waitingForSurface && pointerInfo.type === BABYLON.PointerEventTypes.POINTERDOWN && pointerInfo.event.button === 0) {
-                this.handleSurfaceSelection(pointerInfo);
-                return;
-            }
-            
-            if (pointerInfo.type === BABYLON.PointerEventTypes.POINTERDOWN && pointerInfo.event.button === 0) {
-                if (this.isSketchMode || this.isExtruding) {
-                    return;
-                }
-                this.handleFaceSelection(pointerInfo);
-            } else if (pointerInfo.type === BABYLON.PointerEventTypes.POINTERDOWN && pointerInfo.event.button === 2) {
-                // Right-click for context menu
-                if (this.isSketchMode || this.isExtruding) {
-                    return;
-                }
-                this.handleRightClickContextMenu(pointerInfo);
-            } else if (pointerInfo.type === BABYLON.PointerEventTypes.POINTERMOVE) {
-                if (!this.isSketchMode && !this.isExtruding) {
-                    this.handleFaceHover(pointerInfo);
-                }
-            }
-        });
-    }
-    
-    handleSurfaceSelection(pointerInfo) {
-        const pickInfo = this.scene.pick(
-            this.scene.pointerX, 
-            this.scene.pointerY, 
-            (mesh) => {
-                // Accept any pickable mesh that could be a surface (completely generic approach)
-                const isSketchable = this.isMeshSketchable(mesh);
-                return isSketchable;
-            }
-        );
-        
-        
-        if (pickInfo.hit && pickInfo.pickedMesh) {
-            this.enterSketchModeOnSurface(pickInfo.pickedMesh, pickInfo.pickedPoint, pickInfo.getNormal());
-        } else {
-        }
-    }
-    
-    handleFaceHover(pointerInfo) {
-        // Check if cut tool is active - skip hover effects
-        if (this.cutToolSystem && this.cutToolSystem.cutPreviewActive) {
-            return;
-        }
-        
-        // Allow hover handling even when something is selected
-        // This lets users see other selectable shapes
-        
-        const pickInfo = this.scene.pick(
-            this.scene.pointerX, 
-            this.scene.pointerY, 
-            (mesh) => this.isSelectableFace(mesh)
-        );
-        
-        if (pickInfo.hit && pickInfo.pickedMesh) {
-            const face = pickInfo.pickedMesh;
-            
-            // If hovering over a new face
-            if (this.hoveredFace !== face) {
-                // Clear previous hover
-                this.clearHover();
-                
-                // Set new hover
-                this.hoveredFace = face;
-                this.setFaceHover(face, true);
-            }
-        } else {
-            // Clear hover if not over any face
-            this.clearHover();
-        }
-    }
-    
-    handleFaceSelection(pointerInfo) {
-        // Check if cut tool is active - delegate to cut system
-        if (this.cutToolSystem && this.cutToolSystem.cutPreviewActive) {
-            // Let the cut tool system handle this interaction
-            return;
-        }
-        
-        // First check what we're hitting without filter
-        const anyPick = this.scene.pick(this.scene.pointerX, this.scene.pointerY);
-        
-        // Check for parts with partData first (higher priority)
-        const partPickInfo = this.scene.pick(
-            this.scene.pointerX, 
-            this.scene.pointerY, 
-            (mesh) => mesh && mesh.partData
-        );
-        
-        if (partPickInfo.hit && partPickInfo.pickedMesh && partPickInfo.pickedMesh.partData) {
-            const partMesh = partPickInfo.pickedMesh;
-            const part = partMesh.partData;
-            
-            // Toggle part selection
-            if (this.selectedPart === part) {
-                // Don't deselect if drill press tool is active
-                if (this.activeTool !== 'drill') {
-                    this.deselectPart();
-                }
-            } else {
-                this.selectPart(part);
-            }
-            return; // Exit early to prevent face selection
-        }
-        
-        // If no part was clicked, check for selectable faces
-        const pickInfo = this.scene.pick(
-            this.scene.pointerX, 
-            this.scene.pointerY, 
-            (mesh) => this.isSelectableFace(mesh)
-        );
-        
-        if (pickInfo.hit && pickInfo.pickedMesh) {
-            const face = pickInfo.pickedMesh;
-            
-            // Toggle selection only if clicking the same face
-            if (this.selectedFace === face) {
-                this.deselectFace();
-            } else {
-                // Select new face (this will auto-deselect the previous one)
-                this.selectFace(face);
-            }
-        } else {
-            // Don't deselect when clicking empty space - allows rotation/manipulation
-            // Only deselect on explicit same-face click or different face selection
-        }
-    }
-    
-    handleRightClickContextMenu(pointerInfo) {
-        // Prevent browser context menu
-        pointerInfo.event.preventDefault();
-        
-        // Pick what's under the mouse
-        const pickInfo = this.scene.pick(
-            this.scene.pointerX, 
-            this.scene.pointerY, 
-            (mesh) => {
-                // Check if it's a workbench part or project part
-                return mesh.isWorkBenchPart || mesh.isProjectPart;
-            }
-        );
-        
-        if (pickInfo.hit && pickInfo.pickedMesh && pickInfo.pickedMesh.partData) {
-            const mesh = pickInfo.pickedMesh;
-            const part = mesh.partData;
-            
-            // Select the part if not already selected
-            if (this.selectedPart !== part) {
-                this.selectPart(part);
-            }
-            
-            // Get mouse position for context menu
-            const canvas = this.scene.getEngine().getRenderingCanvas();
-            const rect = canvas.getBoundingClientRect();
-            const x = pointerInfo.event.clientX;
-            const y = pointerInfo.event.clientY;
-            
-            // Show context menu using the workspace ContextMenuSystem
-            if (window.ContextMenuSystem) {
-                window.ContextMenuSystem.showContextMenu(x, y, part);
-            }
-            
-            console.log('Right-clicked on part:', part.materialName);
-        }
-    }
-    
-    isSelectableFace(mesh) {
-        if (!mesh || !mesh.name) return false;
-        
-        
-        // Check if it's one of our closed shapes (check both mesh and parent)
-        for (const shape of this.closedShapes) {
-            if (shape.mesh === mesh || shape.mesh === mesh.parent) {
-                return true;
-            }
-        }
-        
-        // Also check current sketch elements if we just finished drawing
-        if (this.currentSketch && this.currentSketch.elements) {
-            for (const element of this.currentSketch.elements) {
-                if (element.closed && (element.mesh === mesh || element.mesh === mesh.parent)) {
-                    return true;
-                }
-            }
-        }
-        
-        return false;
-    }
-    
-    performExtrusion(isPositive) {
-        console.log('startExtrusion called with isPositive:', isPositive);
-        if (!this.selectedFace) {
-            console.log('No selected face for extrusion');
-            return;
-        }
-        
-        console.log('Looking for shape data for face:', this.selectedFace.name);
-        
-        // Find the shape data for the selected face
-        let shapeData = null;
-        
-        // Check closedShapes first
-        console.log('Checking closedShapes:', this.closedShapes.length, 'shapes');
-        for (const shape of this.closedShapes) {
-            console.log('Checking shape:', shape.type, 'mesh:', shape.mesh?.name);
-            if (shape.mesh === this.selectedFace || shape.mesh === this.selectedFace.parent) {
-                shapeData = shape;
-                console.log('Found matching shape in closedShapes:', shape.type);
-                break;
-            }
-        }
-        
-        // Check current sketch elements if not found
-        if (!shapeData && this.currentSketch && this.currentSketch.elements) {
-            console.log('Checking current sketch elements:', this.currentSketch.elements.length, 'elements');
-            for (const element of this.currentSketch.elements) {
-                console.log('Checking element:', element.type, 'mesh:', element.mesh?.name);
-                if (element.closed && (element.mesh === this.selectedFace || element.mesh === this.selectedFace.parent)) {
-                    shapeData = element;
-                    console.log('Found matching element in sketch:', element.type);
-                    break;
-                }
-            }
-        }
-        
-        if (shapeData) {
-            // Default extrusion height
-            const height = 5; // 5cm extrusion
-            
-            // Perform the extrusion based on shape type
-            console.log('About to extrude shape type:', shapeData.type, 'height:', height, 'isPositive:', isPositive);
-            switch (shapeData.type) {
-                case 'rectangle':
-                    console.log('Calling extrudeRectangle');
-                    this.extrudeRectangle(shapeData, height, isPositive);
-                    break;
-                case 'circle':
-                    console.log('Calling extrudeCircle');
-                    this.extrudeCircle(shapeData, height, isPositive);
-                    break;
-                case 'ellipse':
-                    console.log('Calling extrudeEllipse');
-                    this.extrudeEllipse(shapeData, height, isPositive);
-                    break;
-                case 'triangle':
-                    console.log('Calling extrudeTriangle');
-                    this.extrudeTriangle(shapeData, height, isPositive);
-                    break;
-            }
-            console.log('Extrusion method completed');
-            
-            // Deselect the face after extrusion
-            this.deselectFace();
-        }
-    }
-    
-    selectFace(face) {
-        console.log('selectFace called for:', face.name);
-        
-        // Clear previous selection only if different face
-        if (this.selectedFace && this.selectedFace !== face) {
-            this.deselectFace();
-        }
-        
-        // Set new selection
-        this.selectedFace = face;
-        this.setFaceSelection(face, true);
-        
-        // Clear hover since we've selected
-        this.clearHover();
-        
-        // Update UI - this should show the extrusion buttons
-        this.updateSelectionUI();
-        this.updateToolGroups();
-        
-        // Check if extrude tool is active and auto-start extrusion
-        if (this.activeTool === 'extrude') {
-            console.log('Extrude tool is active, starting extrusion for selected face:', this.selectedFace?.name);
-            this.startBidirectionalExtrusion();
-        }
-        
-        console.log('Face selection complete, selectedFace:', this.selectedFace?.name);
-    }
-    
-    deselectFace() {
-        if (this.selectedFace) {
-            console.log('deselectFace called for:', this.selectedFace.name);
-            console.trace('Deselection stack trace');
-            
-            // Clean up any active extrusion
-            if (this.isInteractiveExtruding) {
-                console.log('Cleaning up active extrusion during deselection');
-                this.cleanupInteractiveExtrusion();
-            }
-            
-            this.setFaceSelection(this.selectedFace, false);
-            this.selectedFace = null;
-            this.disableExtrusionMode();
-            this.updateSelectionUI();
-            this.updateToolGroups();
-
-        }
-    }
-    
-    selectPart(part) {
-        console.log('selectPart called for:', part?.name || part);
-        
-        // Clear previous part selection
-        if (this.selectedPart && this.selectedPart !== part) {
-            this.deselectPart();
-        }
-        
-        // Also clear face selection when selecting a part
-        if (this.selectedFace) {
-            this.deselectFace();
-        }
-        
-        // Set new part selection
-        this.selectedPart = part;
-        this.setPartSelection(part, true);
-        
-        // Update UI to show part selection state
-        this.updatePartSelectionUI();
-        
-        console.log('Part selection complete, selectedPart:', this.selectedPart?.name);
-    }
-    
-    deselectPart() {
-        if (this.selectedPart) {
-            console.log('deselectPart called for:', this.selectedPart.name);
-            
-            this.setPartSelection(this.selectedPart, false);
-            this.selectedPart = null;
-            this.updatePartSelectionUI();
-        }
-    }
-    
-    setPartSelection(part, isSelected) {
-        if (!part) return;
-        
-        // Find the mesh in the scene that represents this part
-        let partMesh = null;
-        
-        // If part is already a mesh, use it directly
-        if (part.dispose && part.material) {
-            partMesh = part;
-        } else {
-            // Otherwise, find the mesh by partData
-            this.scene.meshes.forEach(mesh => {
-                if (mesh.partData && mesh.partData === part) {
-                    partMesh = mesh;
-                }
-            });
-        }
-        
-        if (partMesh) {
-            // DEBUG: Track position before/after selection
-            const positionBefore = partMesh.position.clone();
-            console.log(`POSITION BEFORE selection (${isSelected}):`, positionBefore);
-            
-            if (isSelected) {
-                // Store original material if not already stored
-                if (!partMesh._originalMaterial) {
-                    partMesh._originalMaterial = partMesh.material;
-                }
-                // Apply selection material (reuse the existing selection outline material)
-                partMesh.material = this.selectionOutlineMaterial;
-            } else {
-                // Restore original material
-                if (partMesh._originalMaterial) {
-                    partMesh.material = partMesh._originalMaterial;
-                    partMesh._originalMaterial = null;
-                }
-            }
-            
-            // DEBUG: Track position after selection
-            const positionAfter = partMesh.position.clone();
-            console.log(`POSITION AFTER selection (${isSelected}):`, positionAfter);
-            
-            // DEBUG: Check if position changed
-            const positionDelta = positionAfter.subtract(positionBefore);
-            if (positionDelta.length() > 0.001) {
-                console.error(`❌ POSITION CHANGED during selection! Delta:`, positionDelta);
-            }
-        }
-    }
-    
-    updatePartSelectionUI() {
-        const selectionInfo = document.getElementById('selection-info');
-        if (this.selectedPart) {
-            const partName = this.selectedPart.name || this.selectedPart.title || 'Unknown Part';
-            selectionInfo.textContent = `Selected Part: ${partName}`;
-        } else if (!this.selectedFace) {
-            selectionInfo.textContent = 'No selection - Click a part or face to select';
-        }
-        
-        // Update project explorer to show selection state
-        this.updateProjectExplorerSelection();
-    }
-    
-    updateProjectExplorerSelection() {
-        const projectPartsList = document.getElementById('project-parts-list');
-        if (projectPartsList) {
-            const listItems = projectPartsList.querySelectorAll('li');
-            listItems.forEach(item => {
-                item.classList.remove('active');
-                // Check if this item represents the selected part
-                if (this.selectedPart && item.textContent.includes(this.selectedPart.name || this.selectedPart.title)) {
-                    item.classList.add('active');
-                }
-            });
-        }
-    }
-    
-    setFaceHover(face, isHovered) {
-        console.log('setFaceHover called:', face.name, 'isHovered:', isHovered, 'selectedFace:', this.selectedFace?.name);
-        console.log('Face material before hover:', face.material?.name);
-        
-        if (isHovered) {
-            // Store base material if not already stored
-            if (!face.baseMaterial) {
-                face.baseMaterial = face.material;
-                console.log('Hover stored base material:', face.baseMaterial?.name);
-            }
-            // Don't apply hover if face is selected
-            if (this.selectedFace !== face) {
-                face.material = this.hoverOutlineMaterial;
-                console.log('Applied hover material');
-            } else {
-                console.log('Skipped hover - face is selected');
-            }
-        } else {
-            // Only restore if this face is not selected
-            if (this.selectedFace !== face && face.baseMaterial) {
-                console.log('Hover restoring base material:', face.baseMaterial.name);
-                face.material = face.baseMaterial;
-            } else {
-                console.log('Skipped hover restore - face is selected or no base material');
-            }
-        }
-        console.log('Face material after hover:', face.material?.name);
-    }
-    
-    setFaceSelection(face, isSelected) {
-        console.log('setFaceSelection called:', face.name, 'isSelected:', isSelected);
-        console.log('Current material before:', face.material?.name);
-        
-        if (isSelected) {
-            // Store base material if not already stored
-            if (!face.baseMaterial) {
-                face.baseMaterial = face.material;
-                console.log('Stored base material:', face.baseMaterial?.name);
-            }
-            // Apply selection material
-            const highlightMaterial = face.baseMaterial.clone(face.name + '_selected');
-            highlightMaterial.emissiveColor = new BABYLON.Color3(0.2, 0.4, 1.0); // Blue tint
-            face.material = highlightMaterial;
-            console.log('Applied selection material:', highlightMaterial.name);
-        } else {
-            // Restore base material
-            if (face.baseMaterial) {
-                console.log('Restoring base material:', face.baseMaterial.name);
-                face.material = face.baseMaterial;
-                face.baseMaterial = null;
-            }
-        }
-        console.log('Material after selection:', face.material?.name);
-    }
-    
-    clearHover() {
-        if (this.hoveredFace) {
-            this.setFaceHover(this.hoveredFace, false);
-            this.hoveredFace = null;
-        }
-    }
-    
-    updateSelectionUI() {
-        const selectionInfo = document.getElementById('selection-info');
-        if (this.selectedFace) {
-            selectionInfo.textContent = `Selected: ${this.getShapeType(this.selectedFace)} - Click and drag to extrude`;
-        } else {
-            selectionInfo.textContent = 'No selection - Click a face to select';
-        }
-    }
-    
-    getShapeType(mesh) {
-        // Find the shape type from our stored shapes
-        for (const shape of this.closedShapes) {
-            if (shape.mesh === mesh) {
-                return shape.type.charAt(0).toUpperCase() + shape.type.slice(1);
-            }
-        }
-        
-        if (this.currentSketch && this.currentSketch.elements) {
-            for (const element of this.currentSketch.elements) {
-                if (element.mesh === mesh) {
-                    return element.type.charAt(0).toUpperCase() + element.type.slice(1);
-                }
-            }
-        }
-        
-        return 'Shape';
-    }
-    
-    // ==================== EXTRUSION SYSTEM ====================
-    
-    enableExtrusionMode() {
-        if (!this.selectedFace) return;
-        
-        this.isExtruding = false;
-        this.extrusionStartPoint = null;
-        this.extrusionDistance = 0;
-        
-        // Create and show extrusion gizmo - DISABLED to fix auto-deselect
-        // this.createExtrusionGizmo();
-        
-        // Setup extrusion mouse handlers
-        this.setupExtrusionHandlers();
-        
-
-    }
-    
-    disableExtrusionMode() {
-        this.isExtruding = false;
-        this.extrusionStartPoint = null;
-        this.extrusionDistance = 0;
-        
-        // Hide and dispose extrusion gizmo
-        this.disposeExtrusionGizmo();
-        
-        // Remove extrusion handlers
-        this.removeExtrusionHandlers();
-        
-
-    }
-    
-    // ==================== EXTRUSION GIZMO SYSTEM ====================
-    
-    createExtrusionGizmo() {
-        if (!this.selectedFace) return;
-        
-        // Dispose existing gizmo if any
-        this.disposeExtrusionGizmo();
-        
-        // Initialize gizmo components
-        this.extrusionGizmo = {
-            root: null,
-            positiveArrow: null,
-            negativeArrow: null,
-            centerSphere: null,
-            isActive: false,
-            activeComponent: null,
-            originalPosition: null
-        };
-        
-        // Get face center and normal
-        const faceCenter = this.getFaceCenter(this.selectedFace);
-        const faceNormal = this.getFaceNormal(this.selectedFace);
-        
-        // Create gizmo root
-        this.extrusionGizmo.root = new BABYLON.TransformNode("extrusionGizmoRoot", this.scene);
-        this.extrusionGizmo.root.position = faceCenter;
-        this.extrusionGizmo.originalPosition = faceCenter.clone();
-        
-        // Create positive direction arrow (green, for adding material)
-        this.extrusionGizmo.positiveArrow = this.createExtrusionArrow(faceNormal, 1, new BABYLON.Color3(0, 1, 0));
-        this.extrusionGizmo.positiveArrow.parent = this.extrusionGizmo.root;
-        
-        // Create negative direction arrow (red, for removing material/holes)
-        this.extrusionGizmo.negativeArrow = this.createExtrusionArrow(faceNormal, -1, new BABYLON.Color3(1, 0, 0));
-        this.extrusionGizmo.negativeArrow.parent = this.extrusionGizmo.root;
-        
-        // Create center sphere for face identification
-        this.extrusionGizmo.centerSphere = BABYLON.MeshBuilder.CreateSphere("extrusionCenter", {diameter: 0.3}, this.scene);
-        this.extrusionGizmo.centerSphere.material = this.createGizmoMaterial(new BABYLON.Color3(1, 1, 0)); // Yellow
-        this.extrusionGizmo.centerSphere.parent = this.extrusionGizmo.root;
-        this.extrusionGizmo.centerSphere.isPickable = false;
-        
-        // Setup gizmo interaction
-        this.setupExtrusionGizmoInteraction();
-        
-        // Scale gizmo based on camera distance
-        this.updateExtrusionGizmoScale();
-    }
-    
-    createExtrusionArrow(faceNormal, direction, color) {
-        // Create arrow shaft
-        const shaft = BABYLON.MeshBuilder.CreateCylinder("extrusionShaft", {
-            diameter: 0.1,
-            height: 2.0
-        }, this.scene);
-        
-        // Create arrow head
-        const head = BABYLON.MeshBuilder.CreateCylinder("extrusionHead", {
-            diameterTop: 0,
-            diameterBottom: 0.25,
-            height: 0.5
-        }, this.scene);
-        
-        // Position head at end of shaft
-        head.position = new BABYLON.Vector3(0, 1.25, 0);
-        
-        // Create arrow parent
-        const arrow = new BABYLON.TransformNode("extrusionArrow", this.scene);
-        shaft.parent = arrow;
-        head.parent = arrow;
-        
-        // Orient arrow along face normal
-        const upVector = new BABYLON.Vector3(0, 1, 0);
-        const rotationAxis = BABYLON.Vector3.Cross(upVector, faceNormal.scale(direction));
-        const rotationAngle = Math.acos(BABYLON.Vector3.Dot(upVector, faceNormal.scale(direction)));
-        
-        if (rotationAxis.length() > 0.001) {
-            arrow.rotationQuaternion = BABYLON.Quaternion.RotationAxis(rotationAxis.normalize(), rotationAngle);
-        } else if (direction < 0) {
-            arrow.rotationQuaternion = BABYLON.Quaternion.RotationAxis(new BABYLON.Vector3(1, 0, 0), Math.PI);
-        }
-        
-        // Apply materials
-        const material = this.createGizmoMaterial(color);
-        shaft.material = material;
-        head.material = material;
-        
-        // Store references for interaction
-        arrow.gizmoType = direction > 0 ? 'positive' : 'negative';
-        arrow.gizmoShaft = shaft;
-        arrow.gizmoHead = head;
-        
-        return arrow;
-    }
-    
-    createGizmoMaterial(color) {
-        const material = new BABYLON.StandardMaterial("gizmoMaterial", this.scene);
-        material.diffuseColor = color;
-        material.emissiveColor = color.scale(0.3);
-        material.specularColor = new BABYLON.Color3(0, 0, 0);
-        material.alpha = 0.8;
-        return material;
-    }
-    
-    setupExtrusionGizmoInteraction() {
-        // Add pointer event handlers for gizmo interaction
-        this.scene.onPointerObservable.add((pointerInfo) => {
-            if (!this.extrusionGizmo || !this.extrusionGizmo.root) return;
-            
-            switch (pointerInfo.type) {
-                case BABYLON.PointerEventTypes.POINTERDOWN:
-                    this.handleExtrusionGizmoDown(pointerInfo);
-                    break;
-                case BABYLON.PointerEventTypes.POINTERMOVE:
-                    this.handleExtrusionGizmoMove(pointerInfo);
-                    break;
-                case BABYLON.PointerEventTypes.POINTERUP:
-                    this.handleExtrusionGizmoUp(pointerInfo);
-                    break;
-            }
-        });
-    }
-    
-    handleExtrusionGizmoDown(pointerInfo) {
-        if (pointerInfo.event.button !== 0) return; // Only left click
-        
-        const pickInfo = this.scene.pick(this.scene.pointerX, this.scene.pointerY, (mesh) => {
-            return mesh === this.extrusionGizmo.positiveArrow?.gizmoShaft ||
-                   mesh === this.extrusionGizmo.positiveArrow?.gizmoHead ||
-                   mesh === this.extrusionGizmo.negativeArrow?.gizmoShaft ||
-                   mesh === this.extrusionGizmo.negativeArrow?.gizmoHead;
-        });
-        
-        if (pickInfo.hit) {
-            this.extrusionGizmo.isActive = true;
-            this.extrusionGizmo.activeComponent = this.getGizmoComponent(pickInfo.pickedMesh);
-            this.extrusionGizmo.startMousePosition = {
-                x: this.scene.pointerX,
-                y: this.scene.pointerY
-            };
-            this.extrusionGizmo.startDistance = 0;
-            
-            // Disable camera controls during extrusion
-            this.camera.inputs.attached.pointers.detachControl();
-            
-            // Highlight active component
-            this.highlightGizmoComponent(this.extrusionGizmo.activeComponent, true);
-        }
-    }
-    
-    handleExtrusionGizmoMove(pointerInfo) {
-        if (!this.extrusionGizmo.isActive || !this.extrusionGizmo.activeComponent) return;
-        
-        // Calculate mouse delta
-        const deltaX = this.scene.pointerX - this.extrusionGizmo.startMousePosition.x;
-        const deltaY = this.scene.pointerY - this.extrusionGizmo.startMousePosition.y;
-        
-        // Convert mouse movement to extrusion distance
-        const sensitivity = 0.01;
-        const distance = deltaY * sensitivity;
-        
-        // Apply direction multiplier
-        const direction = this.extrusionGizmo.activeComponent === this.extrusionGizmo.positiveArrow ? 1 : -1;
-        const extrusionDistance = distance * direction;
-        
-        // Update visual feedback
-        this.updateExtrusionPreview(extrusionDistance);
-        
-        // Store current distance
-        this.extrusionGizmo.currentDistance = extrusionDistance;
-    }
-    
-    handleExtrusionGizmoUp(pointerInfo) {
-        if (!this.extrusionGizmo.isActive) return;
-        
-        // Re-enable camera controls
-        this.camera.inputs.attached.pointers.attachControl();
-        
-        // Apply the extrusion
-        if (this.extrusionGizmo.currentDistance && Math.abs(this.extrusionGizmo.currentDistance) > 0.01) {
-            this.applyExtrusion(this.extrusionGizmo.currentDistance);
-        }
-        
-        // Reset gizmo state
-        this.extrusionGizmo.isActive = false;
-        this.extrusionGizmo.activeComponent = null;
-        this.extrusionGizmo.currentDistance = 0;
-        
-        // Remove highlight
-        this.highlightGizmoComponent(this.extrusionGizmo.positiveArrow, false);
-        this.highlightGizmoComponent(this.extrusionGizmo.negativeArrow, false);
-    }
-    
-    getGizmoComponent(mesh) {
-        if (mesh === this.extrusionGizmo.positiveArrow?.gizmoShaft || 
-            mesh === this.extrusionGizmo.positiveArrow?.gizmoHead) {
-            return this.extrusionGizmo.positiveArrow;
-        }
-        if (mesh === this.extrusionGizmo.negativeArrow?.gizmoShaft || 
-            mesh === this.extrusionGizmo.negativeArrow?.gizmoHead) {
-            return this.extrusionGizmo.negativeArrow;
-        }
-        return null;
-    }
-    
-    highlightGizmoComponent(component, isHighlighted) {
-        if (!component) return;
-        
-        const highlightColor = isHighlighted ? new BABYLON.Color3(1, 1, 0) : null;
-        
-        if (component.gizmoShaft && component.gizmoShaft.material) {
-            if (isHighlighted) {
-                component.gizmoShaft.material.emissiveColor = highlightColor;
-            } else {
-                // Restore original emissive color
-                const originalColor = component.gizmoType === 'positive' ? 
-                    new BABYLON.Color3(0, 1, 0) : new BABYLON.Color3(1, 0, 0);
-                component.gizmoShaft.material.emissiveColor = originalColor.scale(0.3);
-            }
-        }
-        
-        if (component.gizmoHead && component.gizmoHead.material) {
-            if (isHighlighted) {
-                component.gizmoHead.material.emissiveColor = highlightColor;
-            } else {
-                // Restore original emissive color
-                const originalColor = component.gizmoType === 'positive' ? 
-                    new BABYLON.Color3(0, 1, 0) : new BABYLON.Color3(1, 0, 0);
-                component.gizmoHead.material.emissiveColor = originalColor.scale(0.3);
-            }
-        }
-    }
-    
-    updateExtrusionPreview(distance) {
-        // This would update a preview of the extrusion
-        // For now, we'll just move the gizmo to show the distance
-        if (this.extrusionGizmo.root) {
-            const faceNormal = this.getFaceNormal(this.selectedFace);
-            const offset = faceNormal.scale(distance);
-            this.extrusionGizmo.root.position = this.extrusionGizmo.originalPosition.add(offset);
-        }
-    }
-    
-    applyExtrusion(distance) {
-        if (!this.selectedFace) return;
-        
-        // Get shape data for the selected face
-        const shapeData = this.getShapeData(this.selectedFace);
-        if (!shapeData) return;
-        
-        // Apply extrusion based on shape type
-        const extrusionHeight = Math.abs(distance);
-        const isPositive = distance > 0;
-        
-        
-        // Call appropriate extrusion method
-        this.performShapeExtrusion(shapeData, extrusionHeight, isPositive);
-    }
-    
-    performShapeExtrusion(shapeData, height, isPositive) {
-        // This will call the existing extrusion methods
-        switch (shapeData.type) {
-            case 'rectangle':
-                this.extrudeRectangle(shapeData, height, isPositive);
-                break;
-            case 'circle':
-                this.extrudeCircle(shapeData, height, isPositive);
-                break;
-            case 'ellipse':
-                this.extrudeEllipse(shapeData, height, isPositive);
-                break;
-            case 'triangle':
-                this.extrudeTriangle(shapeData, height, isPositive);
-                break;
-            default:
-        }
-    }
-    
-    getFaceCenter(face) {
-        console.log('getFaceCenter called for face:', face.name);
-        
-        // Calculate geometric center from vertices - works for ANY mesh
-        const positions = face.getVerticesData(BABYLON.VertexBuffer.PositionKind);
-        if (!positions || positions.length === 0) {
-            console.log('No vertex data, using mesh position');
-            return face.position.clone();
-        }
-        
-        // Calculate centroid from all vertices
-        let centerX = 0, centerY = 0, centerZ = 0;
-        const vertexCount = positions.length / 3;
-        
-        for (let i = 0; i < positions.length; i += 3) {
-            centerX += positions[i];
-            centerY += positions[i + 1];
-            centerZ += positions[i + 2];
-        }
-        
-        centerX /= vertexCount;
-        centerY /= vertexCount;
-        centerZ /= vertexCount;
-        
-        // Transform to world coordinates
-        const localCenter = new BABYLON.Vector3(centerX, centerY, centerZ);
-        const worldCenter = BABYLON.Vector3.TransformCoordinates(localCenter, face.getWorldMatrix());
-        
-        console.log('Calculated geometric center:', worldCenter);
-        return worldCenter;
-    }
-    
-    updateExtrusionGizmoScale() {
-        if (!this.extrusionGizmo || !this.extrusionGizmo.root) return;
-        
-        // Scale gizmo based on camera distance to keep consistent size
-        const distance = BABYLON.Vector3.Distance(this.camera.position, this.extrusionGizmo.root.position);
-        const scale = Math.max(0.1, Math.min(2.0, distance * 0.1));
-        
-        this.extrusionGizmo.root.scaling = new BABYLON.Vector3(scale, scale, scale);
-    }
-    
-    disposeExtrusionGizmo() {
-        if (this.extrusionGizmo) {
-            if (this.extrusionGizmo.root) {
-                this.extrusionGizmo.root.dispose();
-            }
-            this.extrusionGizmo = null;
-        }
-    }
-    
-    setupExtrusionHandlers() {
-        // Store original camera controls state
-        this.originalCameraControlsEnabled = this.camera.inputs.attached.pointers;
-        
-        // Create extrusion event handlers
-        this.extrusionMouseDownHandler = (event) => {
-            if (event.button === 0 && this.selectedFace) { // Left click
-                this.startExtrusion(event);
-            }
-        };
-        
-        this.extrusionMouseMoveHandler = (event) => {
-            if (this.isExtruding) {
-                this.updateExtrusion(event);
-            }
-        };
-        
-        this.extrusionMouseUpHandler = (event) => {
-            if (event.button === 0 && this.isExtruding) { // Left click
-                this.finishExtrusion(event);
-            }
-        };
-        
-        // Add event listeners
-        this.canvas.addEventListener('mousedown', this.extrusionMouseDownHandler);
-        this.canvas.addEventListener('mousemove', this.extrusionMouseMoveHandler);
-        this.canvas.addEventListener('mouseup', this.extrusionMouseUpHandler);
-    }
-    
-    removeExtrusionHandlers() {
-        if (this.extrusionMouseDownHandler) {
-            this.canvas.removeEventListener('mousedown', this.extrusionMouseDownHandler);
-        }
-        if (this.extrusionMouseMoveHandler) {
-            this.canvas.removeEventListener('mousemove', this.extrusionMouseMoveHandler);
-        }
-        if (this.extrusionMouseUpHandler) {
-            this.canvas.removeEventListener('mouseup', this.extrusionMouseUpHandler);
-        }
-    }
-    
-    startExtrusion(event) {
-        if (!this.selectedFace) return;
-        
-        // Get mouse position
-        const rect = this.canvas.getBoundingClientRect();
-        const x = event.clientX - rect.left;
-        const y = event.clientY - rect.top;
-        
-        // Check if we clicked on the selected face
-        const pickInfo = this.scene.pick(x, y, (mesh) => mesh === this.selectedFace);
-        
-        if (pickInfo.hit) {
-            this.isExtruding = true;
-            this.extrusionStartPoint = { x: event.clientX, y: event.clientY };
-            this.extrusionDistance = 0;
-            
-            // Calculate extrusion normal (perpendicular to face)
-            this.extrusionNormal = this.calculateExtrusionNormal();
-            
-            // Create extrusion preview
-            this.createExtrusionPreview();
-            
-            // Disable camera controls during extrusion
-            this.camera.detachControl(this.canvas);
-            
-
-        }
-    }
-    
-    updateExtrusion(event) {
-        if (!this.isExtruding || !this.extrusionStartPoint) return;
-        
-        // Calculate mouse movement
-        const deltaY = this.extrusionStartPoint.y - event.clientY; // Inverted Y for intuitive up/down
-        const sensitivity = 0.1; // Adjust sensitivity
-        
-        this.extrusionDistance = deltaY * sensitivity;
-        
-        // Update extrusion preview
-        this.updateExtrusionPreview();
-        
-        // Update UI
-        document.getElementById('selection-info').textContent = 
-            `Extruding: ${this.extrusionDistance.toFixed(2)} units`;
-    }
-    
-    finishExtrusion(event) {
-        if (!this.isExtruding) return;
-        
-        // Create final extruded shape
-        this.createExtrudedShape();
-        
-        // Clean up
-        this.cleanupExtrusionPreview();
-        this.isExtruding = false;
-        this.extrusionStartPoint = null;
-        
-        // Re-enable camera controls
-        // this.camera.attachControl(this.canvas, true); // Commented out to prevent conflicts with custom camera controls
-        
-        // Deselect face
-        this.deselectFace();
-        
-
-    }
-    
-    calculateExtrusionNormal() {
-        // For 2D shapes, extrude along the sketch plane normal
-        if (this.sketchForward) {
-            return this.sketchForward.clone();
-        }
-        
-        // Default to Y-up if no sketch plane defined
-        return new BABYLON.Vector3(0, 1, 0);
-    }
-    
-    createExtrusionPreview() {
-        // This will be implemented based on the shape type
-
-    }
-    
-    updateExtrusionPreview() {
-        // Update the preview mesh with current extrusion distance
-
-    }
-    
-    createExtrudedShape() {
-        if (!this.selectedFace || this.extrusionDistance === 0) return;
-        
-        // Create the actual extruded 3D shape
-        const shape = this.getShapeData(this.selectedFace);
-        if (!shape) return;
-        
-        let extrudedMesh = null;
-        
-        switch (shape.type) {
-            case 'rectangle':
-                extrudedMesh = this.extrudeRectangle(shape);
-                break;
-            case 'circle':
-                extrudedMesh = this.extrudeCircle(shape);
-                break;
-            case 'ellipse':
-                extrudedMesh = this.extrudeEllipse(shape);
-                break;
-            case 'triangle':
-                extrudedMesh = this.extrudeTriangle(shape);
-                break;
-        }
-        
-        if (extrudedMesh) {
-            // Set material
-            const material = new BABYLON.StandardMaterial('extrudedMaterial', this.scene);
-            material.diffuseColor = new BABYLON.Color3(0.8, 0.8, 0.9);
-            material.specularColor = new BABYLON.Color3(0.2, 0.2, 0.2);
-            extrudedMesh.material = material;
-            
-            // Make selectable
-            extrudedMesh.isPickable = true;
-            
-            // Hide original 2D shape
-            this.selectedFace.setEnabled(false);
-            
-
-        }
-    }
-    
-    getShapeData(mesh) {
-        // Find the shape data from our stored shapes
-        for (const shape of this.closedShapes) {
-            if (shape.mesh === mesh) {
-                return shape;
-            }
-        }
-        
-        if (this.currentSketch && this.currentSketch.elements) {
-            for (const element of this.currentSketch.elements) {
-                if (element.mesh === mesh) {
-                    return element;
-                }
-            }
-        }
-        
-        return null;
-    }
-    
-    extrudeRectangle(shape, height = null, isPositive = true) {
-        // Create box from rectangle
-        const corners = shape.points || this.getRectangleCorners(shape.start, shape.end);
-        if (!corners || corners.length < 4) return null;
-        
-        // Use the rectangle corners to define the 8 corners of the extruded box
-        const extrusionHeight = height !== null ? height : 5;
-        const direction = isPositive ? 1 : -1;
-        
-        // Calculate the extrusion normal (perpendicular to rectangle plane)
-        const side1 = corners[1].subtract(corners[0]);
-        const side2 = corners[3].subtract(corners[0]);
-        const normal = BABYLON.Vector3.Cross(side1, side2).normalize();
-        const extrusionVector = normal.scale(extrusionHeight * direction);
-        
-        // Create the 8 corners of the box using the 4 rectangle corners as base
-        const bottomCorners = corners;
-        const topCorners = corners.map(corner => corner.add(extrusionVector));
-        
-        // Create custom mesh from the 8 corners
-        const positions = [];
-        const indices = [];
-        
-        // Add bottom corners (0,1,2,3)
-        bottomCorners.forEach(corner => {
-            positions.push(corner.x, corner.y, corner.z);
-        });
-        
-        // Add top corners (4,5,6,7)
-        topCorners.forEach(corner => {
-            positions.push(corner.x, corner.y, corner.z);
-        });
-        
-        // Define the 12 triangles (2 per face, 6 faces)
-        const faces = [
-            // Bottom face (0,1,2,3)
-            [0,2,1], [0,3,2],
-            // Top face (4,5,6,7)
-            [4,5,6], [4,6,7],
-            // Side faces
-            [0,1,5], [0,5,4], // Front
-            [1,2,6], [1,6,5], // Right
-            [2,3,7], [2,7,6], // Back
-            [3,0,4], [3,4,7]  // Left
-        ];
-        
-        faces.forEach(face => {
-            indices.push(...face);
-        });
-        
-        const boxName = isPositive ? 'extrudedRectangle' : 'extrudedHole';
-        const box = new BABYLON.Mesh(boxName, this.scene);
-        
-        const vertexData = new BABYLON.VertexData();
-        vertexData.positions = positions;
-        vertexData.indices = indices;
-        vertexData.normals = [];
-        BABYLON.VertexData.ComputeNormals(positions, indices, vertexData.normals);
-        
-        vertexData.applyToMesh(box);
-        
-        // Apply different materials for positive vs negative
-        if (isPositive) {
-            // Standard material for solid extrusion
-            box.material = this.createSolidMaterial();
-        } else {
-            // Hole material (red/transparent to indicate cutting)
-            box.material = this.createHoleMaterial();
-        }
-        
-        
-        return box;
-    }
-    
-    createSolidMaterial() {
-        const material = new BABYLON.StandardMaterial("solidMaterial", this.scene);
-        material.diffuseColor = new BABYLON.Color3(0.7, 0.7, 0.9); // Light blue
-        material.specularColor = new BABYLON.Color3(0.2, 0.2, 0.2);
-        material.emissiveColor = new BABYLON.Color3(0.1, 0.1, 0.15);
-        return material;
-    }
-    
-    createHoleMaterial() {
-        const material = new BABYLON.StandardMaterial("holeMaterial", this.scene);
-        material.diffuseColor = new BABYLON.Color3(1, 0.3, 0.3); // Red
-        material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1);
-        material.emissiveColor = new BABYLON.Color3(0.3, 0.1, 0.1);
-        material.alpha = 0.7; // Semi-transparent to indicate it's a hole
-        return material;
-    }
-    
-    extrudeCircle(shape, height = null, isPositive = true) {
-        console.log('extrudeCircle called with shape:', shape);
-        
-        // Create cylinder from circle
-        const radius = shape.radius || 1;
-        const depth = height !== null ? height : Math.abs(this.extrusionDistance);
-        
-        console.log('Circle extrusion - radius:', radius, 'depth:', depth);
-        
-        const cylinderName = isPositive ? 'extrudedCircle' : 'extrudedCircleHole';
-        const cylinder = BABYLON.MeshBuilder.CreateCylinder(cylinderName, {
-            diameter: radius * 2,
-            height: depth,
-            tessellation: 32  // More segments for smooth circle
-        }, this.scene);
-        
-        // Get the sketch surface normal from the circle's mesh
-        const sketchNormal = this.getFaceNormal(shape.mesh);
-        console.log('Sketch normal:', sketchNormal);
-        
-        // Orient cylinder to extrude along sketch normal
-        // Default cylinder axis is Y-up, we need to align it with sketch normal
-        if (sketchNormal && !sketchNormal.equals(BABYLON.Vector3.Up())) {
-            const rotationAxis = BABYLON.Vector3.Cross(BABYLON.Vector3.Up(), sketchNormal);
-            const rotationAngle = Math.acos(BABYLON.Vector3.Dot(BABYLON.Vector3.Up(), sketchNormal));
-            
-            if (rotationAxis.length() > 0.001) { // Avoid zero-length cross product
-                cylinder.rotationQuaternion = BABYLON.Quaternion.RotationAxis(rotationAxis.normalize(), rotationAngle);
-            }
-        }
-        
-        // Position cylinder
-        const center = shape.center || BABYLON.Vector3.Zero();
-        const direction = isPositive ? 1 : -1;
-        cylinder.position = center.add(sketchNormal.scale(depth / 2 * direction));
-        
-        console.log('Cylinder positioned at:', cylinder.position);
-        
-        // Apply appropriate material
-        cylinder.material = isPositive ? this.createSolidMaterial() : this.createHoleMaterial();
-        
-        return cylinder;
-    }
-    
-    extrudeEllipse(shape, height = null, isPositive = true) {
-        // Create ellipsoid from ellipse (simplified as cylinder for now)
-        const radiusX = shape.radiusX || 1;
-        const radiusY = shape.radiusY || 1;
-        const depth = height !== null ? height : Math.abs(this.extrusionDistance);
-        
-        const cylinderName = isPositive ? 'extrudedEllipse' : 'extrudedEllipseHole';
-        const cylinder = BABYLON.MeshBuilder.CreateCylinder(cylinderName, {
-            diameterTop: radiusX * 2,
-            diameterBottom: radiusX * 2,
-            height: depth
-        }, this.scene);
-        
-        // Scale to create ellipse
-        cylinder.scaling.x = radiusX / radiusY;
-        
-        const center = shape.center || BABYLON.Vector3.Zero();
-        const extrusionNormal = this.extrusionNormal || this.getFaceNormal(shape.mesh);
-        const direction = isPositive ? 1 : -1;
-        cylinder.position = center.add(extrusionNormal.scale(depth / 2 * direction));
-        
-        // Apply appropriate material
-        cylinder.material = isPositive ? this.createSolidMaterial() : this.createHoleMaterial();
-        
-        return cylinder;
-    }
-    
-    
-    extrudeTriangle(shape, height = null, isPositive = true) {
-        // Create extruded triangle
-        const points = shape.points || [];
-        if (points.length < 3) return null;
-        
-        // Convert to 2D points for extrusion
-        const shape2D = points.map(p => new BABYLON.Vector2(p.x, p.z));
-        const depth = height !== null ? height : Math.abs(this.extrusionDistance);
-        
-        const meshName = isPositive ? 'extrudedTriangle' : 'extrudedTriangleHole';
-        const extruded = BABYLON.MeshBuilder.ExtrudePolygon(meshName, {
-            shape: shape2D,
-            depth: depth
-        }, this.scene);
-        
-        // Position based on direction
-        const extrusionNormal = this.extrusionNormal || this.getFaceNormal(shape.mesh);
-        const direction = isPositive ? 1 : -1;
-        if (direction < 0) {
-            extruded.position = extruded.position.add(extrusionNormal.scale(-depth));
-        }
-        
-        // Apply appropriate material
-        extruded.material = isPositive ? this.createSolidMaterial() : this.createHoleMaterial();
-        
-        return extruded;
-    }
-    
-    cleanupExtrusionPreview() {
-        // Clean up any preview meshes
-        if (this.extrusionPreview) {
-            this.extrusionPreview.dispose();
-            this.extrusionPreview = null;
-        }
-    }
-    
-    // ==================== INTERACTIVE EXTRUSION GIZMO SYSTEM ====================
-    
-    startBidirectionalExtrusion() {
-        if (!this.selectedFace) {
-            console.error('startBidirectionalExtrusion called but no selectedFace!');
-            return;
-        }
-        
-        console.log('Starting bidirectional extrusion for face:', this.selectedFace.name);
-        
-        // Store extrusion state
-        this.isInteractiveExtruding = true;
-        this.extrusionDistance = 0;
-        this.extrusionMode = null; // Will be determined by drag direction
-        
-        // Enable smart camera controls during extrusion (allow rotation when not over gizmo/surface)
-        this.setupSmartCameraControl();
-        
-        // Get face center and normal for gizmo positioning
-        console.log('Getting face center and normal...');
-        const faceCenter = this.getFaceCenter(this.selectedFace);
-        const faceNormal = this.getFaceNormal(this.selectedFace);
-        
-        console.log('Face center:', faceCenter);
-        console.log('Face normal:', faceNormal);
-        
-        if (!faceCenter || !faceNormal) {
-            console.error('Failed to get face center or normal! center:', faceCenter, 'normal:', faceNormal);
-            return;
-        }
-        
-        // Create bidirectional extrusion gizmo
-        console.log('About to create bidirectional gizmo...');
-        this.createBidirectionalGizmo(faceCenter, faceNormal);
-        
-        // Update UI
-        const selectionInfo = document.getElementById('selection-info');
-        if (selectionInfo) {
-            selectionInfo.textContent = 'Drag gizmo: Pull out to add material, Push in to cut. Rotate camera away from gizmo/surface to navigate.';
-        }
-        
-        console.log('Bidirectional extrusion started');
-    }
-    
-    setupSmartCameraControl() {
-        // Keep camera controls attached but intercept mouse events
-        // Allow camera rotation only when mouse is NOT over gizmo or selected surface
-        
-        this.smartCameraPointerObserver = this.scene.onPointerObservable.add((pointerInfo) => {
-            if (!this.isInteractiveExtruding) return;
-            
-            if (pointerInfo.type === BABYLON.PointerEventTypes.POINTERMOVE) {
-                // Check what's under the mouse
-                const pickInfo = this.scene.pick(pointerInfo.event.clientX, pointerInfo.event.clientY);
-                
-                if (pickInfo.hit) {
-                    const pickedMesh = pickInfo.pickedMesh;
-                    
-                    // Disable camera if over gizmo or selected face
-                    const isOverGizmo = this.extrusionGizmoComponents && 
-                        (pickedMesh === this.extrusionGizmoComponents.gizmoPlane || 
-                         pickedMesh === this.extrusionGizmoComponents.interactionPlane);
-                    
-                    const isOverSelectedFace = pickedMesh === this.selectedFace;
-                    
-                    if (isOverGizmo || isOverSelectedFace) {
-                        // Disable camera controls temporarily
-                        if (this.camera.inputs.attached.pointers) {
-                            this.camera.inputs.attached.pointers.detachControl();
-                            this.cameraControlsDetached = true;
-                        }
-                    } else {
-                        // Re-enable camera controls
-                        if (this.cameraControlsDetached && this.camera.inputs.attached.pointers) {
-                            this.camera.inputs.attached.pointers.attachControl();
-                            this.cameraControlsDetached = false;
-                        }
-                    }
-                }
-            }
-        });
-        
-        console.log('Smart camera control enabled - camera rotates when not over gizmo/surface');
-    }
-    
-    cleanupSmartCameraControl() {
-        if (this.smartCameraPointerObserver) {
-            this.scene.onPointerObservable.remove(this.smartCameraPointerObserver);
-            this.smartCameraPointerObserver = null;
-        }
-        
-        // Ensure camera controls are re-enabled
-        if (this.cameraControlsDetached && this.camera.inputs.attached.pointers) {
-            this.camera.inputs.attached.pointers.attachControl();
-            this.cameraControlsDetached = false;
-        }
-        
-        console.log('Smart camera control cleaned up');
-    }
-    
-    updateGizmoBillboard(gizmoPlane) {
-        // Create proper billboard that rotates around surface normal axis to face camera
-        if (!gizmoPlane || !this.gizmoSurfaceNormal) return;
-        
-        const updateBillboard = () => {
-            if (!this.isInteractiveExtruding || !gizmoPlane) return;
-            
-            const gizmoPosition = gizmoPlane.getAbsolutePosition();
-            const cameraPosition = this.camera.position;
-            
-            // Vector from gizmo to camera
-            const toCamera = cameraPosition.subtract(gizmoPosition).normalize();
-            
-            // Project camera direction onto plane perpendicular to surface normal
-            const surfaceNormal = this.gizmoSurfaceNormal;
-            const projectedToCamera = toCamera.subtract(surfaceNormal.scale(BABYLON.Vector3.Dot(toCamera, surfaceNormal))).normalize();
-            
-            // Calculate rotation to face camera while staying aligned with surface normal
-            // The gizmo should "look at" the camera but constrained to rotate around the normal axis
-            
-            // Create coordinate system for the gizmo
-            const forward = projectedToCamera; // Direction to face camera (projected)
-            const up = surfaceNormal; // Surface normal is "up" for the billboard
-            const right = BABYLON.Vector3.Cross(up, forward).normalize();
-            
-            // Create rotation matrix from these vectors
-            const rotationMatrix = BABYLON.Matrix.FromValues(
-                right.x, right.y, right.z, 0,
-                up.x, up.y, up.z, 0,
-                forward.x, forward.y, forward.z, 0,
-                0, 0, 0, 1
-            );
-            
-            // Apply rotation to gizmo
-            gizmoPlane.rotation = rotationMatrix.toEulerAngles();
-        };
-        
-        // Update billboard immediately
-        updateBillboard();
-        
-        // Set up continuous billboard updates during camera movement
-        this.gizmoBillboardObserver = this.scene.onBeforeRenderObservable.add(updateBillboard);
-        
-        console.log('Dynamic billboard behavior enabled - gizmo rotates on surface normal axis');
-    }
-    
-    cleanupGizmoBillboard() {
-        if (this.gizmoBillboardObserver) {
-            this.scene.onBeforeRenderObservable.remove(this.gizmoBillboardObserver);
-            this.gizmoBillboardObserver = null;
-        }
-        if (this.gizmoOrientationObserver) {
-            this.scene.onBeforeRenderObservable.remove(this.gizmoOrientationObserver);
-            this.gizmoOrientationObserver = null;
-        }
-        if (this.gizmoTracker) {
-            this.scene.onBeforeRenderObservable.remove(this.gizmoTracker);
-            this.gizmoTracker = null;
-        }
-        console.log('Gizmo orientation tracking cleaned up');
-    }
-    
-    createBidirectionalGizmo(position, normal) {
-        // Clean up existing gizmo
-        this.cleanupExtrusionGizmo();
-        
-        console.log('Creating 2D sprite gizmo at position:', position, 'with normal:', normal);
-        
-        // Create gizmo root
-        this.extrusionGizmo = new BABYLON.TransformNode('extrusionGizmo', this.scene);
-        this.extrusionGizmo.position = position.clone();
-        
-        // Create gizmo plane with proper camera-facing orientation
-        const gizmoPlane = BABYLON.MeshBuilder.CreatePlane('gizmoSprite', {
-            width: 8,
-            height: 16
-        }, this.scene);
-        
-        gizmoPlane.parent = this.extrusionGizmo;
-        gizmoPlane.position = normal.scale(5);
-        
-        // FINAL FIX: Arrow points along normal, sprite rotates around normal to face camera
-        // 1. Arrow direction stays locked to surface normal (in/out)
-        // 2. Sprite rotates around that axis to face camera
-        
-        // Initial position: arrow points along normal (correct direction)
-        gizmoPlane.lookAt(gizmoPlane.getAbsolutePosition().add(normal), BABYLON.Vector3.Up());
-        
-        // Track camera and rotate around normal axis
-        const trackCamera = () => {
-            if (!this.isInteractiveExtruding || !gizmoPlane) return;
-            
-            const gizmoPos = gizmoPlane.getAbsolutePosition();
-            const toCam = this.camera.position.subtract(gizmoPos).normalize();
-            
-            // Keep arrow pointing along normal, rotate sprite to face camera around that axis
-            const right = BABYLON.Vector3.Cross(normal, toCam).normalize();
-            const adjustedUp = BABYLON.Vector3.Cross(toCam, right).normalize();
-            
-            gizmoPlane.lookAt(gizmoPos.add(normal), adjustedUp);
-        };
-        
-        this.gizmoTracker = this.scene.onBeforeRenderObservable.add(trackCamera);
-        
-        console.log('Arrow locked to normal, sprite tracks camera');
-        
-        // Create canvas for professional arrow sprite
-        const canvas = document.createElement('canvas');
-        canvas.width = 128;
-        canvas.height = 256;
-        const ctx = canvas.getContext('2d');
-        
-        // Clear to transparent and draw professional arrow
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        this.drawProfessionalGizmo(ctx, 'neutral');
-        
-        // Create texture from canvas
-        const pngDataURL = canvas.toDataURL('image/png');
-        const gizmoTexture = new BABYLON.Texture(pngDataURL, this.scene);
-        
-        // Create material with proper transparency
-        const gizmoMaterial = new BABYLON.StandardMaterial('gizmoMaterial', this.scene);
-        gizmoMaterial.diffuseTexture = gizmoTexture;
-        gizmoMaterial.useAlphaFromDiffuseTexture = true;
-        gizmoMaterial.transparencyMode = BABYLON.Material.MATERIAL_ALPHATESTANDBLEND;
-        gizmoMaterial.backFaceCulling = false;
-        
-        gizmoPlane.material = gizmoMaterial;
-        
-        console.log('Professional arrow gizmo created with manual camera orientation');
-        console.log('Camera direction:', cameraDirection);
-        console.log('Gizmo position:', gizmoPlane.position);
-        
-        console.log('PNG arrow sprite created with transparency');
-        
-        // Create invisible interaction plane (larger for easier clicking)
-        const interactionPlane = BABYLON.MeshBuilder.CreatePlane('interactionPlane', {
-            width: 10,   // Match bigger gizmo
-            height: 18   // Match bigger gizmo
-        }, this.scene);
-        
-        interactionPlane.parent = this.extrusionGizmo;
-        interactionPlane.position = normal.scale(5); // Same position as gizmo
-        interactionPlane.isVisible = false;
-        interactionPlane.isPickable = true;
-        interactionPlane.billboardMode = BABYLON.Mesh.BILLBOARD_MODE_ALL;
-        
-        // Store gizmo components
-        this.extrusionGizmoComponents = {
-            root: this.extrusionGizmo,
-            gizmoPlane: gizmoPlane,
-            interactionPlane: interactionPlane,
-            normal: normal.clone(),
-            startPosition: position.clone(),
-            canvas: canvas,
-            gizmoTexture: gizmoTexture,
-            gizmoMaterial: gizmoMaterial
-        };
-        
-        // Set up gizmo interaction
-        this.setupSpriteGizmoInteraction();
-        
-        console.log('2D sprite gizmo created');
-    }
-    
-    drawProfessionalGizmo(ctx, mode) {
-        const width = ctx.canvas.width;
-        const height = ctx.canvas.height;
-        const centerX = width / 2;
-        
-        // Clear background to transparent
-        ctx.clearRect(0, 0, width, height);
-        
-        // Shapr3D style: White fill with black outline
-        const fillColor = 'white';
-        const strokeColor = 'black';
-        const strokeWidth = 2;
-        
-        // Draw main vertical shaft
-        ctx.fillStyle = fillColor;
-        ctx.fillRect(centerX - 6, 60, 12, height - 120);
-        
-        // Draw top arrowhead (pointing up - positive extrusion)
-        ctx.beginPath();
-        ctx.moveTo(centerX, 20); // Arrow tip
-        ctx.lineTo(centerX - 15, 60); // Left wing
-        ctx.lineTo(centerX - 8, 60); // Inner left
-        ctx.lineTo(centerX - 8, 80); // Down to shaft
-        ctx.lineTo(centerX + 8, 80); // Across shaft
-        ctx.lineTo(centerX + 8, 60); // Up to inner right
-        ctx.lineTo(centerX + 15, 60); // Right wing
-        ctx.closePath();
-        ctx.fill();
-        
-        // Draw bottom arrowhead (pointing down - negative extrusion)
-        ctx.beginPath();
-        ctx.moveTo(centerX, height - 20); // Arrow tip
-        ctx.lineTo(centerX - 15, height - 60); // Left wing
-        ctx.lineTo(centerX - 8, height - 60); // Inner left
-        ctx.lineTo(centerX - 8, height - 80); // Up to shaft
-        ctx.lineTo(centerX + 8, height - 80); // Across shaft
-        ctx.lineTo(centerX + 8, height - 60); // Down to inner right
-        ctx.lineTo(centerX + 15, height - 60); // Right wing
-        ctx.closePath();
-        ctx.fill();
-        
-        // Draw black outlines
-        ctx.strokeStyle = strokeColor;
-        ctx.lineWidth = strokeWidth;
-        ctx.lineJoin = 'round';
-        ctx.lineCap = 'round';
-        
-        // Outline the shaft
-        ctx.strokeRect(centerX - 6, 60, 12, height - 120);
-        
-        // Outline top arrowhead
-        ctx.beginPath();
-        ctx.moveTo(centerX, 20);
-        ctx.lineTo(centerX - 15, 60);
-        ctx.lineTo(centerX - 8, 60);
-        ctx.lineTo(centerX - 8, 80);
-        ctx.lineTo(centerX + 8, 80);
-        ctx.lineTo(centerX + 8, 60);
-        ctx.lineTo(centerX + 15, 60);
-        ctx.closePath();
-        ctx.stroke();
-        
-        // Outline bottom arrowhead
-        ctx.beginPath();
-        ctx.moveTo(centerX, height - 20);
-        ctx.lineTo(centerX - 15, height - 60);
-        ctx.lineTo(centerX - 8, height - 60);
-        ctx.lineTo(centerX - 8, height - 80);
-        ctx.lineTo(centerX + 8, height - 80);
-        ctx.lineTo(centerX + 8, height - 60);
-        ctx.lineTo(centerX + 15, height - 60);
-        ctx.closePath();
-        ctx.stroke();
-    }
-    
-    setupSpriteGizmoInteraction() {
-        if (!this.extrusionGizmoComponents) return;
-        
-        const interactionPlane = this.extrusionGizmoComponents.interactionPlane;
-        let isDragging = false;
-        let lastMousePosition = null;
-        
-        // Mouse down on sprite
-        this.gizmoPointerDownObserver = this.scene.onPointerObservable.add((pointerInfo) => {
-            if (pointerInfo.type === BABYLON.PointerEventTypes.POINTERDOWN) {
-                const pickInfo = pointerInfo.pickInfo;
-                if (pickInfo.hit && pickInfo.pickedMesh === interactionPlane) {
-                    isDragging = true;
-                    lastMousePosition = {
-                        x: this.scene.pointerX,
-                        y: this.scene.pointerY
-                    };
-                    
-                    console.log('Sprite gizmo drag started');
-                }
-            }
-        });
-        
-        // Mouse move during drag
-        this.gizmoPointerMoveObserver = this.scene.onPointerObservable.add((pointerInfo) => {
-            if (pointerInfo.type === BABYLON.PointerEventTypes.POINTERMOVE && isDragging) {
-                const currentMousePosition = {
-                    x: this.scene.pointerX,
-                    y: this.scene.pointerY
-                };
-                
-                if (lastMousePosition) {
-                    // Calculate drag distance (Y movement controls extrusion)
-                    const deltaY = lastMousePosition.y - currentMousePosition.y;
-                    const sensitivity = 0.1;
-                    const dragDistance = deltaY * sensitivity;
-                    
-                    // Update extrusion distance
-                    this.extrusionDistance += dragDistance;
-                    
-                    // Constrain extrusion distance
-                    const maxExtrusion = 50;
-                    const minExtrusion = -50;
-                    this.extrusionDistance = Math.max(minExtrusion, Math.min(maxExtrusion, this.extrusionDistance));
-                    
-                    // Determine mode based on distance
-                    this.extrusionMode = this.extrusionDistance >= 0;
-                    
-                    // Update sprite color based on direction
-                    this.updateSpriteColor();
-                    
-                    // Update extrusion preview
-                    this.updateInteractiveExtrusionPreview();
-                    
-                    // Update UI
-                    const selectionInfo = document.getElementById('selection-info');
-                    if (selectionInfo) {
-                        const isPositive = this.extrusionDistance > 0;
-                        const mode = isPositive ? 'Adding' : 'Cutting';
-                        const distance = Math.abs(this.extrusionDistance).toFixed(2);
-                        selectionInfo.textContent = `${mode}: ${distance} cm - Release to confirm`;
-                    }
-                    
-                    lastMousePosition = currentMousePosition;
-                }
-            }
-        });
-        
-        // Mouse up to finish extrusion
-        this.gizmoPointerUpObserver = this.scene.onPointerObservable.add((pointerInfo) => {
-            if (pointerInfo.type === BABYLON.PointerEventTypes.POINTERUP && isDragging) {
-                isDragging = false;
-                lastMousePosition = null;
-                
-                // Finish extrusion if distance is significant
-                if (Math.abs(this.extrusionDistance) > 0.1) {
-                    this.finishInteractiveExtrusion();
-                } else {
-                    // Cancel extrusion if distance too small
-                    this.cancelInteractiveExtrusion();
-                }
-                
-                console.log('Sprite gizmo drag ended');
-            }
-        });
-    }
-    
-    updateSpriteColor() {
-        if (!this.extrusionGizmoComponents || !this.extrusionGizmoComponents.canvas) return;
-        
-        const canvas = this.extrusionGizmoComponents.canvas;
-        const ctx = canvas.getContext('2d');
-        const isPositive = this.extrusionDistance >= 0;
-        
-        // Redraw gizmo with new color
-        const mode = isPositive ? 'positive' : 'negative';
-        this.drawProfessionalGizmo(ctx, mode);
-        
-        // Update the texture with new canvas data
-        const newTexture = new BABYLON.Texture('data:' + canvas.toDataURL(), this.scene);
-        this.extrusionGizmoComponents.gizmoMaterial.diffuseTexture = newTexture;
-        
-        // Dispose old texture to prevent memory leaks
-        if (this.extrusionGizmoComponents.gizmoTexture) {
-            this.extrusionGizmoComponents.gizmoTexture.dispose();
-        }
-        this.extrusionGizmoComponents.gizmoTexture = newTexture;
-    }
-    
-    setupBidirectionalGizmoInteraction() {
-        if (!this.extrusionGizmoComponents) return;
-        
-        const dragSphere = this.extrusionGizmoComponents.dragSphere;
-        let isDragging = false;
-        let lastMousePosition = null;
-        
-        // Mouse down on gizmo
-        this.gizmoPointerDownObserver = this.scene.onPointerObservable.add((pointerInfo) => {
-            if (pointerInfo.type === BABYLON.PointerEventTypes.POINTERDOWN) {
-                const pickInfo = pointerInfo.pickInfo;
-                if (pickInfo.hit && pickInfo.pickedMesh === dragSphere) {
-                    isDragging = true;
-                    lastMousePosition = {
-                        x: this.scene.pointerX,
-                        y: this.scene.pointerY
-                    };
-                    
-                    console.log('Bidirectional gizmo drag started');
-                }
-            }
-        });
-        
-        // Mouse move during drag
-        this.gizmoPointerMoveObserver = this.scene.onPointerObservable.add((pointerInfo) => {
-            if (pointerInfo.type === BABYLON.PointerEventTypes.POINTERMOVE && isDragging) {
-                const currentMousePosition = {
-                    x: this.scene.pointerX,
-                    y: this.scene.pointerY
-                };
-                
-                if (lastMousePosition) {
-                    // Calculate drag distance
-                    const deltaY = lastMousePosition.y - currentMousePosition.y;
-                    const sensitivity = 0.05;
-                    const dragDistance = deltaY * sensitivity;
-                    
-                    // Update extrusion distance (can be positive or negative)
-                    this.extrusionDistance += dragDistance;
-                    
-                    // Constrain extrusion distance
-                    const maxExtrusion = 50; // 50 cm max
-                    const minExtrusion = -50; // 50 cm max cut
-                    this.extrusionDistance = Math.max(minExtrusion, Math.min(maxExtrusion, this.extrusionDistance));
-                    
-                    // Determine mode based on distance
-                    this.extrusionMode = this.extrusionDistance >= 0;
-                    
-                    // Update gizmo position
-                    this.updateGizmoPosition();
-                    
-                    // Update extrusion preview
-                    this.updateInteractiveExtrusionPreview();
-                    
-                    // Update UI with dynamic mode based on distance
-                    const selectionInfo = document.getElementById('selection-info');
-                    if (selectionInfo) {
-                        const isPositive = this.extrusionDistance > 0;
-                        const mode = isPositive ? 'Adding' : 'Cutting';
-                        const distance = Math.abs(this.extrusionDistance).toFixed(2);
-                        selectionInfo.textContent = `${mode}: ${distance} cm - Release to confirm`;
-                    }
-                    
-                    // Update gizmo color based on direction
-                    this.updateGizmoColorByDirection();
-                    
-                    // Update preview material based on direction
-                    this.updatePreviewMaterial();
-                    
-                    lastMousePosition = currentMousePosition;
-                }
-            }
-        });
-        
-        // Mouse up to finish extrusion
-        this.gizmoPointerUpObserver = this.scene.onPointerObservable.add((pointerInfo) => {
-            if (pointerInfo.type === BABYLON.PointerEventTypes.POINTERUP && isDragging) {
-                isDragging = false;
-                lastMousePosition = null;
-                
-                // Finish extrusion if distance is significant
-                if (Math.abs(this.extrusionDistance) > 0.1) {
-                    this.finishInteractiveExtrusion();
-                } else {
-                    // Cancel extrusion if distance too small
-                    this.cancelInteractiveExtrusion();
-                }
-                
-                console.log('Bidirectional gizmo drag ended');
-            }
-        });
-    }
-    
-    updateGizmoColorByDirection() {
-        if (!this.extrusionGizmoComponents) return;
-        
-        const { hub, shaft, arrowheadPos, arrowheadNeg } = this.extrusionGizmoComponents;
-        const isPositive = this.extrusionDistance >= 0;
-        
-        // Create material based on direction
-        const gizmoMaterial = new BABYLON.StandardMaterial('gizmoMaterial', this.scene);
-        
-        if (isPositive) {
-            // Green for additive
-            gizmoMaterial.diffuseColor = new BABYLON.Color3(0.2, 0.8, 0.2);
-            gizmoMaterial.emissiveColor = new BABYLON.Color3(0.1, 0.4, 0.1);
-        } else {
-            // Red for subtractive
-            gizmoMaterial.diffuseColor = new BABYLON.Color3(0.8, 0.2, 0.2);
-            gizmoMaterial.emissiveColor = new BABYLON.Color3(0.4, 0.1, 0.1);
-        }
-        
-        // Apply material to all gizmo parts
-        hub.material = gizmoMaterial;
-        shaft.material = gizmoMaterial;
-        arrowheadPos.material = gizmoMaterial;
-        arrowheadNeg.material = gizmoMaterial;
-    }
-    
-    updatePreviewMaterial() {
-        if (!this.interactiveExtrusionPreview) return;
-        
-        const isPositive = this.extrusionDistance >= 0;
-        const previewMaterial = new BABYLON.StandardMaterial('extrusionPreviewMaterial', this.scene);
-        
-        if (isPositive) {
-            // Green for additive
-            previewMaterial.diffuseColor = new BABYLON.Color3(0.2, 0.8, 0.2);
-        } else {
-            // Red for subtractive
-            previewMaterial.diffuseColor = new BABYLON.Color3(0.8, 0.2, 0.2);
-        }
-        
-        previewMaterial.alpha = 0.6;
-        previewMaterial.wireframe = true;
-        
-        this.interactiveExtrusionPreview.material = previewMaterial;
-    }
-    
-    setupGizmoInteraction() {
-        if (!this.extrusionGizmoComponents) return;
-        
-        const dragSphere = this.extrusionGizmoComponents.dragSphere;
-        let isDragging = false;
-        let lastMousePosition = null;
-        
-        // Mouse down on gizmo
-        this.gizmoPointerDownObserver = this.scene.onPointerObservable.add((pointerInfo) => {
-            if (pointerInfo.type === BABYLON.PointerEventTypes.POINTERDOWN) {
-                const pickInfo = pointerInfo.pickInfo;
-                if (pickInfo.hit && pickInfo.pickedMesh === dragSphere) {
-                    isDragging = true;
-                    lastMousePosition = {
-                        x: this.scene.pointerX,
-                        y: this.scene.pointerY
-                    };
-                    
-                    console.log('Gizmo drag started');
-                }
-            }
-        });
-        
-        // Mouse move during drag
-        this.gizmoPointerMoveObserver = this.scene.onPointerObservable.add((pointerInfo) => {
-            if (pointerInfo.type === BABYLON.PointerEventTypes.POINTERMOVE && isDragging) {
-                const currentMousePosition = {
-                    x: this.scene.pointerX,
-                    y: this.scene.pointerY
-                };
-                
-                if (lastMousePosition) {
-                    // Calculate drag distance
-                    const deltaY = lastMousePosition.y - currentMousePosition.y;
-                    const sensitivity = 0.05;
-                    const dragDistance = deltaY * sensitivity;
-                    
-                    // Update extrusion distance
-                    this.extrusionDistance += dragDistance;
-                    
-                    // Constrain extrusion distance
-                    const maxExtrusion = 50; // 50 cm max
-                    const minExtrusion = -50; // 50 cm max cut
-                    this.extrusionDistance = Math.max(minExtrusion, Math.min(maxExtrusion, this.extrusionDistance));
-                    
-                    // Update gizmo position
-                    this.updateGizmoPosition();
-                    
-                    // Update extrusion preview
-                    this.updateInteractiveExtrusionPreview();
-                    
-                    // Update UI with dynamic mode based on distance
-                    const selectionInfo = document.getElementById('selection-info');
-                    if (selectionInfo) {
-                        const isPositive = this.extrusionDistance > 0;
-                        const mode = isPositive ? 'Adding' : 'Cutting';
-                        const distance = Math.abs(this.extrusionDistance).toFixed(2);
-                        selectionInfo.textContent = `${mode}: ${distance} cm - Release to confirm`;
-                    }
-                    
-                    // Update gizmo color based on direction
-                    this.updateGizmoColorByDirection();
-                    
-                    lastMousePosition = currentMousePosition;
-                }
-            }
-        });
-        
-        // Mouse up to finish extrusion
-        this.gizmoPointerUpObserver = this.scene.onPointerObservable.add((pointerInfo) => {
-            if (pointerInfo.type === BABYLON.PointerEventTypes.POINTERUP && isDragging) {
-                isDragging = false;
-                lastMousePosition = null;
-                
-                // Finish extrusion if distance is significant
-                if (Math.abs(this.extrusionDistance) > 0.1) {
-                    this.finishInteractiveExtrusion();
-                } else {
-                    // Cancel extrusion if distance too small
-                    this.cancelInteractiveExtrusion();
-                }
-                
-                console.log('Gizmo drag ended');
-            }
-        });
-    }
-    
-    updateGizmoPosition() {
-        if (!this.extrusionGizmoComponents) return;
-        
-        const { root, normal, startPosition } = this.extrusionGizmoComponents;
-        const offset = normal.scale(this.extrusionDistance);
-        root.position = startPosition.add(offset);
-    }
-    
-    createInteractiveExtrusionPreview() {
-        // Clean up existing preview
-        this.cleanupInteractiveExtrusionPreview();
-        
-        if (!this.selectedFace) return;
-        
-        // Get shape data
-        const shapeData = this.getShapeData(this.selectedFace);
-        if (!shapeData) return;
-        
-        // Create preview mesh based on shape type
-        this.interactiveExtrusionPreview = this.createExtrusionPreviewMesh(shapeData);
-        
-        if (this.interactiveExtrusionPreview) {
-            // Set preview material - initially neutral
-            this.updatePreviewMaterial();
-            
-            console.log('Interactive extrusion preview created');
-        }
-    }
-    
-    createExtrusionPreviewMesh(shapeData) {
-        // Create a basic preview mesh based on shape type
-        // This will be scaled and positioned during interaction
-        
-        switch (shapeData.type) {
-            case 'rectangle':
-                return BABYLON.MeshBuilder.CreateBox('extrusionPreview', {
-                    width: shapeData.width || 2,
-                    height: 0.1, // Start thin
-                    depth: shapeData.height || 2
-                }, this.scene);
-                
-            case 'circle':
-                return BABYLON.MeshBuilder.CreateCylinder('extrusionPreview', {
-                    diameter: (shapeData.radius || 1) * 2,
-                    height: 0.1, // Start thin
-                    tessellation: 32
-                }, this.scene);
-                
-            case 'ellipse':
-                const cylinder = BABYLON.MeshBuilder.CreateCylinder('extrusionPreview', {
-                    diameter: (shapeData.radiusX || 1) * 2,
-                    height: 0.1, // Start thin
-                    tessellation: 32
-                }, this.scene);
-                cylinder.scaling.x = (shapeData.radiusX || 1) / (shapeData.radiusY || 1);
-                return cylinder;
-                
-            default:
-                // Generic box for other shapes
-                return BABYLON.MeshBuilder.CreateBox('extrusionPreview', {
-                    width: 2,
-                    height: 0.1,
-                    depth: 2
-                }, this.scene);
-        }
-    }
-    
-    updateInteractiveExtrusionPreview() {
-        if (!this.interactiveExtrusionPreview || !this.extrusionGizmoComponents) return;
-        
-        const { normal, startPosition } = this.extrusionGizmoComponents;
-        
-        // Update preview position
-        const offset = normal.scale(this.extrusionDistance / 2);
-        this.interactiveExtrusionPreview.position = startPosition.add(offset);
-        
-        // Update preview scale to show extrusion depth
-        const depth = Math.abs(this.extrusionDistance);
-        
-        // Determine which axis represents the extrusion direction based on normal
-        if (Math.abs(normal.y) > 0.8) {
-            // Extruding along Y axis
-            this.interactiveExtrusionPreview.scaling.y = Math.max(0.1, depth);
-        } else if (Math.abs(normal.x) > 0.8) {
-            // Extruding along X axis
-            this.interactiveExtrusionPreview.scaling.x = Math.max(0.1, depth);
-        } else {
-            // Extruding along Z axis
-            this.interactiveExtrusionPreview.scaling.z = Math.max(0.1, depth);
-        }
-    }
-    
-    finishInteractiveExtrusion() {
-        if (!this.selectedFace || Math.abs(this.extrusionDistance) < 0.1) {
-            this.cancelInteractiveExtrusion();
-            return;
-        }
-        
-        console.log(`Finishing interactive extrusion: ${this.extrusionDistance} cm`);
-        
-        // Perform the actual extrusion using the existing system
-        const shapeData = this.getShapeData(this.selectedFace);
-        if (shapeData) {
-            const extrusionHeight = Math.abs(this.extrusionDistance);
-            
-            switch (shapeData.type) {
-                case 'rectangle':
-                    this.extrudeRectangle(shapeData, extrusionHeight, this.extrusionMode);
-                    break;
-                case 'circle':
-                    this.extrudeCircle(shapeData, extrusionHeight, this.extrusionMode);
-                    break;
-                case 'ellipse':
-                    this.extrudeEllipse(shapeData, extrusionHeight, this.extrusionMode);
-                    break;
-                case 'triangle':
-                    this.extrudeTriangle(shapeData, extrusionHeight, this.extrusionMode);
-                    break;
-            }
-        }
-        
-        // Clean up interactive extrusion
-        this.cleanupInteractiveExtrusion();
-        
-        // Deselect face
-        this.deselectFace();
-        
-        console.log('Interactive extrusion completed');
-    }
-    
-    cancelInteractiveExtrusion() {
-        console.log('Cancelling interactive extrusion');
-        this.cleanupInteractiveExtrusion();
-        
-        // Update UI
-        const selectionInfo = document.getElementById('selection-info');
-        if (selectionInfo) {
-            selectionInfo.textContent = 'Face selected - Choose extrude operation';
-        }
-    }
-    
-    cleanupInteractiveExtrusion() {
-        console.log('cleanupInteractiveExtrusion called - re-enabling camera controls');
-        
-        // Clean up smart camera control system
-        this.cleanupSmartCameraControl();
-        
-        // Clean up billboard behavior
-        this.cleanupGizmoBillboard();
-        
-        // Re-enable camera controls (critical for camera lock issue)
-        // this.camera.attachControl(this.canvas, true); // Commented out to prevent conflicts with custom camera controls
-        
-        // Clean up gizmo
-        this.cleanupExtrusionGizmo();
-        
-        // Clean up preview
-        this.cleanupInteractiveExtrusionPreview();
-        
-        // Reset state
-        this.isInteractiveExtruding = false;
-        this.extrusionDistance = 0;
-        this.extrusionMode = null;
-        
-        console.log('Interactive extrusion cleaned up - camera controls restored');
-    }
-    
-    cleanupExtrusionGizmo() {
-        // Remove event observers
-        if (this.gizmoPointerDownObserver) {
-            this.scene.onPointerObservable.remove(this.gizmoPointerDownObserver);
-            this.gizmoPointerDownObserver = null;
-        }
-        if (this.gizmoPointerMoveObserver) {
-            this.scene.onPointerObservable.remove(this.gizmoPointerMoveObserver);
-            this.gizmoPointerMoveObserver = null;
-        }
-        if (this.gizmoPointerUpObserver) {
-            this.scene.onPointerObservable.remove(this.gizmoPointerUpObserver);
-            this.gizmoPointerUpObserver = null;
-        }
-        
-        // Dispose gizmo meshes
-        if (this.extrusionGizmo) {
-            this.extrusionGizmo.dispose();
-            this.extrusionGizmo = null;
-        }
-        
-        this.extrusionGizmoComponents = null;
-    }
-    
-    cleanupInteractiveExtrusionPreview() {
-        if (this.interactiveExtrusionPreview) {
-            this.interactiveExtrusionPreview.dispose();
-            this.interactiveExtrusionPreview = null;
-        }
-    }
-    
-    // Helper method to get face normal
-    getFaceNormal(face) {
-        console.log('getFaceNormal called for face:', face.name);
-        
-        // Calculate normal from face geometry - works for ANY mesh
-        const positions = face.getVerticesData(BABYLON.VertexBuffer.PositionKind);
-        const indices = face.getIndices();
-        
-        if (!positions || !indices || indices.length < 3) {
-            console.log('Insufficient geometry data, using Y-up normal');
-            return new BABYLON.Vector3(0, 1, 0);
-        }
-        
-        // Get first triangle to calculate normal
-        const i0 = indices[0] * 3;
-        const i1 = indices[1] * 3;
-        const i2 = indices[2] * 3;
-        
-        const v0 = new BABYLON.Vector3(positions[i0], positions[i0 + 1], positions[i0 + 2]);
-        const v1 = new BABYLON.Vector3(positions[i1], positions[i1 + 1], positions[i1 + 2]);
-        const v2 = new BABYLON.Vector3(positions[i2], positions[i2 + 1], positions[i2 + 2]);
-        
-        // Calculate face normal using cross product
-        const edge1 = v1.subtract(v0);
-        const edge2 = v2.subtract(v0);
-        const normal = BABYLON.Vector3.Cross(edge1, edge2).normalize();
-        
-        // Transform to world coordinates
-        const worldNormal = BABYLON.Vector3.TransformNormal(normal, face.getWorldMatrix());
-        
-        console.log('Calculated face normal:', worldNormal);
-        return worldNormal;
-    }
-
-    // === MATERIALS SYSTEM ===
-    async initializeMaterialsSystem() {
-        try {
-            console.log('Initializing materials system...');
-            this.materialsLibrary = new MaterialsLibrary();
-            
-            const success = await this.materialsLibrary.loadDatabase();
-            if (success) {
-                console.log('Materials database loaded successfully');
-                this.setupMaterialModalListeners();
-            } else {
-                console.error('Failed to load materials database');
-            }
-        } catch (error) {
-            console.error('Error initializing materials system:', error);
-        }
-    }
-
-    setupMaterialModalListeners() {
-        // Add Material button click handler (round button at bottom center)
-        const addMaterialBtn = document.getElementById('add-material-btn-grid');
-        if (addMaterialBtn) {
-            addMaterialBtn.addEventListener('click', () => {
-                this.openMaterialModal();
-            });
-        }
-
-        // Close modal handlers
-        const closeModalBtn = document.getElementById('close-material-modal');
-        const modalOverlay = document.getElementById('material-modal');
-        
-        if (closeModalBtn) {
-            closeModalBtn.addEventListener('click', () => {
-                this.closeMaterialModal();
-            });
-        }
-        
-        if (modalOverlay) {
-            modalOverlay.addEventListener('click', (e) => {
-                if (e.target === modalOverlay) {
-                    this.closeMaterialModal();
-                }
-            });
-        }
-
-        // Search functionality
-        const searchInput = document.getElementById('material-search');
-        if (searchInput) {
-            searchInput.addEventListener('input', (e) => {
-                this.filterMaterials(e.target.value);
-            });
-        }
-
-        // Material grid click handler (using event delegation)
-        const materialGrid = document.getElementById('material-grid');
-        if (materialGrid) {
-            materialGrid.addEventListener('click', (e) => {
-                const materialCard = e.target.closest('.material-card');
-                if (materialCard) {
-                    const materialId = materialCard.dataset.materialId;
-                    this.selectMaterial(materialId);
-                }
-            });
-        }
-
-        // Configuration change handlers
-        const configLength = document.getElementById('config-length');
-        const configWidth = document.getElementById('config-width');
-        const configThickness = document.getElementById('config-thickness');
-        const configGrade = document.getElementById('config-grade');
-
-        [configLength, configWidth, configThickness, configGrade].forEach(select => {
-            if (select) {
-                select.addEventListener('change', () => {
-                    this.updateMaterialCost();
-                });
-            }
-        });
-
-        // Add to project button
-        const addToProjectBtn = document.getElementById('add-material-to-project');
-        if (addToProjectBtn) {
-            addToProjectBtn.addEventListener('click', () => {
-                this.addMaterialToProject();
-            });
-        }
-
-        // Cancel configuration button
-        const cancelConfigBtn = document.getElementById('cancel-material-config');
-        if (cancelConfigBtn) {
-            cancelConfigBtn.addEventListener('click', () => {
-                this.showMaterialGrid();
-            });
-        }
-
-        // Include in project button
-        const includeInProjectBtn = document.getElementById('include-in-project-btn');
-        if (includeInProjectBtn) {
-            includeInProjectBtn.addEventListener('click', () => {
-                this.includeCurrentPartInProject();
-            });
-        }
-        
-        // Back to Work Bench button event handler
-        const backToWorkBenchBtn = document.getElementById('back-to-workbench-btn');
-        if (backToWorkBenchBtn) {
-            backToWorkBenchBtn.addEventListener('click', () => {
-                this.sendPartBackToWorkBench();
-            });
-        }
-    }
-
-    openMaterialModal() {
-        const modal = document.getElementById('material-modal');
-        if (modal && this.materialsLibrary) {
-            modal.style.display = 'flex';
-            this.populateMaterialCategories();
-            this.populateMaterialGrid();
-            this.showMaterialGrid();
-        }
-    }
-
-    closeMaterialModal() {
-        const modal = document.getElementById('material-modal');
-        if (modal) {
-            modal.style.display = 'none';
-            this.selectedMaterial = null;
-            this.showMaterialGrid();
-        }
     }
 
     showMaterialGrid() {
@@ -6731,6 +3885,10 @@ class DrawingWorld {
     }
 
     populateMaterialCategories() {
+        if (!this.materialsLibrary) {
+            console.error('❌ MaterialsLibrary not initialized in populateMaterialCategories');
+            return;
+        }
         const categories = this.materialsLibrary.getCategories();
         const tabsContainer = document.getElementById('material-category-tabs');
         
@@ -6755,6 +3913,49 @@ class DrawingWorld {
         }
     }
 
+    populateMaterialGrid(categoryId = null) {
+        console.log('🎨 populateMaterialGrid called with category:', categoryId);
+        console.log('🔍 this.materialsLibrary in populateGrid:', this.materialsLibrary);
+        console.log('🔍 Type:', typeof this.materialsLibrary);
+        
+        const gridContainer = document.getElementById('material-grid');
+        if (!gridContainer) {
+            console.error('❌ Grid container not found');
+            return;
+        }
+        if (!this.materialsLibrary) {
+            console.error('❌ MaterialsLibrary is null/undefined in populateMaterialGrid');
+            return;
+        }
+
+        let materials;
+        if (categoryId) {
+            materials = this.materialsLibrary.getMaterialsByCategory(categoryId);
+        } else {
+            materials = [
+                ...this.materialsLibrary.getMaterialsByCategory('hardwood'),
+                ...this.materialsLibrary.getMaterialsByCategory('sheet_goods')
+            ];
+        }
+
+        gridContainer.innerHTML = materials.map(material => {
+            const summary = this.materialsLibrary.getMaterialSummary(material.material_id);
+            const thumbnail = summary.thumbnail || this.getMaterialIcon(material.category);
+            
+            // Create thumbnail HTML - use image if available, fallback to icon
+            const thumbnailHtml = summary.thumbnail ? 
+                `<img src="${summary.thumbnail}" alt="${summary.name}" loading="lazy" onerror="this.outerHTML='${this.getMaterialIcon(material.category)}'">` :
+                thumbnail;
+            
+            return `
+                <div class="material-card" data-material-id="${material.material_id}">
+                    <div class="material-thumbnail">${thumbnailHtml}</div>
+                    <div class="material-name">${summary.name}</div>
+                    <div class="material-price">$${summary.pricePerBoardFoot}/bf</div>
+                </div>
+            `;
+        }).join('');
+    }
 
     getMaterialIcon(category) {
         const icons = {
@@ -6779,7 +3980,7 @@ class DrawingWorld {
                 
                 // Create thumbnail HTML - use image if available, fallback to icon
                 const thumbnailHtml = summary.thumbnail ? 
-                    `<img src="${summary.thumbnail}" alt="${summary.name}" loading="lazy" onerror="this.style.display='none'">` :
+                    `<img src="${summary.thumbnail}" alt="${summary.name}" loading="lazy" onerror="this.outerHTML='${this.getMaterialIcon(material.category)}'">` :
                     thumbnail;
                 
                 return `
@@ -6814,19 +4015,16 @@ class DrawingWorld {
 
         const nameElement = document.getElementById('selected-material-name');
         if (nameElement) {
-            nameElement.textContent = `${material.name} Configuration`;
+            nameElement.textContent = `${material.basic_info.common_name} Configuration`;
         }
 
         // Populate dimension options
-        // Use actual database schema
-        const defaultConfig = material.default_configuration || {};
-        const standardLengths = [48, 72, 96, 120, 144];
-        const standardWidths = [3, 4, 6, 8, 10, 12];
-        const standardThicknesses = [0.75, 1, 1.5, 2, 2.5, 3];
+        const dimensions = material.standard_dimensions;
+        const defaultConfig = material.default_configuration;
 
-        this.populateSelectOptions('config-length', standardLengths, defaultConfig.length || 96);
-        this.populateSelectOptions('config-width', standardWidths, defaultConfig.width || 6);
-        this.populateSelectOptions('config-thickness', standardThicknesses, defaultConfig.thickness || 0.75);
+        this.populateSelectOptions('config-length', dimensions.available_lengths, defaultConfig.length_inches);
+        this.populateSelectOptions('config-width', dimensions.available_widths, defaultConfig.width_inches);
+        this.populateSelectOptions('config-thickness', dimensions.available_thicknesses, defaultConfig.thickness_inches);
 
         // Populate grade options
         const grades = this.materialsLibrary.getLumberGrades();
@@ -6889,7 +4087,7 @@ class DrawingWorld {
         const part = {
             id: `workpart_${Date.now()}`,
             materialId: this.selectedMaterial,
-            materialName: material.name,
+            materialName: material.basic_info.common_name,
             dimensions: { length, width, thickness },
             grade: grade,
             cost: costInfo.totalCost,
@@ -6945,7 +4143,7 @@ class DrawingWorld {
 
         // Create material-specific appearance
         const material = new BABYLON.StandardMaterial(`${part.id}_material`, this.scene);
-        material.diffuseColor = this.getMaterialColor(part.materialId);
+        box.material = this.createMaterialWithTexture(part.materialId, part.materialName);
         box.material = material;
 
         // Store reference
@@ -6955,8 +4153,41 @@ class DrawingWorld {
         console.log(`Created 3D block for ${part.materialName}:`, box);
     }
 
+
+    createMaterialWithTexture(materialId, materialName) {
+        const material = new BABYLON.StandardMaterial("" + materialId + "_material_" + Date.now(), this.scene);
+        let texturePath = null;
+        
+        console.log('Creating material for:', materialId);
+        console.log('Materials library loaded:', this.materialsLibrary && this.materialsLibrary.isLoaded);
+        
+        if (this.materialsLibrary && this.materialsLibrary.isLoaded) {
+            const texturePaths = this.materialsLibrary.getTexturePaths(materialId);
+            console.log('Texture paths for', materialId, ':', texturePaths);
+            if (texturePaths && texturePaths.texture_diffuse) {
+                texturePath = texturePaths.texture_diffuse;
+                console.log('Loading texture from:', texturePath);
+                const texture = new BABYLON.Texture(texturePath, this.scene);
+                material.diffuseTexture = texture;
+                
+                texture.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
+                texture.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
+                texture.uScale = 2.0;
+                texture.vScale = 2.0;
+                
+                material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1);
+                material.specularPower = 32;
+            }
+        }
+        
+        if (!texturePath) {
+            console.log('Falling back to solid color for:', materialId);
+            material.diffuseColor = this.getMaterialColor(materialId);
+        }
+        
+        return material;
+    }
     getMaterialColor(materialId) {
-        console.log("🎨 getMaterialColor called for:", materialId);
         // Basic color mapping - could be enhanced with actual textures
         const colorMap = {
             'walnut_001': new BABYLON.Color3(0.36, 0.25, 0.22), // Dark brown
@@ -7345,7 +4576,7 @@ class DrawingWorld {
             
             // Create material-specific appearance for new boxes
             const material = new BABYLON.StandardMaterial(`${part.id}_material`, this.scene);
-            material.diffuseColor = this.getMaterialColor(part.materialId);
+            box.material = this.createMaterialWithTexture(part.materialId, part.materialName);
             box.material = material;
         }
 
@@ -7372,7 +4603,7 @@ class DrawingWorld {
         // Only create material if it doesn't already exist (restored geometry has its own material)
         if (!box.material) {
             const material = new BABYLON.StandardMaterial(`${part.id}_material`, this.scene);
-            material.diffuseColor = this.getMaterialColor(part.materialId);
+            box.material = this.createMaterialWithTexture(part.materialId, part.materialName);
             box.material = material;
         }
 
@@ -8083,7 +5314,7 @@ class DrawingWorld {
 
                 // Create material-specific appearance for new boxes
                 const material = new BABYLON.StandardMaterial(`${part.id}_material`, this.scene);
-                material.diffuseColor = this.getMaterialColor(part.materialId);
+                box.material = this.createMaterialWithTexture(part.materialId, part.materialName);
                 box.material = material;
             }
 
@@ -8110,7 +5341,7 @@ class DrawingWorld {
             // Only create material if it doesn't already exist (restored geometry has its own material)
             if (!box.material) {
                 const material = new BABYLON.StandardMaterial(`${part.id}_material`, this.scene);
-                material.diffuseColor = this.getMaterialColor(part.materialId);
+                box.material = this.createMaterialWithTexture(part.materialId, part.materialName);
                 box.material = material;
             }
 

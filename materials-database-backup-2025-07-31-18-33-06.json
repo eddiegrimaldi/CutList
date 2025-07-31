@@ -1,0 +1,223 @@
+{
+  "database_info": {
+    "version": "1.0.0",
+    "last_updated": "2025-01-26",
+    "schema_version": "1.0",
+    "migration_ready": true,
+    "sql_server_ready": true
+  },
+  "categories": {
+    "hardwood": {
+      "id": "hardwood",
+      "name": "Hardwoods",
+      "description": "Deciduous tree lumber for fine woodworking",
+      "icon": "hardwood-icon.svg",
+      "sort_order": 1
+    },
+    "sheet_goods": {
+      "id": "sheet_goods", 
+      "name": "Sheet Goods",
+      "description": "Plywood, MDF, and engineered lumber products",
+      "icon": "sheet-goods-icon.svg",
+      "sort_order": 2
+    }
+  },
+  "lumber_grades": {
+    "select": {
+      "id": "select",
+      "name": "Select Grade",
+      "description": "Highest quality lumber with minimal defects",
+      "price_multiplier": 1.5
+    },
+    "common": {
+      "id": "common",
+      "name": "Common Grade", 
+      "description": "Standard grade lumber with some natural defects",
+      "price_multiplier": 1.0
+    }
+  },
+  "materials": {
+    "walnut_001": {
+      "id": "walnut_001",
+      "name": "Black Walnut",
+      "category": "hardwood",
+      "species": "Juglans nigra",
+      "visual_assets": {
+        "thumbnail": "data/materials/walnut_001/walnut_001_thumbnail.webp",
+        "texture_diffuse": "data/materials/walnut_001/walnut_001_texture.jpg"
+      },
+      "physical_properties": {
+        "density_lbs_ft3": 38,
+        "hardness_janka": 1010,
+        "shrinkage_tangential": 7.8
+      },
+      "default_configuration": {
+        "grade": "select",
+        "thickness": 0.75,
+        "width": 6,
+        "length": 96
+      },
+      "cost_structure": {
+        "base_price_bf": 8.50,
+        "freight_cost_bf": 0.75,
+        "waste_factor": 0.15
+      }
+    },
+    "maple_001": {
+      "id": "maple_001", 
+      "name": "Hard Maple",
+      "category": "hardwood",
+      "species": "Acer saccharum",
+      "visual_assets": {
+        "thumbnail": "data/materials/maple_001/maple_001_thumbnail.webp",
+        "texture_diffuse": "data/materials/maple_001/maple_001_texture.jpg"
+      },
+      "physical_properties": {
+        "density_lbs_ft3": 44,
+        "hardness_janka": 1450,
+        "shrinkage_tangential": 9.9
+      },
+      "default_configuration": {
+        "grade": "select",
+        "thickness": 0.75,
+        "width": 6,
+        "length": 96
+      },
+      "cost_structure": {
+        "base_price_bf": 6.25,
+        "freight_cost_bf": 0.75,
+        "waste_factor": 0.15
+      }
+    },
+    "oak_red_001": {
+      "id": "oak_red_001",
+      "name": "Red Oak", 
+      "category": "hardwood",
+      "species": "Quercus rubra",
+      "visual_assets": {
+        "thumbnail": "data/materials/oak_red_001/oak_red_001_thumbnail.webp",
+        "texture_diffuse": "data/materials/oak_red_001/oak_red_001_texture.jpg"
+      },
+      "physical_properties": {
+        "density_lbs_ft3": 44,
+        "hardness_janka": 1290,
+        "shrinkage_tangential": 8.6
+      },
+      "default_configuration": {
+        "grade": "select",
+        "thickness": 0.75,
+        "width": 6,
+        "length": 96
+      },
+      "cost_structure": {
+        "base_price_bf": 4.75,
+        "freight_cost_bf": 0.75,
+        "waste_factor": 0.15
+      }
+    },
+    "poplar_001": {
+      "id": "poplar_001",
+      "name": "Yellow Poplar",
+      "category": "hardwood", 
+      "species": "Liriodendron tulipifera",
+      "visual_assets": {
+        "thumbnail": "data/materials/poplar_001/poplar_001_thumbnail.webp",
+        "texture_diffuse": "data/materials/poplar_001/poplar_001_texture.jpg"
+      },
+      "physical_properties": {
+        "density_lbs_ft3": 28,
+        "hardness_janka": 540,
+        "shrinkage_tangential": 8.2
+      },
+      "default_configuration": {
+        "grade": "select",
+        "thickness": 0.75,
+        "width": 6,
+        "length": 96
+      },
+      "cost_structure": {
+        "base_price_bf": 3.25,
+        "freight_cost_bf": 0.75,
+        "waste_factor": 0.15
+      }
+    },
+    "birch_ply_001": {
+      "id": "birch_ply_001",
+      "name": "Birch Plywood",
+      "category": "sheet_goods",
+      "species": "Betula spp.",
+      "visual_assets": {
+        "thumbnail": "data/materials/birch_ply_001/birch_ply_001_thumbnail.webp", 
+        "texture_diffuse": "data/materials/birch_ply_001/birch_ply_001_texture.jpg"
+      },
+      "physical_properties": {
+        "density_lbs_ft3": 42,
+        "hardness_janka": 1260,
+        "shrinkage_tangential": 7.3
+      },
+      "default_configuration": {
+        "grade": "select",
+        "thickness": 0.75,
+        "width": 48,
+        "length": 96
+      },
+      "cost_structure": {
+        "base_price_bf": 5.50,
+        "freight_cost_bf": 0.50,
+        "waste_factor": 0.10
+      }
+    },
+    "baltic_birch_001": {
+      "id": "baltic_birch_001",
+      "name": "Baltic Birch",
+      "category": "sheet_goods",
+      "species": "Betula pendula",
+      "visual_assets": {
+        "thumbnail": "data/materials/baltic_birch_001/baltic_birch_001_thumbnail.webp",
+        "texture_diffuse": "data/materials/baltic_birch_001/baltic_birch_001_texture.jpg"
+      },
+      "physical_properties": {
+        "density_lbs_ft3": 40,
+        "hardness_janka": 1260,
+        "shrinkage_tangential": 6.5
+      },
+      "default_configuration": {
+        "grade": "select",
+        "thickness": 0.75,
+        "width": 60,
+        "length": 60
+      },
+      "cost_structure": {
+        "base_price_bf": 7.25,
+        "freight_cost_bf": 0.50,
+        "waste_factor": 0.08
+      }
+    },
+    "sande_ply_001": {
+      "id": "sande_ply_001",
+      "name": "Sande Plywood",
+      "category": "sheet_goods", 
+      "species": "Brosimum utile",
+      "visual_assets": {
+        "thumbnail": "data/materials/sande_ply_001/sande_ply_001_thumbnail.webp",
+        "texture_diffuse": "data/materials/sande_ply_001/sande_ply_001_texture.jpg"
+      },
+      "physical_properties": {
+        "density_lbs_ft3": 35,
+        "hardness_janka": 950,
+        "shrinkage_tangential": 5.2
+      },
+      "default_configuration": {
+        "grade": "select",
+        "thickness": 0.75,
+        "width": 48,
+        "length": 96
+      },
+      "cost_structure": {
+        "base_price_bf": 4.25,
+        "freight_cost_bf": 0.50,
+        "waste_factor": 0.12
+      }
+    }
+  }
+}

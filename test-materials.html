@@ -1,0 +1,60 @@
+<\!DOCTYPE html>
+<html>
+<head>
+    <title>Materials Library Test</title>
+    <style>
+        .material-card {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin: 5px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Materials Library Test</h1>
+    <div id="status">Loading...</div>
+    <div id="materials"></div>
+    
+    <script src="MaterialsLibrary.js"></script>
+    <script>
+        async function testMaterials() {
+            const statusDiv = document.getElementById('status');
+            const materialsDiv = document.getElementById('materials');
+            
+            try {
+                statusDiv.textContent = 'Creating MaterialsLibrary instance...';
+                const library = new MaterialsLibrary();
+                
+                statusDiv.textContent = 'Loading database...';
+                const success = await library.loadDatabase();
+                
+                if (success) {
+                    statusDiv.textContent = 'Database loaded successfully\!';
+                    
+                    const materials = library.getAllMaterials();
+                    materialsDiv.innerHTML = '<h2>Available Materials:</h2>';
+                    
+                    materials.forEach(material => {
+                        const card = document.createElement('div');
+                        card.className = 'material-card';
+                        card.innerHTML = `
+                            <h3>${material.basic_info.name}</h3>
+                            <p>Species: ${material.basic_info.species}</p>
+                            <p>Category: ${material.basic_info.category}</p>
+                        `;
+                        materialsDiv.appendChild(card);
+                    });
+                } else {
+                    statusDiv.textContent = 'Failed to load database';
+                }
+            } catch (error) {
+                statusDiv.textContent = 'Error: ' + error.message;
+                console.error('Materials test error:', error);
+            }
+        }
+        
+        testMaterials();
+    </script>
+</body>
+</html>

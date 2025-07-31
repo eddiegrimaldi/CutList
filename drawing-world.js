@@ -6940,7 +6940,9 @@ class DrawingWorld {
         console.log("🎨 Creating material with texture for:", materialId);
         
         // Create a StandardMaterial instead of just returning a color
-        // Apply material with texture
+        const material = new BABYLON.StandardMaterial(materialId + "_material", this.scene);
+        
+        
         
         // Try to get texture from materials database
         if (this.materialsLibrary) {

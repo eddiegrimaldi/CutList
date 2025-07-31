@@ -6945,7 +6945,8 @@ class DrawingWorld {
 
         // Create material-specific appearance
         const material = new BABYLON.StandardMaterial(`${part.id}_material`, this.scene);
-        material.diffuseColor = this.getMaterialColor(part.materialId);
+        // Use the complete material with texture
+            mesh.material = this.getMaterialColor(part.materialId);
         box.material = material;
 
         // Store reference
@@ -6956,7 +6957,30 @@ class DrawingWorld {
     }
 
     getMaterialColor(materialId) {
-        // Basic color mapping - could be enhanced with actual textures
+        console.log("🎨 Creating material with texture for:", materialId);
+        
+        // Create a StandardMaterial instead of just returning a color
+        const material = new BABYLON.StandardMaterial(materialId + "_material", this.scene);
+        
+        // Try to get texture from materials database
+        if (this.materialsLibrary) {
+            const materialData = this.materialsLibrary.getMaterial(materialId);
+            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
+                console.log("🖼️ Loading texture:", materialData.visual_assets.texture_diffuse);
+                
+                try {
+                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
+                    material.diffuseTexture = texture;
+                    material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
+                    console.log("✅ Texture loaded successfully");
+                    return material;
+                } catch (error) {
+                    console.warn("⚠️ Failed to load texture, falling back to color:", error);
+                }
+            }
+        }
+        
+        // Fallback to solid colors if texture fails
         const colorMap = {
             'walnut_001': new BABYLON.Color3(0.36, 0.25, 0.22), // Dark brown
             'maple_001': new BABYLON.Color3(0.96, 0.96, 0.86),   // Light cream
@@ -6967,7 +6991,9 @@ class DrawingWorld {
             'sande_ply_001': new BABYLON.Color3(0.90, 0.84, 0.72)  // Medium tan
         };
         
-        return colorMap[materialId] || new BABYLON.Color3(0.8, 0.8, 0.8); // Default gray
+        material.diffuseColor = colorMap[materialId] || new BABYLON.Color3(0.8, 0.8, 0.8);
+        console.log("🎨 Using solid color fallback");
+        return material;
     }
 
     // === BENCH SYSTEM METHODS ===
@@ -7344,7 +7370,8 @@ class DrawingWorld {
             
             // Create material-specific appearance for new boxes
             const material = new BABYLON.StandardMaterial(`${part.id}_material`, this.scene);
-            material.diffuseColor = this.getMaterialColor(part.materialId);
+            // Use the complete material with texture
+            mesh.material = this.getMaterialColor(part.materialId);
             box.material = material;
         }
 
@@ -7371,7 +7398,8 @@ class DrawingWorld {
         // Only create material if it doesn't already exist (restored geometry has its own material)
         if (!box.material) {
             const material = new BABYLON.StandardMaterial(`${part.id}_material`, this.scene);
-            material.diffuseColor = this.getMaterialColor(part.materialId);
+            // Use the complete material with texture
+            mesh.material = this.getMaterialColor(part.materialId);
             box.material = material;
         }
 
@@ -8082,7 +8110,8 @@ class DrawingWorld {
 
                 // Create material-specific appearance for new boxes
                 const material = new BABYLON.StandardMaterial(`${part.id}_material`, this.scene);
-                material.diffuseColor = this.getMaterialColor(part.materialId);
+                // Use the complete material with texture
+            mesh.material = this.getMaterialColor(part.materialId);
                 box.material = material;
             }
 
@@ -8109,7 +8138,8 @@ class DrawingWorld {
             // Only create material if it doesn't already exist (restored geometry has its own material)
             if (!box.material) {
                 const material = new BABYLON.StandardMaterial(`${part.id}_material`, this.scene);
-                material.diffuseColor = this.getMaterialColor(part.materialId);
+                // Use the complete material with texture
+            mesh.material = this.getMaterialColor(part.materialId);
                 box.material = material;
             }
 

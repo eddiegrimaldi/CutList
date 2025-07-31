@@ -234,7 +234,7 @@ class DrawingWorld {
         // Position and material
         chamferedBox.position = new BABYLON.Vector3(0, H/2, 0);
         
-        const material = new BABYLON.StandardMaterial("native_chamfer_material", this.scene);
+        // Apply material with texture
         material.diffuseColor = new BABYLON.Color3(0.8, 0.6, 0.4);
         chamferedBox.material = material;
         
@@ -1248,7 +1248,6 @@ class DrawingWorld {
     selectSketchPlane(mesh, pickInfo) {
 
 
-
         
         // Prevent entering sketch mode if already in sketch mode
         if (this.isSketchMode) {
@@ -1260,7 +1259,6 @@ class DrawingWorld {
         const surfaceNormal = pickInfo.getNormal(true, true);
         const pickPoint = pickInfo.pickedPoint;
         
-
 
         
         // Update selection info
@@ -1303,7 +1301,6 @@ class DrawingWorld {
     }
 
     createSketchCoordinateSystem(surfaceNormal) {
-
 
         
         // Create a robust coordinate system for any surface orientation
@@ -2339,7 +2336,6 @@ class DrawingWorld {
         
         } catch (error) {
 
-
         }
     }
     
@@ -2356,7 +2352,6 @@ class DrawingWorld {
             
 
             
-
 
 
 
@@ -2681,11 +2676,9 @@ class DrawingWorld {
         this.sketchGround.isPickable = true;
         
 
-
     }
     
     createLineGrid() {
-
 
         
         const gridSize = 20;
@@ -2775,7 +2768,6 @@ class DrawingWorld {
         this.animateGridFadeIn();
         
 
-
     }
     
     animateGridFadeIn() {
@@ -2820,7 +2812,6 @@ class DrawingWorld {
 
 
 
-
         
         if (!this.isSketchMode || !this.currentSketch) {
 
@@ -2848,7 +2839,6 @@ class DrawingWorld {
             const sketchPoint = point.clone();
             
 
-
             
             // Handle different tools
             switch (this.currentSketch.currentTool) {
@@ -2872,7 +2862,6 @@ class DrawingWorld {
                     break;
             }
         } else {
-
 
             
             const generalPick = this.scene.pick(x, y);
@@ -3418,7 +3407,6 @@ class DrawingWorld {
     handleRectangleDrawing(point) {
 
 
-
         
         if (!this.currentSketch.isDrawing) {
             // Start rectangle
@@ -3726,7 +3714,6 @@ class DrawingWorld {
         this.setupMaterialModalListeners();
     }
 
-
     async openMaterialModal() {
         const modal = document.getElementById('material-modal');
         if (!modal) return;
@@ -3916,7 +3903,6 @@ class DrawingWorld {
         if (grid) grid.style.display = 'grid';
         if (config) config.style.display = 'none';
     }
-
 
     updateMaterialCost() {
         if (!this.selectedMaterialId) return;
@@ -4119,7 +4105,6 @@ class DrawingWorld {
         }
     }
 
-
     resetView() {
         this.camera.setTarget(BABYLON.Vector3.Zero());
         this.camera.alpha = -Math.PI / 2;
@@ -4310,7 +4295,6 @@ class DrawingWorld {
         // Use the point directly since it's already on the sketch plane
         const sketchPoint = point.clone();
         
-
 
 
 
@@ -5052,7 +5036,7 @@ class DrawingWorld {
     }
     
     createGizmoMaterial(color) {
-        const material = new BABYLON.StandardMaterial("gizmoMaterial", this.scene);
+        // Apply material with texture
         material.diffuseColor = color;
         material.emissiveColor = color.scale(0.3);
         material.specularColor = new BABYLON.Color3(0, 0, 0);
@@ -5438,7 +5422,7 @@ class DrawingWorld {
         
         if (extrudedMesh) {
             // Set material
-            const material = new BABYLON.StandardMaterial('extrudedMaterial', this.scene);
+        // Apply material with texture
             material.diffuseColor = new BABYLON.Color3(0.8, 0.8, 0.9);
             material.specularColor = new BABYLON.Color3(0.2, 0.2, 0.2);
             extrudedMesh.material = material;
@@ -5547,7 +5531,7 @@ class DrawingWorld {
     }
     
     createSolidMaterial() {
-        const material = new BABYLON.StandardMaterial("solidMaterial", this.scene);
+        // Apply material with texture
         material.diffuseColor = new BABYLON.Color3(0.7, 0.7, 0.9); // Light blue
         material.specularColor = new BABYLON.Color3(0.2, 0.2, 0.2);
         material.emissiveColor = new BABYLON.Color3(0.1, 0.1, 0.15);
@@ -5555,7 +5539,7 @@ class DrawingWorld {
     }
     
     createHoleMaterial() {
-        const material = new BABYLON.StandardMaterial("holeMaterial", this.scene);
+        // Apply material with texture
         material.diffuseColor = new BABYLON.Color3(1, 0.3, 0.3); // Red
         material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1);
         material.emissiveColor = new BABYLON.Color3(0.3, 0.1, 0.1);
@@ -6755,7 +6739,6 @@ class DrawingWorld {
         }
     }
 
-
     getMaterialIcon(category) {
         const icons = {
             'hardwood': '🌳',
@@ -6943,11 +6926,8 @@ class DrawingWorld {
         const xPosition = (this.projectParts.length - 1) * (lengthCm + 5); // Space parts apart
         box.position = new BABYLON.Vector3(xPosition, thicknessCm / 2, 0);
 
-        // Create material-specific appearance
-        const material = new BABYLON.StandardMaterial(`${part.id}_material`, this.scene);
-        // Use the complete material with texture
-            mesh.material = this.getMaterialColor(part.materialId);
-        box.material = material;
+        // Apply material with texture
+        box.material = this.getMaterialColor(part.materialId);
 
         // Store reference
         box.partData = part;
@@ -6960,7 +6940,7 @@ class DrawingWorld {
         console.log("🎨 Creating material with texture for:", materialId);
         
         // Create a StandardMaterial instead of just returning a color
-        const material = new BABYLON.StandardMaterial(materialId + "_material", this.scene);
+        // Apply material with texture
         
         // Try to get texture from materials database
         if (this.materialsLibrary) {
@@ -7323,7 +7303,7 @@ class DrawingWorld {
             
             // Restore material
             if (meshData.material) {
-                const material = new BABYLON.StandardMaterial(`${newMeshId}_material`, this.scene);
+        // Apply material with texture
                 if (meshData.material.diffuseColor) {
                     material.diffuseColor = new BABYLON.Color3(
                         meshData.material.diffuseColor.r,
@@ -7369,10 +7349,9 @@ class DrawingWorld {
             }, this.scene);
             
             // Create material-specific appearance for new boxes
-            const material = new BABYLON.StandardMaterial(`${part.id}_material`, this.scene);
-            // Use the complete material with texture
-            mesh.material = this.getMaterialColor(part.materialId);
-            box.material = material;
+        // Apply material with texture
+            box.material = this.getMaterialColor(part.materialId);
+
         }
 
         // Smart positioning: preserve saved position when restoring, use spawn position for new parts
@@ -7397,10 +7376,9 @@ class DrawingWorld {
 
         // Only create material if it doesn't already exist (restored geometry has its own material)
         if (!box.material) {
-            const material = new BABYLON.StandardMaterial(`${part.id}_material`, this.scene);
-            // Use the complete material with texture
-            mesh.material = this.getMaterialColor(part.materialId);
-            box.material = material;
+        // Apply material with texture
+            box.material = this.getMaterialColor(part.materialId);
+
         }
 
         // Store reference
@@ -8109,10 +8087,9 @@ class DrawingWorld {
                 }, this.scene);
 
                 // Create material-specific appearance for new boxes
-                const material = new BABYLON.StandardMaterial(`${part.id}_material`, this.scene);
-                // Use the complete material with texture
-            mesh.material = this.getMaterialColor(part.materialId);
-                box.material = material;
+        // Apply material with texture
+                box.material = this.getMaterialColor(part.materialId);
+    
             }
 
             // Smart positioning: preserve saved position for restored parts, use assembly position for new parts
@@ -8137,10 +8114,9 @@ class DrawingWorld {
 
             // Only create material if it doesn't already exist (restored geometry has its own material)
             if (!box.material) {
-                const material = new BABYLON.StandardMaterial(`${part.id}_material`, this.scene);
-                // Use the complete material with texture
-            mesh.material = this.getMaterialColor(part.materialId);
-                box.material = material;
+        // Apply material with texture
+                box.material = this.getMaterialColor(part.materialId);
+    
             }
 
             // Store reference

@@ -7376,11 +7376,9 @@ class DrawingWorld {
             console.log('Using spawn position for', isRestoring ? 'restored part without saved position' : 'new part', part.materialName, ':', box.position);
         }
 
-        // Only create material if it doesn't already exist (restored geometry has its own material)
-        if (!box.material) {
-        // Apply material with texture
+        // Always ensure material has current texture from materials library
+        if (!box.material || isRestoring) {
             box.material = this.getMaterialColor(part.materialId);
-
         }
 
         // Store reference

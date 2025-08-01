@@ -647,8 +647,6 @@
                 console.log('WorkBench parts array:', drawingWorld.workBenchParts);
                 console.log('WorkBench parts count:', drawingWorld.workBenchParts ? drawingWorld.workBenchParts.length : 0);
                 
-                // CRITICAL: Serialize ALL workbench parts with complete data
-                drawingWorld.serializeAllWorkbenchParts();
 
                 const preservedWorkBenchParts = (drawingWorld.workBenchParts || []).map(part => {
                     const partCopy = { ...part };

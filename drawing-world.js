@@ -7376,8 +7376,7 @@ class DrawingWorld {
             console.log('Using spawn position for', isRestoring ? 'restored part without saved position' : 'new part', part.materialName, ':', box.position);
         }
 
-        // Always ensure material has current texture from materials library
-        if (!box.material || isRestoring) {
+        if (!box.material) {
             box.material = this.getMaterialColor(part.materialId);
         }
 

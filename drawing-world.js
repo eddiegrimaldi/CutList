@@ -7378,20 +7378,19 @@ class DrawingWorld {
 
         if (!box.material) {
             box.material = this.getMaterialColor(part.materialId);
-n        // For loaded boards, ensure textures are applied from current materials library
+        // For loaded boards, ensure textures are applied from current materials library
         if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
             const materialData = this.materialsLibrary.getMaterial(part.materialId);
             if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log("🖼️ Applying texture to loaded board:", materialData.visual_assets.texture_diffuse);
                 try {
                     const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
                     box.material.diffuseTexture = texture;
                     box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1);
-                    console.log("✅ Texture applied to loaded board");
                 } catch (error) {
-                    console.warn("⚠️ Failed to apply texture to loaded board:", error);
+                    console.warn("Failed to apply texture to loaded board:", error);
                 }
             }
+        }
         }
 
         // Store reference

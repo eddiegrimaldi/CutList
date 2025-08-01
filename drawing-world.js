@@ -7403,6 +7403,85 @@ class DrawingWorld {
             this.animateCameraToShowcaseMaterial(box, part);
         }
         
+n    /**
+     * 🔍 BOARD INTEGRITY AUDIT SYSTEM
+     * Validates that every created board has complete characteristics
+     * and is ready for any operation like a library-added board
+     */
+    auditBoardIntegrity(board, partData, context = "unknown") {
+        console.log(`🔍 ${context.toUpperCase()} BOARD AUDIT: ${partData.materialName}`);
+        
+        const issues = [];
+        
+        // 1. MATERIAL PROPERTIES AUDIT
+        if (!partData.materialId) issues.push("❌ Missing materialId");
+        if (!partData.materialName) issues.push("❌ Missing materialName");
+        if (!partData.grade) issues.push("❌ Missing grade");
+        
+        // 2. DIMENSIONAL INTEGRITY AUDIT  
+        if (!partData.dimensions || typeof partData.dimensions !== "object") {
+            issues.push("❌ Missing or invalid dimensions object");
+        } else {
+            if (!partData.dimensions.length || partData.dimensions.length <= 0) issues.push("❌ Invalid length");
+            if (!partData.dimensions.width || partData.dimensions.width <= 0) issues.push("❌ Invalid width");  
+            if (!partData.dimensions.thickness || partData.dimensions.thickness <= 0) issues.push("❌ Invalid thickness");
+        }
+        
+        // 3. 3D MESH INTEGRITY AUDIT
+        if (!board) {
+            issues.push("❌ Missing 3D mesh object");
+        } else {
+            if (!board.material) issues.push("❌ Missing material assignment");
+            if (!board.position) issues.push("❌ Missing position");
+            if (!board.scaling) issues.push("❌ Missing scaling");
+            if (!board.id) issues.push("❌ Missing mesh ID");
+        }
+        
+        // 4. MATERIALS LIBRARY INTEGRATION AUDIT
+        if (this.materialsLibrary) {
+            const materialData = this.materialsLibrary.getMaterial(partData.materialId);
+            if (!materialData) {
+                issues.push("❌ Material not found in materials library");
+            } else {
+                // Check if texture should be available
+                if (materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
+                    if (board && board.material && !board.material.diffuseTexture) {
+                        issues.push("⚠️ Texture available but not applied");
+                    }
+                }
+            }
+        }
+        
+        // 5. UNIQUE IDENTITY AUDIT
+        if (!partData.id) issues.push("❌ Missing unique part ID");
+        
+        // 6. TOOL READINESS AUDIT (Check if board can be manipulated)
+        if (board && board.material) {
+            const materialName = board.material.name;
+            if (!materialName || materialName === "material") {
+                issues.push("❌ Generic material name - may cause tool conflicts");
+            }
+        }
+        
+        // AUDIT RESULTS
+        if (issues.length === 0) {
+            console.log(`✅ ${context.toUpperCase()} AUDIT PASSED: ${partData.materialName} is fully operational`);
+            console.log(`   📏 Dimensions: ${partData.dimensions.length}"×${partData.dimensions.width}"×${partData.dimensions.thickness}"`);
+            console.log(`   🎨 Material: ${partData.materialId} (${partData.grade})`);
+            console.log(`   🆔 ID: ${partData.id}`);
+            return true;
+        } else {
+            console.error(`❌ ${context.toUpperCase()} AUDIT FAILED: ${partData.materialName}`);
+            issues.forEach(issue => console.error(`   ${issue}`));
+            console.error(`   🚨 This board may not be ready for all operations!`);
+            return false;
+        }
+    }
+
+n        // 🔍 BOARD INTEGRITY AUDIT - Validate this board is ready for any operation
+        const auditContext = isRestoring ? "RESTORE" : "CREATE";
+        this.auditBoardIntegrity(box, part, auditContext);
+
         // Return the created mesh
         return box;
     }

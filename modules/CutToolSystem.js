@@ -1560,6 +1560,9 @@ export class CutToolSystem {
         const piece1ThicknessCm = piece1Data.dimensions.thickness * 2.54;
         
         const mesh1 = this.drawingWorld.createWorkBenchMaterial(piece1Data);
+n        // 🔍 BOARD INTEGRITY AUDIT for first cut piece
+        this.drawingWorld.auditBoardIntegrity(mesh1, piece1Data, "CUT-PIECE-1");
+
         if (!mesh1) {
             return;
         }
@@ -1592,6 +1595,9 @@ export class CutToolSystem {
         
         const mesh2 = this.drawingWorld.createWorkBenchMaterial(piece2Data);
         if (!mesh2) {
+n        // 🔍 BOARD INTEGRITY AUDIT for second cut piece
+        this.drawingWorld.auditBoardIntegrity(mesh2, piece2Data, "CUT-PIECE-2");
+
             return;
         }
         mesh2.position = originalPosition.clone();

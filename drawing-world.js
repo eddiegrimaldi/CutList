@@ -7313,6 +7313,22 @@ class DrawingWorld {
                         meshData.material.diffuseColor.b
                     );
                 }
+                // CRITICAL FIX: Load texture from materials library for restored boards
+                const materialName = meshData.material.name;
+                if (materialName && this.materialsLibrary) {
+                    const materialId = materialName.split("_material_")[0];
+                    const materialData = this.materialsLibrary.getMaterial(materialId);
+                    if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
+                        try {
+                            const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
+                            material.diffuseTexture = texture;
+                            material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1);
+                        } catch (error) {
+                            console.warn("Failed to load texture for restored mesh:", error);
+                        }
+                    }
+                }
+                
                 mesh.material = material;
             }
             

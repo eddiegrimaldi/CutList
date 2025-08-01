@@ -7376,10 +7376,11 @@ class DrawingWorld {
         }
 
         // Only create material if it doesn't already exist (restored geometry has its own material)
-        // ALWAYS apply material to ensure textures work on all boards
+        if (!box.material) {
         // Apply material with texture
             box.material = this.getMaterialColor(part.materialId);
 
+        }
 
         // Store reference
         box.partData = part;
@@ -8199,6 +8200,7 @@ class DrawingWorld {
                 box.material = this.getMaterialColor(part.materialId);
     
             }
+
             // Store reference
             box.partData = part;
             box.isProjectPart = true;

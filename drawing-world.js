@@ -7304,6 +7304,7 @@ class DrawingWorld {
             
             // Restore material
             if (meshData.material) {
+                const material = new BABYLON.StandardMaterial(meshData.material.name || "restored_material", this.scene);
         // Apply material with texture
                 if (meshData.material.diffuseColor) {
                     material.diffuseColor = new BABYLON.Color3(

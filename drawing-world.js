@@ -7408,8 +7408,9 @@ n    /**
      * Validates that every created board has complete characteristics
      * and is ready for any operation like a library-added board
      */
-    auditBoardIntegrity(board, partData, context = "unknown") {
-        console.log(`🔍 ${context.toUpperCase()} BOARD AUDIT: ${partData.materialName}`);
+    auditBoardIntegrity(board, partData, context) {
+        context = context || "unknown";
+        console.log("🔍 " + context.toUpperCase() + " BOARD AUDIT: " + partData.materialName);
         
         const issues = [];
         
@@ -7465,15 +7466,15 @@ n    /**
         
         // AUDIT RESULTS
         if (issues.length === 0) {
-            console.log(`✅ ${context.toUpperCase()} AUDIT PASSED: ${partData.materialName} is fully operational`);
-            console.log(`   📏 Dimensions: ${partData.dimensions.length}"×${partData.dimensions.width}"×${partData.dimensions.thickness}"`);
-            console.log(`   🎨 Material: ${partData.materialId} (${partData.grade})`);
-            console.log(`   🆔 ID: ${partData.id}`);
+            console.log("✅ " + context.toUpperCase() + " AUDIT PASSED: " + partData.materialName + " is fully operational");
+            console.log("   📏 Dimensions: " + partData.dimensions.length + ""×" + partData.dimensions.width + ""×" + partData.dimensions.thickness + """);
+            console.log("   🎨 Material: " + partData.materialId + " (" + partData.grade + ")");
+            console.log("   🆔 ID: " + partData.id);
             return true;
         } else {
-            console.error(`❌ ${context.toUpperCase()} AUDIT FAILED: ${partData.materialName}`);
-            issues.forEach(issue => console.error(`   ${issue}`));
-            console.error(`   🚨 This board may not be ready for all operations!`);
+            console.error("❌ " + context.toUpperCase() + " AUDIT FAILED: " + partData.materialName);
+            issues.forEach(function(issue) { console.error("   " + issue); });
+            console.error("   🚨 This board may not be ready for all operations!");
             return false;
         }
     }

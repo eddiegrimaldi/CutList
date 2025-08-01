@@ -84,22 +84,6 @@ class DrawingWorld {
         if (gl) {
             gl.lineWidth(4.0); // Attempt to set thicker lines
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log("🖼️ Applying texture to loaded board:", materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log("✅ Texture applied to loaded board");
-                } catch (error) {
-                    console.warn("⚠️ Failed to apply texture to loaded board:", error);
-                }
-            }
-        }
         
         // Also try setting line width at engine level
         this.engine.setHardwareScalingLevel(1.0);
@@ -334,22 +318,6 @@ class DrawingWorld {
             console.log('No visible parts found, keeping current target');
             return;
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         // Calculate center of all parts
         let totalX = 0, totalY = 0, totalZ = 0;
@@ -373,22 +341,6 @@ class DrawingWorld {
             this.camera.setTarget(newTarget);
             
             console.log(`Updated camera target to center of ${validParts} objects:`, newTarget);
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
     }
     
@@ -425,22 +377,6 @@ class DrawingWorld {
                 console.log('Loaded preferences from localStorage:', this.preferences);
             } catch (e) {
                 console.warn('Failed to load preferences from localStorage:', e);
-            }
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
             }
         }
     }
@@ -653,22 +589,6 @@ class DrawingWorld {
             console.log('Started spinning world');
         }
 
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
-
         evt.preventDefault();
     }
 
@@ -704,22 +624,6 @@ class DrawingWorld {
             
             this.camera.position = currentPosition.add(panVector);
             this.camera.setTarget(currentTarget.add(panVector));
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
 
         this.cameraState.lastPointerX = evt.offsetX;
@@ -771,22 +675,6 @@ class DrawingWorld {
                 const minBeta = Math.atan2(horizontalDistance, minHeight - targetPosition.y);
                 if (this.camera.beta > minBeta) {
                     this.camera.beta = minBeta;
-                }
-            }
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
                 }
             }
         }
@@ -864,44 +752,12 @@ class DrawingWorld {
                 ribbons.push(ribbon);
             }
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         // Merge all ribbons into one mesh
         if (ribbons.length > 0) {
             const mergedMesh = BABYLON.Mesh.MergeMeshes(ribbons, true);
             mergedMesh.name = name;
             return mergedMesh;
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         return null;
@@ -980,22 +836,6 @@ class DrawingWorld {
             
             return parentMesh;
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
     
     createFilledCircle(center, radius, name, borderMaterial) {
@@ -1038,22 +878,6 @@ class DrawingWorld {
             if (fillMesh) fillMesh.parent = parentMesh;
             
             return parentMesh;
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
     }
     
@@ -1103,22 +927,6 @@ class DrawingWorld {
             
             return parentMesh;
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
     
     createFilledShape(points, name, borderMaterial) {
@@ -1166,22 +974,6 @@ class DrawingWorld {
             
             return parentMesh;
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
     
     onMouseDown(event) {
@@ -1193,22 +985,6 @@ class DrawingWorld {
         // Only handle middle (1) and right (2) buttons
         if (event.button === 1 || event.button === 2) {
             event.preventDefault();
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
     }
     
@@ -1238,22 +1014,6 @@ class DrawingWorld {
             
             this.camera.target = this.camera.target.add(panVector);
             this.camera.setTarget(this.camera.target);
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         this.mouseState.lastX = event.clientX;
@@ -1321,22 +1081,6 @@ class DrawingWorld {
         } else {
             console.error("GridSystem not initialized");
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
 
     
@@ -1401,44 +1145,12 @@ class DrawingWorld {
             
 
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
     
     updateGridProperties() {
         const gridInfoElement = document.getElementById('grid-info');
         if (gridInfoElement) {
             gridInfoElement.textContent = `Grid: ${this.currentGridInfo.label}`;
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
     }
     
@@ -1542,22 +1254,6 @@ class DrawingWorld {
 
             return;
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         // Get the surface normal at the picked point
         const surfaceNormal = pickInfo.getNormal(true, true);
@@ -1569,22 +1265,6 @@ class DrawingWorld {
         const selectionInfo = document.getElementById('selection-info');
         if (selectionInfo) {
             selectionInfo.textContent = `${mesh.name} selected`;
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         // Enter sketch mode with surface data - DISABLED
@@ -1638,22 +1318,6 @@ class DrawingWorld {
             up = new BABYLON.Vector3(1, 0, 0); // World X if normal is too close to Y
 
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         // Create orthonormal basis using Gram-Schmidt process
         this.sketchForward = normal.clone(); // Surface normal points "out" from surface
@@ -1670,22 +1334,6 @@ class DrawingWorld {
                 this.sketchRight = BABYLON.Vector3.Cross(new BABYLON.Vector3(0, 0, 1), this.sketchForward);
             }
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         this.sketchRight = this.sketchRight.normalize();
         this.sketchUp = BABYLON.Vector3.Cross(this.sketchForward, this.sketchRight).normalize();
@@ -1697,22 +1345,6 @@ class DrawingWorld {
             this.sketchRight = new BABYLON.Vector3(1, 0, 0);
             this.sketchUp = new BABYLON.Vector3(0, 1, 0);
             this.sketchForward = new BABYLON.Vector3(0, 0, 1);
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         // Store surface origin (the picked point)
@@ -1727,22 +1359,6 @@ class DrawingWorld {
                 sketchUp: this.sketchUp,
                 sketchOrigin: this.sketchOrigin
             };
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
 
     }
@@ -1837,22 +1453,6 @@ class DrawingWorld {
             };
             
             requestAnimationFrame(fadeOut3DGrid);
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
     }
     
@@ -2303,22 +1903,6 @@ class DrawingWorld {
                 this.currentSketch.currentTool = toolName;
             }
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
     
     updateToolButtonStates() {
@@ -2333,22 +1917,6 @@ class DrawingWorld {
             if (activeButton) {
                 activeButton.classList.add('active');
                 console.log('Set active state for tool:', this.activeTool);
-            }
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
             }
         }
     }
@@ -2386,22 +1954,6 @@ class DrawingWorld {
         if (existingCube) {
             existingCube.dispose();
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         // Create completely solid target material with new name
         const targetMaterial = new BABYLON.StandardMaterial('solidCubeMaterial_' + Date.now(), this.scene);
@@ -2435,22 +1987,6 @@ class DrawingWorld {
         // Show default sketch target if no other geometry exists
         if (!this.defaultSketchTarget) {
             this.createDefaultSketchTarget();
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         // Enable and animate the target to fade in
@@ -2499,22 +2035,6 @@ class DrawingWorld {
                 }
             );
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         // Future: Could also handle hiding other sketch targets from existing geometry
     }
@@ -2525,64 +2045,16 @@ class DrawingWorld {
         if (!mesh || !mesh.isPickable || !mesh.isEnabled()) {
             return false;
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         // Exclude system meshes (grid, axes, etc.)
         const systemMeshNames = ['sketchGround', 'gridGround', 'gridGroundBelow', 'xAxis', 'yAxis', 'zAxis'];
         if (systemMeshNames.includes(mesh.name)) {
             return false;
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         // Exclude sketch preview meshes
         if (mesh.name.includes('Preview') || mesh.name.includes('preview')) {
             return false;
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         // Any other mesh with proper geometry is sketchable
@@ -2861,41 +2333,9 @@ class DrawingWorld {
             this.sketchCameraState.lastY = event.clientY;
 
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         } catch (error) {
 
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
     }
     
@@ -2972,22 +2412,6 @@ class DrawingWorld {
             this.sketchCameraState.isPanning = false;
 
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
     
     handleBabylonPointerMove(pointerInfo) {
@@ -3010,22 +2434,6 @@ class DrawingWorld {
             this.sketchCameraState.lastY = event.clientY;
             return;
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         // Handle drawing preview with proper coordinate handling
         if (this.currentSketch && this.currentSketch.isDrawing) {
@@ -3046,22 +2454,6 @@ class DrawingWorld {
                 this.updateSketchPreviewWithPoint(point);
             } else {
 
-            }
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
             }
         }
     }
@@ -3117,42 +2509,10 @@ class DrawingWorld {
             this.sketchGrid.dispose();
             this.sketchGrid = null;
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         // Hide the main grid when in sketch mode
         if (this.gridSystem.gridGround) {
             this.gridSystem.gridGround.setEnabled(false);
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         // DIM NON-SKETCH MESHES BUT KEEP THEM VISIBLE FOR REFERENCE
@@ -3228,22 +2588,6 @@ class DrawingWorld {
             line.isPickable = false;
             this.sketchGridLines.push(line);
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         // Create vertical lines (along the up direction)
         for (let i = 0; i <= divisions; i++) {
@@ -3256,22 +2600,6 @@ class DrawingWorld {
             line.material = gridMaterial;
             line.isPickable = false;
             this.sketchGridLines.push(line);
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
     }
     
@@ -3306,22 +2634,6 @@ class DrawingWorld {
         if (existingGround) {
             existingGround.dispose();
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         // Create a ground plane aligned with the selected surface - make it much larger
         this.sketchGround = BABYLON.MeshBuilder.CreatePlane('sketchGround', {
@@ -3351,22 +2663,6 @@ class DrawingWorld {
         } else {
             // Same direction - no rotation needed
             this.sketchGround.rotationQuaternion = BABYLON.Quaternion.Identity();
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         // Create material for ground plane
@@ -3418,22 +2714,6 @@ class DrawingWorld {
                 .add(this.sketchUp.scale(i));
             horizontalLines.push([hStart, hEnd]);
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
 
         
@@ -3441,40 +2721,8 @@ class DrawingWorld {
         if (verticalLines.length > 0) {
 
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         if (horizontalLines.length > 0) {
 
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         // Create line systems for better performance
@@ -3569,22 +2817,6 @@ class DrawingWorld {
 
             return;
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         // Get canvas-relative coordinates from the Babylon pointer event
         const rect = this.canvas.getBoundingClientRect();
@@ -3635,22 +2867,6 @@ class DrawingWorld {
             const generalPick = this.scene.pick(x, y);
         }
 
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
-
     }
 
     projectToSketchPlane(point) {
@@ -3684,44 +2900,12 @@ class DrawingWorld {
             this.finishLine(point);
             this.currentSketch.isDrawing = false;
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
 
     createLinePreview(start, end) {
         // Remove existing preview
         if (this.linePreview) {
             this.linePreview.dispose();
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         // Create new line preview using ribbon for thickness
@@ -3755,22 +2939,6 @@ class DrawingWorld {
             this.linePreview.isPickable = false;
             this.linePreview.renderingGroupId = 2;
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
 
     finishLine(endPoint) {
@@ -3778,22 +2946,6 @@ class DrawingWorld {
         if (this.linePreview) {
             this.linePreview.dispose();
             this.linePreview = null;
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         // Create final line using ribbon for thickness
@@ -3835,22 +2987,6 @@ class DrawingWorld {
                 mesh: line
             });
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
 
     }
@@ -3858,22 +2994,6 @@ class DrawingWorld {
     createRectanglePreview(start, end) {
         if (this.shapePreview) {
             this.shapePreview.dispose();
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         // Calculate rectangle corners
@@ -3890,22 +3010,6 @@ class DrawingWorld {
             this.shapePreview.isPickable = false;
             this.shapePreview.renderingGroupId = 2;
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
 
     }
@@ -3914,22 +3018,6 @@ class DrawingWorld {
         if (this.shapePreview) {
             this.shapePreview.dispose();
             this.shapePreview = null;
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         const corners = this.getRectangleCorners(this.currentSketch.startPoint, endPoint);
@@ -3949,43 +3037,11 @@ class DrawingWorld {
                 closed: true
             });
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
     
     createCirclePreview(center, radius) {
         if (this.shapePreview) {
             this.shapePreview.dispose();
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         if (radius > 0.1) { // Only show circle preview if radius is meaningful
@@ -4020,44 +3076,12 @@ class DrawingWorld {
             
             this.shapePreview = centerIndicator;
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
     
     finishCircle(radius) {
         if (this.shapePreview) {
             this.shapePreview.dispose();
             this.shapePreview = null;
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         const points = this.getCirclePoints(this.currentSketch.startPoint, radius);
@@ -4077,43 +3101,11 @@ class DrawingWorld {
                 closed: true
             });
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
     
     createEllipsePreview(center, radiusX, radiusY) {
         if (this.shapePreview) {
             this.shapePreview.dispose();
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         if (radiusX > 0 || radiusY > 0) {
@@ -4131,44 +3123,12 @@ class DrawingWorld {
                 this.shapePreview.renderingGroupId = 2;
             }
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
     
     finishEllipse(endPoint) {
         if (this.shapePreview) {
             this.shapePreview.dispose();
             this.shapePreview = null;
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         const center = this.currentSketch.startPoint;
@@ -4196,44 +3156,12 @@ class DrawingWorld {
                 closed: true
             });
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
     
     
     createTrianglePreview(points) {
         if (this.shapePreview) {
             this.shapePreview.dispose();
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         if (points.length >= 2) {
@@ -4258,44 +3186,12 @@ class DrawingWorld {
                 this.shapePreview.renderingGroupId = 2;
             }
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
     
     finishTriangle() {
         if (this.shapePreview) {
             this.shapePreview.dispose();
             this.shapePreview = null;
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         // Create filled triangle using filled shape
@@ -4312,22 +3208,6 @@ class DrawingWorld {
                 closed: true
             });
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         this.currentSketch.trianglePoints = [];
     }
@@ -4343,22 +3223,6 @@ class DrawingWorld {
                 return this.getFallbackRectangleCorners(start, end);
             }
             return corners;
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         return this.getFallbackRectangleCorners(start, end);
@@ -4398,22 +3262,6 @@ class DrawingWorld {
             
             return corners;
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
     
     getCirclePoints(center, radius, segments = 32) {
@@ -4432,22 +3280,6 @@ class DrawingWorld {
                 .add(this.sketchUp.scale(y));
             
             points.push(worldPoint);
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         return points;
@@ -4469,22 +3301,6 @@ class DrawingWorld {
                 .add(this.sketchUp.scale(y));
             
             points.push(worldPoint);
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         return points;
@@ -4527,22 +3343,6 @@ class DrawingWorld {
                     break;
             }
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
     
     cancelCurrentDrawing() {
@@ -4551,42 +3351,10 @@ class DrawingWorld {
             this.linePreview.dispose();
             this.linePreview = null;
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         if (this.shapePreview) {
             this.shapePreview.dispose();
             this.shapePreview = null;
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         // Reset drawing state
@@ -4611,22 +3379,6 @@ class DrawingWorld {
                 }
             }
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         // Remove non-closed geometry
         for (const element of elementsToRemove) {
@@ -4636,22 +3388,6 @@ class DrawingWorld {
             const index = this.currentSketch.elements.indexOf(element);
             if (index > -1) {
                 this.currentSketch.elements.splice(index, 1);
-            }
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
             }
         }
         
@@ -4684,22 +3420,6 @@ class DrawingWorld {
             this.finishRectangle(point);
             this.currentSketch.isDrawing = false;
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
 
     handleCircleDrawing(point) {
@@ -4719,22 +3439,6 @@ class DrawingWorld {
             }
             // If radius is too small, stay in drawing mode - user needs to move mouse further
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
     
     handleEllipseDrawing(point) {
@@ -4748,44 +3452,12 @@ class DrawingWorld {
             this.finishEllipse(point);
             this.currentSketch.isDrawing = false;
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
     
     
     handleTriangleDrawing(point) {
         if (!this.currentSketch.trianglePoints) {
             this.currentSketch.trianglePoints = [];
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         this.currentSketch.trianglePoints.push(point);
@@ -4801,22 +3473,6 @@ class DrawingWorld {
             this.currentSketch.isDrawing = false;
             this.currentSketch.trianglePoints = [];
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
 
     exitSketchMode() {
@@ -4825,22 +3481,6 @@ class DrawingWorld {
             this.processSketchGeometry();
             // Preserve shapes for next sketch session
             this.closedShapes = this.currentSketch.elements;
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         this.isSketchMode = false;
@@ -4862,85 +3502,21 @@ class DrawingWorld {
             this.canvas.removeEventListener('mousedown', this.sketchMouseDownHandler, true);
             this.sketchMouseDownHandler = null;
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         if (this.sketchMouseUpHandler) {
             this.canvas.removeEventListener('mouseup', this.sketchMouseUpHandler, true);
             this.sketchMouseUpHandler = null;
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         if (this.sketchMoveHandler) {
             this.canvas.removeEventListener('mousemove', this.sketchMoveHandler, true);
             this.sketchMoveHandler = null;
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         // Remove escape key handler
         if (this.sketchEscapeHandler) {
             document.removeEventListener('keydown', this.sketchEscapeHandler);
             this.sketchEscapeHandler = null;
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         // Remove unified sketch handlers
@@ -4955,22 +3531,6 @@ class DrawingWorld {
             this.sketchMoveHandler = null;
             this.sketchWheelHandler = null;
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         // Restore perspective projection
         this.camera.mode = BABYLON.Camera.PERSPECTIVE_CAMERA;
@@ -4983,43 +3543,11 @@ class DrawingWorld {
             this.sketchGrid.dispose();
             this.sketchGrid = null;
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         // Remove sketch grid lines
         if (this.sketchGridLines) {
             this.sketchGridLines.forEach(line => line.dispose());
             this.sketchGridLines = null;
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         // Re-enable the main grid
@@ -5029,22 +3557,6 @@ class DrawingWorld {
                 this.gridSystem.recreate();
             } else {
                 this.gridSystem.updateDynamicGrid();
-            }
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
             }
         }
         
@@ -5079,22 +3591,6 @@ class DrawingWorld {
         } else {
             document.getElementById('selection-info').textContent = 
                 'No shapes available - Enter sketch mode to draw';
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
 
@@ -5189,22 +3685,6 @@ class DrawingWorld {
             });
         }
 
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
-
         // Escape key handler for deselecting parts
         document.addEventListener('keydown', (event) => {
             if (event.key === 'Escape') {
@@ -5247,22 +3727,6 @@ class DrawingWorld {
             }
         }
 
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
-
         // Show modal
         modal.style.display = 'flex';
         
@@ -5278,44 +3742,12 @@ class DrawingWorld {
         if (searchInput) {
             searchInput.value = '';
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
 
     closeMaterialModal() {
         const modal = document.getElementById('material-modal');
         if (modal) {
             modal.style.display = 'none';
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         // Reset state
@@ -5361,22 +3793,6 @@ class DrawingWorld {
             });
         } else {
             materials = filteredMaterials || this.materialsLibrary.materials;
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         grid.innerHTML = '';
 
@@ -5442,22 +3858,6 @@ class DrawingWorld {
         if (categoryId === 'all') {
             this.populateMaterialGrid();
             return;
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
 
         if (!this.materialsLibrary.materials) return;
@@ -5540,22 +3940,6 @@ class DrawingWorld {
                 `;
             }
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
 
     addMaterialToProject() {
@@ -5570,22 +3954,6 @@ class DrawingWorld {
         if (!length || !width || !thickness || !grade) {
             alert('Please select all configuration options');
             return;
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
 
         // Create material entry for project
@@ -5621,22 +3989,6 @@ class DrawingWorld {
         if (material.grade_multipliers && material.grade_multipliers[grade]) {
             gradeMultiplier = material.grade_multipliers[grade];
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         return boardFeet * basePriceBF * gradeMultiplier;
     }
@@ -5645,22 +3997,6 @@ class DrawingWorld {
         // Initialize project parts list if it doesn't exist
         if (!this.projectPartsList) {
             this.projectPartsList = [];
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
 
         // Add material to parts list
@@ -5700,22 +4036,6 @@ class DrawingWorld {
         if (modeIndicator) {
             modeIndicator.textContent = mode === 'sketch' ? 'Sketch Mode' : '3D Modeling';
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         // Update context-sensitive tool groups
         this.updateToolGroups();
@@ -5730,22 +4050,6 @@ class DrawingWorld {
         if (this.currentMode === 'sketch' && !this.isSketchMode) {
             this.currentMode = 'model';
             console.log('Mode corrected to model');
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         
@@ -5799,22 +4103,6 @@ class DrawingWorld {
                 }
             }
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
 
     resetView() {
@@ -5845,22 +4133,6 @@ class DrawingWorld {
             document.getElementById('work-bench-tools').style.display = 'none';
             document.getElementById('assembly-bench-tools').style.display = 'block';
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         // Clear any active tool selections when switching benches
         document.querySelectorAll('[data-tool]').forEach(btn => btn.classList.remove('active'));
@@ -5889,22 +4161,6 @@ class DrawingWorld {
             // Still animate to origin for clean empty bench view
             this.animateCameraToPosition(new BABYLON.Vector3(0, 50, 100), BABYLON.Vector3.Zero());
             return;
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         // Calculate bounding box of all parts
@@ -5939,22 +4195,6 @@ class DrawingWorld {
     calculateSceneBounds(positions, parts) {
         if (positions.length === 0) {
             return { center: BABYLON.Vector3.Zero(), size: new BABYLON.Vector3(10, 10, 10) };
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         // Find min/max across all parts
@@ -6049,22 +4289,6 @@ class DrawingWorld {
             document.getElementById('coordinates').textContent = 
                 `X: ${pos.x.toFixed(2)}, Y: ${pos.y.toFixed(2)}, Z: ${pos.z.toFixed(2)}`;
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
     
     updateSketchPreviewWithPoint(point) {
@@ -6104,22 +4328,6 @@ class DrawingWorld {
                 }
                 break;
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
     
     updateSketchPreview(event) {
@@ -6132,22 +4340,6 @@ class DrawingWorld {
         if (pickInfo.hit) {
             this.updateSketchPreviewWithPoint(pickInfo.pickedPoint);
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
     
     cancelCurrentDrawing() {
@@ -6156,41 +4348,9 @@ class DrawingWorld {
             this.linePreview.dispose();
             this.linePreview = null;
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         if (this.shapePreview) {
             this.shapePreview.dispose();
             this.shapePreview = null;
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         // Reset drawing state
@@ -6281,44 +4441,12 @@ class DrawingWorld {
             this.enterSketchModeOnSurface(pickInfo.pickedMesh, pickInfo.pickedPoint, pickInfo.getNormal());
         } else {
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
     
     handleFaceHover(pointerInfo) {
         // Check if cut tool is active - skip hover effects
         if (this.cutToolSystem && this.cutToolSystem.cutPreviewActive) {
             return;
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         // Allow hover handling even when something is selected
@@ -6346,22 +4474,6 @@ class DrawingWorld {
             // Clear hover if not over any face
             this.clearHover();
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
     
     handleFaceSelection(pointerInfo) {
@@ -6369,22 +4481,6 @@ class DrawingWorld {
         if (this.cutToolSystem && this.cutToolSystem.cutPreviewActive) {
             // Let the cut tool system handle this interaction
             return;
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         // First check what we're hitting without filter
@@ -6412,22 +4508,6 @@ class DrawingWorld {
             }
             return; // Exit early to prevent face selection
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         // If no part was clicked, check for selectable faces
         const pickInfo = this.scene.pick(
@@ -6449,22 +4529,6 @@ class DrawingWorld {
         } else {
             // Don't deselect when clicking empty space - allows rotation/manipulation
             // Only deselect on explicit same-face click or different face selection
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
     }
     
@@ -6504,22 +4568,6 @@ class DrawingWorld {
             
             console.log('Right-clicked on part:', part.materialName);
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
     
     isSelectableFace(mesh) {
@@ -6532,44 +4580,12 @@ class DrawingWorld {
                 return true;
             }
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         // Also check current sketch elements if we just finished drawing
         if (this.currentSketch && this.currentSketch.elements) {
             for (const element of this.currentSketch.elements) {
                 if (element.closed && (element.mesh === mesh || element.mesh === mesh.parent)) {
                     return true;
-                }
-            }
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
                 }
             }
         }
@@ -6582,22 +4598,6 @@ class DrawingWorld {
         if (!this.selectedFace) {
             console.log('No selected face for extrusion');
             return;
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         console.log('Looking for shape data for face:', this.selectedFace.name);
@@ -6615,22 +4615,6 @@ class DrawingWorld {
                 break;
             }
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         // Check current sketch elements if not found
         if (!shapeData && this.currentSketch && this.currentSketch.elements) {
@@ -6641,22 +4625,6 @@ class DrawingWorld {
                     shapeData = element;
                     console.log('Found matching element in sketch:', element.type);
                     break;
-                }
-            }
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
                 }
             }
         }
@@ -6690,22 +4658,6 @@ class DrawingWorld {
             // Deselect the face after extrusion
             this.deselectFace();
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
     
     selectFace(face) {
@@ -6714,22 +4666,6 @@ class DrawingWorld {
         // Clear previous selection only if different face
         if (this.selectedFace && this.selectedFace !== face) {
             this.deselectFace();
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         // Set new selection
@@ -6747,22 +4683,6 @@ class DrawingWorld {
         if (this.activeTool === 'extrude') {
             console.log('Extrude tool is active, starting extrusion for selected face:', this.selectedFace?.name);
             this.startBidirectionalExtrusion();
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         console.log('Face selection complete, selectedFace:', this.selectedFace?.name);
@@ -6786,22 +4706,6 @@ class DrawingWorld {
             this.updateToolGroups();
 
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
     
     selectPart(part) {
@@ -6811,42 +4715,10 @@ class DrawingWorld {
         if (this.selectedPart && this.selectedPart !== part) {
             this.deselectPart();
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         // Also clear face selection when selecting a part
         if (this.selectedFace) {
             this.deselectFace();
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         // Set new part selection
@@ -6867,22 +4739,6 @@ class DrawingWorld {
             this.selectedPart = null;
             this.updatePartSelectionUI();
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
     
     setPartSelection(part, isSelected) {
@@ -6901,22 +4757,6 @@ class DrawingWorld {
                     partMesh = mesh;
                 }
             });
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         if (partMesh) {
@@ -6949,22 +4789,6 @@ class DrawingWorld {
                 console.error(`❌ POSITION CHANGED during selection! Delta:`, positionDelta);
             }
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
     
     updatePartSelectionUI() {
@@ -6974,22 +4798,6 @@ class DrawingWorld {
             selectionInfo.textContent = `Selected Part: ${partName}`;
         } else if (!this.selectedFace) {
             selectionInfo.textContent = 'No selection - Click a part or face to select';
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         // Update project explorer to show selection state
@@ -7007,22 +4815,6 @@ class DrawingWorld {
                     item.classList.add('active');
                 }
             });
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
     }
     
@@ -7052,22 +4844,6 @@ class DrawingWorld {
                 console.log('Skipped hover restore - face is selected or no base material');
             }
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         console.log('Face material after hover:', face.material?.name);
     }
     
@@ -7094,22 +4870,6 @@ class DrawingWorld {
                 face.baseMaterial = null;
             }
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         console.log('Material after selection:', face.material?.name);
     }
     
@@ -7117,22 +4877,6 @@ class DrawingWorld {
         if (this.hoveredFace) {
             this.setFaceHover(this.hoveredFace, false);
             this.hoveredFace = null;
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
     }
     
@@ -7143,22 +4887,6 @@ class DrawingWorld {
         } else {
             selectionInfo.textContent = 'No selection - Click a face to select';
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
     
     getShapeType(mesh) {
@@ -7168,43 +4896,11 @@ class DrawingWorld {
                 return shape.type.charAt(0).toUpperCase() + shape.type.slice(1);
             }
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         if (this.currentSketch && this.currentSketch.elements) {
             for (const element of this.currentSketch.elements) {
                 if (element.mesh === mesh) {
                     return element.type.charAt(0).toUpperCase() + element.type.slice(1);
-                }
-            }
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
                 }
             }
         }
@@ -7325,22 +5021,6 @@ class DrawingWorld {
         } else if (direction < 0) {
             arrow.rotationQuaternion = BABYLON.Quaternion.RotationAxis(new BABYLON.Vector3(1, 0, 0), Math.PI);
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         // Apply materials
         const material = this.createGizmoMaterial(color);
@@ -7408,22 +5088,6 @@ class DrawingWorld {
             // Highlight active component
             this.highlightGizmoComponent(this.extrusionGizmo.activeComponent, true);
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
     
     handleExtrusionGizmoMove(pointerInfo) {
@@ -7458,22 +5122,6 @@ class DrawingWorld {
         if (this.extrusionGizmo.currentDistance && Math.abs(this.extrusionGizmo.currentDistance) > 0.01) {
             this.applyExtrusion(this.extrusionGizmo.currentDistance);
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         // Reset gizmo state
         this.extrusionGizmo.isActive = false;
@@ -7490,41 +5138,9 @@ class DrawingWorld {
             mesh === this.extrusionGizmo.positiveArrow?.gizmoHead) {
             return this.extrusionGizmo.positiveArrow;
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         if (mesh === this.extrusionGizmo.negativeArrow?.gizmoShaft || 
             mesh === this.extrusionGizmo.negativeArrow?.gizmoHead) {
             return this.extrusionGizmo.negativeArrow;
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         return null;
     }
@@ -7544,22 +5160,6 @@ class DrawingWorld {
                 component.gizmoShaft.material.emissiveColor = originalColor.scale(0.3);
             }
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         if (component.gizmoHead && component.gizmoHead.material) {
             if (isHighlighted) {
@@ -7571,22 +5171,6 @@ class DrawingWorld {
                 component.gizmoHead.material.emissiveColor = originalColor.scale(0.3);
             }
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
     
     updateExtrusionPreview(distance) {
@@ -7596,22 +5180,6 @@ class DrawingWorld {
             const faceNormal = this.getFaceNormal(this.selectedFace);
             const offset = faceNormal.scale(distance);
             this.extrusionGizmo.root.position = this.extrusionGizmo.originalPosition.add(offset);
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
     }
     
@@ -7648,22 +5216,6 @@ class DrawingWorld {
                 break;
             default:
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
     
     getFaceCenter(face) {
@@ -7675,22 +5227,6 @@ class DrawingWorld {
             console.log('No vertex data, using mesh position');
             return face.position.clone();
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         // Calculate centroid from all vertices
         let centerX = 0, centerY = 0, centerZ = 0;
@@ -7700,22 +5236,6 @@ class DrawingWorld {
             centerX += positions[i];
             centerY += positions[i + 1];
             centerZ += positions[i + 2];
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         centerX /= vertexCount;
@@ -7746,22 +5266,6 @@ class DrawingWorld {
                 this.extrusionGizmo.root.dispose();
             }
             this.extrusionGizmo = null;
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
     }
     
@@ -7798,59 +5302,11 @@ class DrawingWorld {
         if (this.extrusionMouseDownHandler) {
             this.canvas.removeEventListener('mousedown', this.extrusionMouseDownHandler);
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         if (this.extrusionMouseMoveHandler) {
             this.canvas.removeEventListener('mousemove', this.extrusionMouseMoveHandler);
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         if (this.extrusionMouseUpHandler) {
             this.canvas.removeEventListener('mouseup', this.extrusionMouseUpHandler);
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
     }
     
@@ -7880,22 +5336,6 @@ class DrawingWorld {
             this.camera.detachControl(this.canvas);
             
 
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
     }
     
@@ -7941,22 +5381,6 @@ class DrawingWorld {
         if (this.sketchForward) {
             return this.sketchForward.clone();
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         // Default to Y-up if no sketch plane defined
         return new BABYLON.Vector3(0, 1, 0);
@@ -7995,22 +5419,6 @@ class DrawingWorld {
                 extrudedMesh = this.extrudeTriangle(shape);
                 break;
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         if (extrudedMesh) {
             // Set material
@@ -8027,22 +5435,6 @@ class DrawingWorld {
             
 
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
     
     getShapeData(mesh) {
@@ -8052,43 +5444,11 @@ class DrawingWorld {
                 return shape;
             }
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         if (this.currentSketch && this.currentSketch.elements) {
             for (const element of this.currentSketch.elements) {
                 if (element.mesh === mesh) {
                     return element;
-                }
-            }
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
                 }
             }
         }
@@ -8165,22 +5525,6 @@ class DrawingWorld {
             // Hole material (red/transparent to indicate cutting)
             box.material = this.createHoleMaterial();
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         
         return box;
@@ -8231,22 +5575,6 @@ class DrawingWorld {
             
             if (rotationAxis.length() > 0.001) { // Avoid zero-length cross product
                 cylinder.rotationQuaternion = BABYLON.Quaternion.RotationAxis(rotationAxis.normalize(), rotationAngle);
-            }
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
             }
         }
         
@@ -8312,22 +5640,6 @@ class DrawingWorld {
         if (direction < 0) {
             extruded.position = extruded.position.add(extrusionNormal.scale(-depth));
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         // Apply appropriate material
         extruded.material = isPositive ? this.createSolidMaterial() : this.createHoleMaterial();
@@ -8341,22 +5653,6 @@ class DrawingWorld {
             this.extrusionPreview.dispose();
             this.extrusionPreview = null;
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
     
     // ==================== INTERACTIVE EXTRUSION GIZMO SYSTEM ====================
@@ -8365,22 +5661,6 @@ class DrawingWorld {
         if (!this.selectedFace) {
             console.error('startBidirectionalExtrusion called but no selectedFace!');
             return;
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         console.log('Starting bidirectional extrusion for face:', this.selectedFace.name);
@@ -8405,22 +5685,6 @@ class DrawingWorld {
             console.error('Failed to get face center or normal! center:', faceCenter, 'normal:', faceNormal);
             return;
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         // Create bidirectional extrusion gizmo
         console.log('About to create bidirectional gizmo...');
@@ -8430,22 +5694,6 @@ class DrawingWorld {
         const selectionInfo = document.getElementById('selection-info');
         if (selectionInfo) {
             selectionInfo.textContent = 'Drag gizmo: Pull out to add material, Push in to cut. Rotate camera away from gizmo/surface to navigate.';
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         console.log('Bidirectional extrusion started');
@@ -8497,43 +5745,11 @@ class DrawingWorld {
             this.scene.onPointerObservable.remove(this.smartCameraPointerObserver);
             this.smartCameraPointerObserver = null;
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         // Ensure camera controls are re-enabled
         if (this.cameraControlsDetached && this.camera.inputs.attached.pointers) {
             this.camera.inputs.attached.pointers.attachControl();
             this.cameraControlsDetached = false;
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         console.log('Smart camera control cleaned up');
@@ -8590,61 +5806,13 @@ class DrawingWorld {
             this.scene.onBeforeRenderObservable.remove(this.gizmoBillboardObserver);
             this.gizmoBillboardObserver = null;
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         if (this.gizmoOrientationObserver) {
             this.scene.onBeforeRenderObservable.remove(this.gizmoOrientationObserver);
             this.gizmoOrientationObserver = null;
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         if (this.gizmoTracker) {
             this.scene.onBeforeRenderObservable.remove(this.gizmoTracker);
             this.gizmoTracker = null;
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         console.log('Gizmo orientation tracking cleaned up');
     }
@@ -8933,22 +6101,6 @@ class DrawingWorld {
         if (this.extrusionGizmoComponents.gizmoTexture) {
             this.extrusionGizmoComponents.gizmoTexture.dispose();
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         this.extrusionGizmoComponents.gizmoTexture = newTexture;
     }
     
@@ -9063,22 +6215,6 @@ class DrawingWorld {
             gizmoMaterial.diffuseColor = new BABYLON.Color3(0.8, 0.2, 0.2);
             gizmoMaterial.emissiveColor = new BABYLON.Color3(0.4, 0.1, 0.1);
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         // Apply material to all gizmo parts
         hub.material = gizmoMaterial;
@@ -9099,22 +6235,6 @@ class DrawingWorld {
         } else {
             // Red for subtractive
             previewMaterial.diffuseColor = new BABYLON.Color3(0.8, 0.2, 0.2);
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         previewMaterial.alpha = 0.6;
@@ -9237,22 +6357,6 @@ class DrawingWorld {
             
             console.log('Interactive extrusion preview created');
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
     
     createExtrusionPreviewMesh(shapeData) {
@@ -9291,22 +6395,6 @@ class DrawingWorld {
                     depth: 2
                 }, this.scene);
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
     
     updateInteractiveExtrusionPreview() {
@@ -9332,44 +6420,12 @@ class DrawingWorld {
             // Extruding along Z axis
             this.interactiveExtrusionPreview.scaling.z = Math.max(0.1, depth);
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
     
     finishInteractiveExtrusion() {
         if (!this.selectedFace || Math.abs(this.extrusionDistance) < 0.1) {
             this.cancelInteractiveExtrusion();
             return;
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         console.log(`Finishing interactive extrusion: ${this.extrusionDistance} cm`);
@@ -9394,22 +6450,6 @@ class DrawingWorld {
                     break;
             }
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         // Clean up interactive extrusion
         this.cleanupInteractiveExtrusion();
@@ -9428,22 +6468,6 @@ class DrawingWorld {
         const selectionInfo = document.getElementById('selection-info');
         if (selectionInfo) {
             selectionInfo.textContent = 'Face selected - Choose extrude operation';
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
     }
     
@@ -9479,83 +6503,19 @@ class DrawingWorld {
             this.scene.onPointerObservable.remove(this.gizmoPointerDownObserver);
             this.gizmoPointerDownObserver = null;
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         if (this.gizmoPointerMoveObserver) {
             this.scene.onPointerObservable.remove(this.gizmoPointerMoveObserver);
             this.gizmoPointerMoveObserver = null;
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         if (this.gizmoPointerUpObserver) {
             this.scene.onPointerObservable.remove(this.gizmoPointerUpObserver);
             this.gizmoPointerUpObserver = null;
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         // Dispose gizmo meshes
         if (this.extrusionGizmo) {
             this.extrusionGizmo.dispose();
             this.extrusionGizmo = null;
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         this.extrusionGizmoComponents = null;
@@ -9565,22 +6525,6 @@ class DrawingWorld {
         if (this.interactiveExtrusionPreview) {
             this.interactiveExtrusionPreview.dispose();
             this.interactiveExtrusionPreview = null;
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
     }
     
@@ -9595,22 +6539,6 @@ class DrawingWorld {
         if (!positions || !indices || indices.length < 3) {
             console.log('Insufficient geometry data, using Y-up normal');
             return new BABYLON.Vector3(0, 1, 0);
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         // Get first triangle to calculate normal
@@ -9650,22 +6578,6 @@ class DrawingWorld {
         } catch (error) {
             console.error('Error initializing materials system:', error);
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
 
     setupMaterialModalListeners() {
@@ -9677,22 +6589,6 @@ class DrawingWorld {
             });
         }
 
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
-
         // Close modal handlers
         const closeModalBtn = document.getElementById('close-material-modal');
         const modalOverlay = document.getElementById('material-modal');
@@ -9701,22 +6597,6 @@ class DrawingWorld {
             closeModalBtn.addEventListener('click', () => {
                 this.closeMaterialModal();
             });
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         if (modalOverlay) {
@@ -9727,44 +6607,12 @@ class DrawingWorld {
             });
         }
 
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
-
         // Search functionality
         const searchInput = document.getElementById('material-search');
         if (searchInput) {
             searchInput.addEventListener('input', (e) => {
                 this.filterMaterials(e.target.value);
             });
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
 
         // Material grid click handler (using event delegation)
@@ -9777,22 +6625,6 @@ class DrawingWorld {
                     this.selectMaterial(materialId);
                 }
             });
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
 
         // Configuration change handlers
@@ -9817,44 +6649,12 @@ class DrawingWorld {
             });
         }
 
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
-
         // Cancel configuration button
         const cancelConfigBtn = document.getElementById('cancel-material-config');
         if (cancelConfigBtn) {
             cancelConfigBtn.addEventListener('click', () => {
                 this.showMaterialGrid();
             });
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
 
         // Include in project button
@@ -9864,22 +6664,6 @@ class DrawingWorld {
                 this.includeCurrentPartInProject();
             });
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         // Back to Work Bench button event handler
         const backToWorkBenchBtn = document.getElementById('back-to-workbench-btn');
@@ -9887,22 +6671,6 @@ class DrawingWorld {
             backToWorkBenchBtn.addEventListener('click', () => {
                 this.sendPartBackToWorkBench();
             });
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
     }
 
@@ -9914,22 +6682,6 @@ class DrawingWorld {
             this.populateMaterialGrid();
             this.showMaterialGrid();
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
 
     closeMaterialModal() {
@@ -9938,22 +6690,6 @@ class DrawingWorld {
             modal.style.display = 'none';
             this.selectedMaterial = null;
             this.showMaterialGrid();
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
     }
 
@@ -10001,22 +6737,6 @@ class DrawingWorld {
                 }
             });
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
 
     getMaterialIcon(category) {
@@ -10054,22 +6774,6 @@ class DrawingWorld {
                 `;
             }).join('');
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
 
     selectMaterial(materialId) {
@@ -10096,22 +6800,6 @@ class DrawingWorld {
             nameElement.textContent = `${material.name} Configuration`;
         }
 
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
-
         // Populate dimension options
         // Use actual database schema
         const defaultConfig = material.default_configuration || {};
@@ -10132,22 +6820,6 @@ class DrawingWorld {
                 return `<option value="${gradeId}" ${selected}>${grade.name}</option>`;
             }).join('');
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
 
     populateSelectOptions(selectId, options, defaultValue) {
@@ -10157,22 +6829,6 @@ class DrawingWorld {
                 const selected = option === defaultValue ? 'selected' : '';
                 return `<option value="${option}" ${selected}>${option}"</option>`;
             }).join('');
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
     }
 
@@ -10198,22 +6854,6 @@ class DrawingWorld {
                 </div>
                 <div class="cost-total">Total: $${costInfo.totalCost}</div>
             `;
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
     }
 
@@ -10320,22 +6960,6 @@ class DrawingWorld {
                 }
             }
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         // Fallback to solid colors if texture fails
         const colorMap = {
@@ -10373,22 +6997,6 @@ class DrawingWorld {
             this.showAssemblyBenchScene();
             // Make sure assembly parts are created and visible
             this.createAssemblyProjectView();
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         // Clear any active tool selection
@@ -10437,22 +7045,6 @@ class DrawingWorld {
                 }).join('');
             }
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
     
     /**
@@ -10484,61 +7076,13 @@ class DrawingWorld {
             }
             return;
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         // Clear current selection
         if (this.selectedPart) {
             this.deselectPart();
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         if (this.selectedFace) {
             this.deselectFace();
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         // Select the target mesh
@@ -10550,22 +7094,6 @@ class DrawingWorld {
             targetMesh.outlineColor = new BABYLON.Color3(0, 1, 0); // Green outline
             targetMesh.outlineWidth = 0.02;
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         // Animate camera to focus on the part
         this.animateCameraToFocusPart(targetMesh);
@@ -10573,22 +7101,6 @@ class DrawingWorld {
         // Update UI to show selection (skip if function doesn't exist)
         if (this.updateSelection) {
             this.updateSelection();
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         console.log(`DrawingWorld: Focused on part: ${targetMesh.partData.materialName}`);
@@ -10711,22 +7223,6 @@ class DrawingWorld {
                 }).join('');
             }
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
 
     /**
@@ -10775,22 +7271,6 @@ class DrawingWorld {
             console.error('Error serializing mesh geometry:', error);
             return null;
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
     
     /**
@@ -10800,22 +7280,6 @@ class DrawingWorld {
     restoreMeshGeometry(meshData, newMeshId) {
         if (!meshData || !meshData.hasCustomGeometry) {
             return null; // No custom geometry to restore
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         try {
@@ -10859,22 +7323,6 @@ class DrawingWorld {
             console.error('Error restoring mesh geometry:', error);
             return null;
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
 
     createWorkBenchMaterial(part, isRestoring = false) {
@@ -10885,22 +7333,6 @@ class DrawingWorld {
         // CRITICAL: Check if part has preserved geometry from previous modifications
         if (part.meshGeometry && part.meshGeometry.hasCustomGeometry) {
             box = this.restoreMeshGeometry(part.meshGeometry, part.id);
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         // If no preserved geometry or restoration failed, create default box
@@ -10924,22 +7356,6 @@ class DrawingWorld {
 
         }
 
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
-
         // Smart positioning: preserve saved position when restoring, use spawn position for new parts
         if (isRestoring && part.meshGeometry && part.meshGeometry.position) {
             // CRITICAL: Restore saved position for loaded parts
@@ -10960,27 +7376,9 @@ class DrawingWorld {
             console.log('Using spawn position for', isRestoring ? 'restored part without saved position' : 'new part', part.materialName, ':', box.position);
         }
 
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
-
         if (!box.material) {
             box.material = this.getMaterialColor(part.materialId);
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
+n        // For loaded boards, ensure textures are applied from current materials library
         if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
             const materialData = this.materialsLibrary.getMaterial(part.materialId);
             if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
@@ -10988,10 +7386,10 @@ class DrawingWorld {
                 try {
                     const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
                     box.material.diffuseTexture = texture;
+                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1);
                     console.log("✅ Texture applied to loaded board");
-                    console.log(✅ Texture applied to loaded board);
+                } catch (error) {
                     console.warn("⚠️ Failed to apply texture to loaded board:", error);
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
                 }
             }
         }
@@ -11015,22 +7413,6 @@ class DrawingWorld {
         // DRAMATIC REVEAL: Animate camera to showcase the new material (skip during loading)
         if (!this.isLoadingProject) {
             this.animateCameraToShowcaseMaterial(box, part);
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
 
@@ -11065,22 +7447,6 @@ class DrawingWorld {
             if (!partData.dimensions.width || partData.dimensions.width <= 0) issues.push("❌ Invalid width");  
             if (!partData.dimensions.thickness || partData.dimensions.thickness <= 0) issues.push("❌ Invalid thickness");
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         // 3. 3D MESH INTEGRITY AUDIT
         if (!board) {
@@ -11090,22 +7456,6 @@ class DrawingWorld {
             if (!board.position) issues.push("❌ Missing position");
             if (!board.scaling) issues.push("❌ Missing scaling");
             if (!board.id) issues.push("❌ Missing mesh ID");
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         // 4. MATERIALS LIBRARY INTEGRATION AUDIT
@@ -11122,22 +7472,6 @@ class DrawingWorld {
                 }
             }
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         // 5. UNIQUE IDENTITY AUDIT
         if (!partData.id) issues.push("❌ Missing unique part ID");
@@ -11147,22 +7481,6 @@ class DrawingWorld {
             const materialName = board.material.name;
             if (!materialName || materialName === "material") {
                 issues.push("❌ Generic material name - may cause tool conflicts");
-            }
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
             }
         }
         
@@ -11178,22 +7496,6 @@ class DrawingWorld {
             issues.forEach(function(issue) { console.error("   " + issue); });
             console.error("   🚨 This board may not be ready for all operations!");
             return false;
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
     }
 
@@ -11251,22 +7553,6 @@ class DrawingWorld {
             // Long dimension is Z, approach from X side  
             startCameraOffset = new BABYLON.Vector3(startHorizontalDistance, startHeightFromAngle, 0);
             finalCameraOffset = new BABYLON.Vector3(finalHorizontalDistance, finalHeightFromAngle, 0);
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         const startCameraPosition = meshCenter.add(startCameraOffset);
@@ -11353,22 +7639,6 @@ class DrawingWorld {
             targetPosition.x = Math.round(targetPosition.x / gridSize) * gridSize;
             targetPosition.z = Math.round(targetPosition.z / gridSize) * gridSize;
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         // Set Y position to place material on ground
         targetPosition.y = thicknessCm / 2;
@@ -11404,22 +7674,6 @@ class DrawingWorld {
                 }
             }
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         // Fallback: use old method if no clear position found
         console.log('DrawingWorld: No clear position found, using fallback positioning');
@@ -11447,22 +7701,6 @@ class DrawingWorld {
             );
             const position = basePos.add(forwardDir.scale(distance * 0.7)).add(offsetDir.scale(distance * 0.5));
             positions.push(position);
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         return positions;
@@ -11498,22 +7736,6 @@ class DrawingWorld {
                 return searchPos;
             }
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         // Fallback: use original linear arrangement if no clear position found
         console.log('Assembly: Using fallback linear positioning');
@@ -11545,44 +7767,12 @@ class DrawingWorld {
                 positions.push(new BABYLON.Vector3(x, baseY, z));
             }
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         // Add some linear positions as backup
         for (let i = 1; i <= 10; i++) {
             const spacing = Math.max(lengthCm, widthCm) + 20;
             positions.push(new BABYLON.Vector3(i * spacing, baseY, 0)); // Along X axis
             positions.push(new BABYLON.Vector3(0, baseY, i * spacing)); // Along Z axis
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         return positions;
@@ -11597,22 +7787,6 @@ class DrawingWorld {
         if (this.isLoadingProject) {
             console.log(`Skipping camera animation for ${benchType} bench (project loading)`);
             return;
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         console.log(`Animating camera for ${benchType} bench`);
@@ -11629,65 +7803,17 @@ class DrawingWorld {
             targetParts = this.scene.meshes.filter(m => m.isProjectPart && m.isEnabled());
             mostRecentPart = this.projectParts[this.projectParts.length - 1];
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         if (targetParts.length === 0) {
             // No parts on this bench - animate to origin
             this.animateCameraToOrigin();
             return;
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         if (targetParts.length === 1) {
             // Single part - focus on it
             this.animateCameraToFocusPart(targetParts[0]);
             return;
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         // Multiple parts - choose between focusing on most recent or showing all
@@ -11698,22 +7824,6 @@ class DrawingWorld {
                 console.log(`Focusing camera on most recent part: ${mostRecentPart.materialName}`);
                 this.animateCameraToFocusPart(recentMesh);
                 return;
-            }
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
             }
         }
         
@@ -11777,22 +7887,6 @@ class DrawingWorld {
         if (parts.length === 0) {
             this.animateCameraToOrigin();
             return;
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         console.log(`Animating camera to show ${parts.length} parts optimally`);
@@ -11871,44 +7965,12 @@ class DrawingWorld {
         if (includeBtn) {
             includeBtn.style.display = 'block';
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
 
     hideIncludeInProjectButton() {
         const includeBtn = document.getElementById('include-in-project-btn');
         if (includeBtn) {
             includeBtn.style.display = 'none';
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
     }
 
@@ -11917,44 +7979,12 @@ class DrawingWorld {
         if (backBtn) {
             backBtn.style.display = 'block';
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
 
     hideBackToWorkBenchButton() {
         const backBtn = document.getElementById('back-to-workbench-btn');
         if (backBtn) {
             backBtn.style.display = 'none';
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
     }
 
@@ -11964,22 +7994,6 @@ class DrawingWorld {
             console.log('No part selected - please select a part to send to assembly');
             // TODO: Show user message about selecting a part first
             return;
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
 
         // Find the corresponding mesh in the scene
@@ -11992,22 +8006,6 @@ class DrawingWorld {
             return;
         }
 
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
-
         // CRITICAL: Preserve actual mesh geometry before transfer
         const part = this.selectedPart;
         
@@ -12016,22 +8014,6 @@ class DrawingWorld {
             this.routerBitSystem.clearAll();
             console.log('Cleared router previews before geometry serialization');
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         // Capture current mesh geometry data
         if (selectedMesh) {
@@ -12039,44 +8021,12 @@ class DrawingWorld {
             part.meshGeometry = meshData;
             console.log('Captured mesh geometry for transfer:', meshData);
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         // Keep original status if it's already processed, otherwise mark as assembly-ready
         if (part.status === 'raw_material') {
             part.status = 'assembly_ready'; // Raw piece going to assembly
         } else {
             part.status = 'finished_part'; // Processed piece going to assembly
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         part.bench = 'assembly';
         part.id = part.id.replace('workpart_', 'part_'); // Change ID format
@@ -12089,22 +8039,6 @@ class DrawingWorld {
         if (selectedMesh) {
             selectedMesh.dispose();
             console.log(`Removed selected part from work bench: ${part.materialName}`);
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
 
         // Clear selection since the part is now moved
@@ -12130,22 +8064,6 @@ class DrawingWorld {
             return;
         }
 
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
-
         // Find the corresponding mesh in the scene
         const selectedMesh = this.scene.meshes.find(mesh => 
             mesh.partData && mesh.partData.id === this.selectedPart.id
@@ -12156,22 +8074,6 @@ class DrawingWorld {
             return;
         }
 
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
-
         // CRITICAL: Preserve actual mesh geometry before transfer
         const part = this.selectedPart;
         
@@ -12180,44 +8082,12 @@ class DrawingWorld {
             this.routerBitSystem.clearAll();
             console.log('Cleared router previews before geometry serialization');
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         // Capture current mesh geometry data
         if (selectedMesh) {
             const meshData = this.serializeMeshGeometry(selectedMesh);
             part.meshGeometry = meshData;
             console.log('Captured mesh geometry for transfer:', meshData);
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         // Preserve the processing history - don't change status back to raw if it was processed
@@ -12232,22 +8102,6 @@ class DrawingWorld {
         if (selectedMesh) {
             selectedMesh.dispose();
             console.log(`Removed selected part from assembly: ${part.materialName}`);
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
 
         // Clear selection since the part is now moved
@@ -12447,22 +8301,6 @@ class DrawingWorld {
         if (this.selectedPart && this.selectedPart !== part) {
             this.deselectPart();
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         // Toggle selection if clicking same part (unless drill press is active)
         if (this.selectedPart === part) {
@@ -12472,22 +8310,6 @@ class DrawingWorld {
                 return;
             }
             // For drill press, allow clicks on selected part for surface selection
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         // Select new part
@@ -12513,22 +8335,6 @@ class DrawingWorld {
                 this.createDragHandles(mesh);
             }
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         // Update UI
         this.updatePartSelectionUI();
@@ -12536,22 +8342,6 @@ class DrawingWorld {
         // Deselect any face selection
         if (this.selectedFace) {
             this.deselectFace();
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
     }
 
@@ -12564,22 +8354,6 @@ class DrawingWorld {
         const mesh = this.scene.meshes.find(m => m.partData === this.selectedPart);
         if (mesh) {
             this.setPartSelection(mesh, false);
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         // Clear manipulation UI
@@ -12626,22 +8400,6 @@ class DrawingWorld {
             // Remove outline
             mesh.disableEdgesRendering();
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         // DEBUG: Track position after selection
         const positionAfter = mesh.position.clone();
@@ -12651,22 +8409,6 @@ class DrawingWorld {
         const positionDelta = positionAfter.subtract(positionBefore);
         if (positionDelta.length() > 0.001) {
             console.error(`❌ MESH POSITION CHANGED during selection! Delta:`, positionDelta);
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
     }
 
@@ -12682,22 +8424,6 @@ class DrawingWorld {
                 `;
             } else {
                 selectionInfo.textContent = 'Nothing selected';
-            }
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
             }
         }
         
@@ -12725,22 +8451,6 @@ class DrawingWorld {
             this.hideIncludeInProjectButton();
             this.hideBackToWorkBenchButton();
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         // Update project explorer selection
         this.updateProjectExplorerSelection();
@@ -12760,22 +8470,6 @@ class DrawingWorld {
                 partItem.classList.add('active');
             }
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
 
     createManipulationButtons(mesh) {
@@ -12790,22 +8484,6 @@ class DrawingWorld {
             console.error('Error creating manipulation buttons:', error);
             // Fallback: Show manipulation info in selection panel
             this.showManipulationInstructions();
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
     }
 
@@ -12857,22 +8535,6 @@ class DrawingWorld {
                     </div>
                 </div>
             `;
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
     }
 
@@ -12984,22 +8646,6 @@ class DrawingWorld {
             // Fallback: Show manipulation info in selection panel
             this.showManipulationInstructions();
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
 
     showManipulationInstructions() {
@@ -13019,22 +8665,6 @@ class DrawingWorld {
                 <button onclick="window.drawingWorld.rotatePart(90, 'X')" class="manip-btn">⤴ 90°</button>
                 <button onclick="window.drawingWorld.rotatePart(-90, 'X')" class="manip-btn">⤵ 90°</button>
             `;
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
     }
 
@@ -13132,22 +8762,6 @@ class DrawingWorld {
             this.manipulationGUI.dispose();
             this.manipulationGUI = null;
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         // Also clear properties panel if it contains manipulation buttons
         this.clearPropertiesPanel();
     }
@@ -13156,22 +8770,6 @@ class DrawingWorld {
         const selectionInfo = document.getElementById('selection-info');
         if (selectionInfo) {
             selectionInfo.textContent = 'Nothing selected';
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
     }
 
@@ -13214,22 +8812,6 @@ class DrawingWorld {
             
             console.log('GIZMO OVERRIDE: Using actual vertex center:', actualCenter);
             console.log('GIZMO OVERRIDE: vs mesh.getAbsolutePosition():', mesh.getAbsolutePosition());
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         const partPosition = actualCenter;
@@ -13435,22 +9017,6 @@ class DrawingWorld {
             this.scene.onPointerObservable.remove(this.dragPointerObserver);
             this.dragPointerObserver = null;
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         // Then dispose visual handles
         if (this.dragHandles) {
@@ -13458,22 +9024,6 @@ class DrawingWorld {
                 handle.dispose();
             });
             this.dragHandles = [];
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
     }
 
@@ -13498,22 +9048,6 @@ class DrawingWorld {
                 mesh.rotation.z += radians;
                 break;
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         // AUTO-LIFT: Ensure part doesn't go below XY plane after rotation
         this.keepOnBenchSurface(mesh);
@@ -13526,43 +9060,11 @@ class DrawingWorld {
             this.clearDragHandles();
             this.createDragHandles(mesh);
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         // Update manipulation buttons position (only if Move tool is active)
         if (this.activeTool === 'move') {
             this.clearManipulationButtons();
             this.createManipulationButtons(mesh);
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
     }
 
@@ -13600,22 +9102,6 @@ class DrawingWorld {
         if (this.selectedPart === mesh.partData) {
             this.selectedPart.dimensions = mesh.partData.dimensions;
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
 
     flipPart(axis) {
@@ -13637,22 +9123,6 @@ class DrawingWorld {
                 mesh.rotation.z += Math.PI;
                 break;
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         // AUTO-LIFT: Ensure part doesn't go below XY plane after flip
         this.keepOnBenchSurface(mesh);
@@ -13665,43 +9135,11 @@ class DrawingWorld {
             this.clearDragHandles();
             this.createDragHandles(mesh);
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         // Update manipulation buttons position (only if Move tool is active)
         if (this.activeTool === 'move') {
             this.clearManipulationButtons();
             this.createManipulationButtons(mesh);
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
     }
 
@@ -13799,43 +9237,11 @@ class DrawingWorld {
             this.clearDragHandles();
             this.createDragHandles(mesh);
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         // Update manipulation buttons position (only if Move tool is active)
         if (this.activeTool === 'move') {
             this.clearManipulationButtons();
             this.createManipulationButtons(mesh);
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
     }
 
@@ -13856,22 +9262,6 @@ class DrawingWorld {
         // Prevent duplicate observers
         if (this.dragPointerObserver) {
             return; // Already enabled
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         // Add mouse event handlers for drag handles
@@ -13931,22 +9321,6 @@ class DrawingWorld {
             
             console.log('Part clicked - prepared for potential dragging');
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
 
     onDragMove(pointerInfo) {
@@ -13969,22 +9343,6 @@ class DrawingWorld {
                 console.log('Started dragging part directly - Camera controls DISABLED');
             }
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         if (!this.isDragging) return;
         
@@ -14001,22 +9359,6 @@ class DrawingWorld {
             // Free movement dragging
             this.handleFreeDrag(pointerInfo);
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
 
     onDragEnd(pointerInfo) {
@@ -14025,22 +9367,6 @@ class DrawingWorld {
             this.potentialDragPart = null;
             console.log('Selection completed - no drag occurred');
             return;
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         if (!this.isDragging) return;
@@ -14083,22 +9409,6 @@ class DrawingWorld {
             
             console.log('Finished free dragging part - Camera controls RE-ENABLED');
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         this.isDragging = false;
         this.dragHandle = null;
@@ -14134,22 +9444,6 @@ class DrawingWorld {
             case 'Z':
                 targetPart.position.z += (deltaX + deltaY) * sensitivity * 0.5; // Combine for Z movement
                 break;
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         // Apply grid snapping in real-time
@@ -14198,22 +9492,6 @@ class DrawingWorld {
                 targetPart.position.z += deltaY * sensitivity;
                 break;
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
         
         // Restore the locked axis position
         if (lockedAxis === 'X') {
@@ -14222,22 +9500,6 @@ class DrawingWorld {
             targetPart.position.y = lockedPosition;
         } else if (lockedAxis === 'Z') {
             targetPart.position.z = lockedPosition;
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
         
         // Apply grid snapping in real-time
@@ -14279,22 +9541,6 @@ class DrawingWorld {
             
             // Update handle positions
             this.updateDragHandlePositions(part);
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
     }
 
@@ -14371,22 +9617,6 @@ class DrawingWorld {
             case 'Z': return new BABYLON.Vector3(0, 0, 1);
             default: return new BABYLON.Vector3(0, 1, 0);
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
 
     keepOnBenchSurface(mesh) {
@@ -14426,22 +9656,6 @@ class DrawingWorld {
             console.log(`AUTO-LIFTED part by ${adjustment.toFixed(2)} units to keep on bench surface`);
         } else {
             console.log(`Part already on bench surface (lowest Y: ${lowestY.toFixed(2)})`);
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
     }
 
@@ -14567,22 +9781,6 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('project-name').textContent = project.name;
             document.title = `CutList - ${project.name}`;
         }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
-        }
     }
     
     // Initialize the 3D world
@@ -14662,22 +9860,6 @@ window.identifyBoardDifferences = function() {
         if (!match) {
             console.log(`      🔹 Board 1: `, val1);
             console.log(`      🔹 Board 2: `, val2);
-        }
-
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log(🖼️ Applying texture to loaded board:, materialData.visual_assets.texture_diffuse);
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log(✅ Texture applied to loaded board);
-                } catch (error) {
-                    console.warn(⚠️ Failed to apply texture to loaded board:, error);
-                }
-            }
         }
     });
     

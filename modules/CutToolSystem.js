@@ -1382,7 +1382,7 @@ export class CutToolSystem {
             partData = this.getPartData(mesh);
             
             // Check if this is a routed mesh that needs CSG cutting
-            if (partData.meshGeometry && partData.meshGeometry.hasCustomGeometry) {
+            if (partData.meshGeometry && partData.meshGeometry.hasCustomGeometry && partData.status !== "raw_material") {
                 const result = this.executeCsgCut(mesh, partData, cutPosition);
                 return result;
             }

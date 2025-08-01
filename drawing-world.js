@@ -7297,6 +7297,30 @@ class DrawingWorld {
                 mesh.setIndices(meshData.indices);
             }
             
+            
+            // CRITICAL FIX: Generate UV coordinates for ANY mesh geometry
+            if (!mesh.isVerticesDataPresent(BABYLON.VertexBuffer.UVKind)) {
+                console.log("🔧 Generating UV coordinates for restored mesh");
+                const positions = mesh.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+                if (positions) {
+                    const uvs = [];
+                    const vertexCount = positions.length / 3;
+                    
+                    // Generate planar UV mapping based on world coordinates
+                    for (let i = 0; i < vertexCount; i++) {
+                        const x = positions[i * 3];
+                        const z = positions[i * 3 + 2];
+                        
+                        // Use X,Z coordinates for UV mapping (top-down projection)
+                        uvs.push(x * 0.01, z * 0.01);
+                    }
+                    
+                    mesh.setVerticesData(BABYLON.VertexBuffer.UVKind, uvs);
+                    console.log("✅ UV coordinates generated for", vertexCount, "vertices");
+                } else {
+                    console.warn("⚠️ No position data found for UV generation");
+                }
+            }
             // Restore transforms
             mesh.position = new BABYLON.Vector3(meshData.position.x, meshData.position.y, meshData.position.z);
             mesh.rotation = new BABYLON.Vector3(meshData.rotation.x, meshData.rotation.y, meshData.rotation.z);

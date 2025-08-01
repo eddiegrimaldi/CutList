@@ -7378,19 +7378,6 @@ class DrawingWorld {
 
         if (!box.material) {
             box.material = this.getMaterialColor(part.materialId);
-        // For loaded boards, ensure textures are applied from current materials library
-        if (isRestoring && box.material && !box.material.diffuseTexture && this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(part.materialId);
-            if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                try {
-                    const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                    box.material.diffuseTexture = texture;
-                    box.material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1);
-                } catch (error) {
-                    console.warn("Failed to apply texture to loaded board:", error);
-                }
-            }
-        }
         }
 
         // Store reference
@@ -7465,9 +7452,9 @@ class DrawingWorld {
             } else {
                 // Check if texture should be available
                 if (materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                    if (board && board.material && !board.material.diffuseTexture) {
-                        issues.push("⚠️ Texture available but not applied");
-                    }
+                    //                     if (board && board.material && !board.material.diffuseTexture) {
+                    //                         issues.push("⚠️ Texture available but not applied");
+                    //                     }
                 }
             }
         }

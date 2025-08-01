@@ -7408,10 +7408,6 @@ class DrawingWorld {
         const auditContext = isRestoring ? "RESTORE" : "CREATE";
         this.auditBoardIntegrity(box, part, auditContext);
 
-n        // 🔍 BOARD INTEGRITY AUDIT - Validate this board is ready for any operation
-        const auditContext = isRestoring ? "RESTORE" : "CREATE";
-        this.auditBoardIntegrity(box, part, auditContext);
-
         // Return the created mesh
         return box;
     }
@@ -7479,7 +7475,7 @@ n        // 🔍 BOARD INTEGRITY AUDIT - Validate this board is ready for any op
         // AUDIT RESULTS
         if (issues.length === 0) {
             console.log("✅ " + context.toUpperCase() + " AUDIT PASSED: " + partData.materialName + " is fully operational");
-            console.log("   📏 Dimensions: " + partData.dimensions.length + ""×" + partData.dimensions.width + ""×" + partData.dimensions.thickness + """);
+            console.log("   📏 Dimensions: " + partData.dimensions.length + "x" + partData.dimensions.width + "x" + partData.dimensions.thickness);
             console.log("   🎨 Material: " + partData.materialId + " (" + partData.grade + ")");
             console.log("   🆔 ID: " + partData.id);
             return true;

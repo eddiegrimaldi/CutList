@@ -7403,7 +7403,7 @@ class DrawingWorld {
             this.animateCameraToShowcaseMaterial(box, part);
         }
         
-n    /**
+    /**
      * 🔍 BOARD INTEGRITY AUDIT SYSTEM
      * Validates that every created board has complete characteristics
      * and is ready for any operation like a library-added board
@@ -7479,7 +7479,7 @@ n    /**
         }
     }
 
-n        // 🔍 BOARD INTEGRITY AUDIT - Validate this board is ready for any operation
+        // 🔍 BOARD INTEGRITY AUDIT - Validate this board is ready for any operation
         const auditContext = isRestoring ? "RESTORE" : "CREATE";
         this.auditBoardIntegrity(box, part, auditContext);
 

@@ -9845,7 +9845,7 @@ window.identifyBoardDifferences = function() {
         const val2 = board2[prop];
         const match = JSON.stringify(val1) === JSON.stringify(val2);
         console.log(`   ${match ? '✅' : '❌'} ${prop}: ${match ? 'MATCH' : 'DIFFERENT'}`);
-        if (\!match) {
+        if (!match) {
             console.log(`      🔹 Board 1: `, val1);
             console.log(`      🔹 Board 2: `, val2);
         }
@@ -9863,7 +9863,7 @@ window.identifyBoardDifferences = function() {
             const val2 = prop.includes('.') ? mesh2[prop.split('.')[0]][prop.split('.')[1]] : mesh2[prop];
             const match = JSON.stringify(val1) === JSON.stringify(val2);
             console.log(`   ${match ? '✅' : '❌'} ${prop}: ${match ? 'MATCH' : 'DIFFERENT'}`);
-            if (\!match) {
+            if (!match) {
                 console.log(`      🔹 Mesh 1: `, val1);
                 console.log(`      🔹 Mesh 2: `, val2);
             }

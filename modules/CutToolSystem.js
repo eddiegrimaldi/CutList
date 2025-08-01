@@ -1640,6 +1640,9 @@ export class CutToolSystem {
         mesh2.partData = piece2Data;
         mesh2.name = piece2Data.id; // Ensure mesh name matches part ID
         
+n        // CRITICAL: Remove original mesh after cut pieces are created
+        this.removeOriginalMesh(mesh, partData);
+
         
         // IMMEDIATELY release tool and return to pointer mode
         

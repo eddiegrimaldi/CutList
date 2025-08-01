@@ -7348,6 +7348,8 @@ class DrawingWorld {
                 height: thicknessCm,
                 depth: lengthCm
             }, this.scene);
+            
+            // Create material-specific appearance for new boxes
         // Apply material with texture
             box.material = this.getMaterialColor(part.materialId);
 
@@ -7374,12 +7376,14 @@ class DrawingWorld {
         }
 
         // Only create material if it doesn't already exist (restored geometry has its own material)
-        if (!box.material) {
+        // ALWAYS apply material to ensure textures work on all boards
+        // Apply material with texture
+            box.material = this.getMaterialColor(part.materialId);
+
+
+        // Store reference
         box.partData = part;
         box.isWorkBenchPart = true;
-n        // CRITICAL: ALWAYS apply material regardless of how box was created (new, restored, custom geometry)
-        box.material = this.getMaterialColor(part.materialId);
-
 
         // PREVENT FIRST-SELECTION HOP: Force bounding info computation during creation
         // This ensures expensive computations happen now, not during first selection
@@ -8195,7 +8199,6 @@ n        // CRITICAL: ALWAYS apply material regardless of how box was created (n
                 box.material = this.getMaterialColor(part.materialId);
     
             }
-
             // Store reference
             box.partData = part;
             box.isProjectPart = true;

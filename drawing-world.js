@@ -7403,6 +7403,18 @@ class DrawingWorld {
             this.animateCameraToShowcaseMaterial(box, part);
         }
         
+
+        // 🔍 BOARD INTEGRITY AUDIT - Validate this board is ready for any operation
+        const auditContext = isRestoring ? "RESTORE" : "CREATE";
+        this.auditBoardIntegrity(box, part, auditContext);
+
+n        // 🔍 BOARD INTEGRITY AUDIT - Validate this board is ready for any operation
+        const auditContext = isRestoring ? "RESTORE" : "CREATE";
+        this.auditBoardIntegrity(box, part, auditContext);
+
+        // Return the created mesh
+        return box;
+    }
     /**
      * 🔍 BOARD INTEGRITY AUDIT SYSTEM
      * Validates that every created board has complete characteristics
@@ -7479,13 +7491,6 @@ class DrawingWorld {
         }
     }
 
-        // 🔍 BOARD INTEGRITY AUDIT - Validate this board is ready for any operation
-        const auditContext = isRestoring ? "RESTORE" : "CREATE";
-        this.auditBoardIntegrity(box, part, auditContext);
-
-        // Return the created mesh
-        return box;
-    }
 
     /**
      * DRAMATIC CAMERA SWOOP: Cinematic approach to new material

@@ -6874,7 +6874,7 @@ class DrawingWorld {
             materialId: this.selectedMaterial,
             materialName: material.name,
             dimensions: { length, width, thickness },
-            grade: grade,
+            grade: grade || "select",
             cost: costInfo.totalCost,
             boardFeet: costInfo.boardFeet,
             status: 'raw_material',

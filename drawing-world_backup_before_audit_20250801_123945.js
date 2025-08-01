@@ -6874,7 +6874,7 @@ class DrawingWorld {
             materialId: this.selectedMaterial,
             materialName: material.name,
             dimensions: { length, width, thickness },
-            grade: grade || "select",
+            grade: grade,
             cost: costInfo.totalCost,
             boardFeet: costInfo.boardFeet,
             status: 'raw_material',
@@ -7403,90 +7403,9 @@ class DrawingWorld {
             this.animateCameraToShowcaseMaterial(box, part);
         }
         
-
-        // 🔍 BOARD INTEGRITY AUDIT - Validate this board is ready for any operation
-        const auditContext = isRestoring ? "RESTORE" : "CREATE";
-        this.auditBoardIntegrity(box, part, auditContext);
-
         // Return the created mesh
         return box;
     }
-    /**
-     * 🔍 BOARD INTEGRITY AUDIT SYSTEM
-     * Validates that every created board has complete characteristics
-     * and is ready for any operation like a library-added board
-     */
-    auditBoardIntegrity(board, partData, context) {
-        context = context || "unknown";
-        console.log("🔍 " + context.toUpperCase() + " BOARD AUDIT: " + partData.materialName);
-        
-        const issues = [];
-        
-        // 1. MATERIAL PROPERTIES AUDIT
-        if (!partData.materialId) issues.push("❌ Missing materialId");
-        if (!partData.materialName) issues.push("❌ Missing materialName");
-        if (!partData.grade) issues.push("❌ Missing grade");
-        
-        // 2. DIMENSIONAL INTEGRITY AUDIT  
-        if (!partData.dimensions || typeof partData.dimensions !== "object") {
-            issues.push("❌ Missing or invalid dimensions object");
-        } else {
-            if (!partData.dimensions.length || partData.dimensions.length <= 0) issues.push("❌ Invalid length");
-            if (!partData.dimensions.width || partData.dimensions.width <= 0) issues.push("❌ Invalid width");  
-            if (!partData.dimensions.thickness || partData.dimensions.thickness <= 0) issues.push("❌ Invalid thickness");
-        }
-        
-        // 3. 3D MESH INTEGRITY AUDIT
-        if (!board) {
-            issues.push("❌ Missing 3D mesh object");
-        } else {
-            if (!board.material) issues.push("❌ Missing material assignment");
-            if (!board.position) issues.push("❌ Missing position");
-            if (!board.scaling) issues.push("❌ Missing scaling");
-            if (!board.id) issues.push("❌ Missing mesh ID");
-        }
-        
-        // 4. MATERIALS LIBRARY INTEGRATION AUDIT
-        if (this.materialsLibrary) {
-            const materialData = this.materialsLibrary.getMaterial(partData.materialId);
-            if (!materialData) {
-                issues.push("❌ Material not found in materials library");
-            } else {
-                // Check if texture should be available
-                if (materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                    if (board && board.material && !board.material.diffuseTexture) {
-                        issues.push("⚠️ Texture available but not applied");
-                    }
-                }
-            }
-        }
-        
-        // 5. UNIQUE IDENTITY AUDIT
-        if (!partData.id) issues.push("❌ Missing unique part ID");
-        
-        // 6. TOOL READINESS AUDIT (Check if board can be manipulated)
-        if (board && board.material) {
-            const materialName = board.material.name;
-            if (!materialName || materialName === "material") {
-                issues.push("❌ Generic material name - may cause tool conflicts");
-            }
-        }
-        
-        // AUDIT RESULTS
-        if (issues.length === 0) {
-            console.log("✅ " + context.toUpperCase() + " AUDIT PASSED: " + partData.materialName + " is fully operational");
-            console.log("   📏 Dimensions: " + partData.dimensions.length + "x" + partData.dimensions.width + "x" + partData.dimensions.thickness);
-            console.log("   🎨 Material: " + partData.materialId + " (" + partData.grade + ")");
-            console.log("   🆔 ID: " + partData.id);
-            return true;
-        } else {
-            console.error("❌ " + context.toUpperCase() + " AUDIT FAILED: " + partData.materialName);
-            issues.forEach(function(issue) { console.error("   " + issue); });
-            console.error("   🚨 This board may not be ready for all operations!");
-            return false;
-        }
-    }
-
 
     /**
      * DRAMATIC CAMERA SWOOP: Cinematic approach to new material
@@ -9776,103 +9695,4 @@ document.addEventListener('DOMContentLoaded', () => {
     window.drawingWorld = drawingWorld;
     
     // Removed auto-spawning chamfered primitive
-// DEBUG FUNCTIONS FOR LOADED VS FRESH BOARD INVESTIGATION
-window.debugBoardComparison = function() {
-    console.log('🔍 BOARD COMPARISON DEBUG STARTING...');
-    console.log('📊 Total workbench parts:', drawingWorld.workBenchParts.length);
-    
-    drawingWorld.workBenchParts.forEach((part, index) => {
-        console.log(`\n📋 BOARD ${index}:`, part);
-        console.log(`   🆔 ID: ${part.id}`);
-        console.log(`   📦 Material: ${part.materialId} (${part.materialName})`);
-        console.log(`   📏 Dimensions: ${part.dimensions.length}x${part.dimensions.width}x${part.dimensions.thickness}`);
-        console.log(`   🏷️ Grade: ${part.grade}`);
-        console.log(`   📈 Status: ${part.status}`);
-        if (part.cutHistory) console.log(`   ✂️ Cut History: `, part.cutHistory);
-        if (part.meshGeometry) console.log(`   🧊 Geometry: `, part.meshGeometry);
-    });
-    
-    const workbenchMeshes = drawingWorld.scene.meshes.filter(m => m.isWorkBenchPart);
-    console.log(`\n🎭 MESH OBJECTS (${workbenchMeshes.length}):`);
-    workbenchMeshes.forEach((mesh, index) => {
-        console.log(`\n🎭 MESH ${index}:`, mesh);
-        console.log(`   🆔 ID: ${mesh.id}`);
-        console.log(`   🎨 Material: `, mesh.material);
-        console.log(`   📍 Position: `, mesh.position);
-        console.log(`   📐 Scaling: `, mesh.scaling);
-        if (mesh.partData) console.log(`   🏷️ Part Data: `, mesh.partData);
-    });
-};
-
-window.testLoadedBoardCutting = function() {
-    console.log('✂️ TESTING LOADED BOARD CUTTING...');
-    const workbenchMeshes = drawingWorld.scene.meshes.filter(m => m.isWorkBenchPart);
-    if (workbenchMeshes.length === 0) {
-        console.error('❌ No workbench parts found for cutting test');
-        return;
-    }
-    
-    console.log(`🎯 Found ${workbenchMeshes.length} workbench part(s) for cutting test`);
-    workbenchMeshes.forEach((mesh, index) => {
-        console.log(`\n🎯 TESTING MESH ${index} (ID: ${mesh.id})`);
-        console.log('   📋 Part Data:', mesh.partData);
-        console.log('   🎨 Material:', mesh.material);
-        console.log('   📊 Properties:', {
-            position: mesh.position,
-            scaling: mesh.scaling,
-            isWorkBenchPart: mesh.isWorkBenchPart
-        });
-    });
-    
-    console.log('🚨 Ready for manual cutting test - select a cutting tool and try cutting the loaded board');
-};
-
-window.identifyBoardDifferences = function() {
-    console.log('🔬 IDENTIFYING BOARD DIFFERENCES...');
-    if (drawingWorld.workBenchParts.length < 2) {
-        console.error('❌ Need at least 2 boards to compare');
-        return;
-    }
-    
-    const board1 = drawingWorld.workBenchParts[0];
-    const board2 = drawingWorld.workBenchParts[1];
-    
-    console.log('🆚 COMPARING BOARD PROPERTIES:');
-    
-    const props = ['id', 'materialId', 'materialName', 'grade', 'status', 'cutHistory', 'meshGeometry'];
-    props.forEach(prop => {
-        const val1 = board1[prop];
-        const val2 = board2[prop];
-        const match = JSON.stringify(val1) === JSON.stringify(val2);
-        console.log(`   ${match ? '✅' : '❌'} ${prop}: ${match ? 'MATCH' : 'DIFFERENT'}`);
-        if (!match) {
-            console.log(`      🔹 Board 1: `, val1);
-            console.log(`      🔹 Board 2: `, val2);
-        }
-    });
-    
-    console.log('\n🎭 COMPARING MESH OBJECTS:');
-    const meshes = drawingWorld.scene.meshes.filter(m => m.isWorkBenchPart);
-    if (meshes.length >= 2) {
-        const mesh1 = meshes[0];
-        const mesh2 = meshes[1];
-        
-        const meshProps = ['id', 'material.name', 'position', 'scaling'];
-        meshProps.forEach(prop => {
-            const val1 = prop.includes('.') ? mesh1[prop.split('.')[0]][prop.split('.')[1]] : mesh1[prop];
-            const val2 = prop.includes('.') ? mesh2[prop.split('.')[0]][prop.split('.')[1]] : mesh2[prop];
-            const match = JSON.stringify(val1) === JSON.stringify(val2);
-            console.log(`   ${match ? '✅' : '❌'} ${prop}: ${match ? 'MATCH' : 'DIFFERENT'}`);
-            if (!match) {
-                console.log(`      🔹 Mesh 1: `, val1);
-                console.log(`      🔹 Mesh 2: `, val2);
-            }
-        });
-    }
-};
-
-console.log('🛠️ DEBUG FUNCTIONS LOADED:');
-console.log('   debugBoardComparison() - Compare all boards');
-console.log('   testLoadedBoardCutting() - Test cutting loaded boards');
-console.log('   identifyBoardDifferences() - Find differences between boards');
 });

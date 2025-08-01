@@ -7306,13 +7306,32 @@ class DrawingWorld {
                     const uvs = [];
                     const vertexCount = positions.length / 3;
                     
-                    // Generate planar UV mapping based on world coordinates
+                    
+                    // Generate grain-oriented UV mapping for wood texture
+                    // Get board dimensions to determine grain direction
+                    const bounds = mesh.getBoundingInfo();
+                    const size = bounds.maximum.subtract(bounds.minimum);
+                    const isLengthInX = Math.abs(size.x) > Math.abs(size.z);
+                    
+                    console.log("🌾 Board dimensions:", size.x.toFixed(1), "x", size.z.toFixed(1), "- Grain along", isLengthInX ? "X" : "Z");
+                    
                     for (let i = 0; i < vertexCount; i++) {
                         const x = positions[i * 3];
+                        const y = positions[i * 3 + 1]; 
                         const z = positions[i * 3 + 2];
                         
-                        // Use X,Z coordinates for UV mapping (top-down projection)
-                        uvs.push(x * 0.01, z * 0.01);
+                        let u, v;
+                        if (isLengthInX) {
+                            // Length in X direction - grain runs along X
+                            u = x * 0.01;  // Grain direction (along length)
+                            v = z * 0.01;  // Across width
+                        } else {
+                            // Length in Z direction - grain runs along Z  
+                            u = z * 0.01;  // Grain direction (along length)
+                            v = x * 0.01;  // Across width
+                        }
+                        
+                        uvs.push(u, v);
                     }
                     
                     mesh.setVerticesData(BABYLON.VertexBuffer.UVKind, uvs);

@@ -1695,7 +1695,9 @@ export class CutToolSystem {
             }
         }
         
-        if (!targetMesh) {
+        // Validate targetMesh is a proper Babylon.js mesh with getBoundingInfo method
+        if (!targetMesh || !targetMesh.getBoundingInfo || typeof targetMesh.getBoundingInfo !== "function") {
+            console.warn("Invalid targetMesh for camera animation:", targetMesh);
             return;
         }
         

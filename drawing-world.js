@@ -7349,6 +7349,13 @@ class DrawingWorld {
         // CRITICAL: Check if part has preserved geometry from previous modifications
         if (part.meshGeometry && part.meshGeometry.hasCustomGeometry) {
             box = this.restoreMeshGeometry(part.meshGeometry, part.id);
+            box = this.restoreMeshGeometry(part.meshGeometry, part.id);
+            
+            // CRITICAL FIX: Replace restored material with properly textured material
+            if (box && box.material) {
+                console.log("🔧 Replacing restored material with textured material for:", part.materialName);
+                box.material = this.getMaterialColor(part.materialId);
+            }
         }
         
         // If no preserved geometry or restoration failed, create default box

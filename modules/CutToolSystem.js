@@ -1568,15 +1568,82 @@ export class CutToolSystem {
             this.drawingWorld.workBenchParts.splice(partIndex, 1);
         }
         
-        // Ensure complete mesh disposal
+        // SCENE DEBUG: Check for duplicate meshes BEFORE disposal
+        const duplicateMeshes = this.scene.meshes.filter(m => 
+            m.name === partData.id || 
+            (m.partData && m.partData.id === partData.id) ||
+            m.id === partData.id
+        );
+        console.log('🔍 SCENE DEBUG - Found meshes for part:', partData.id, {
+            count: duplicateMeshes.length,
+            meshes: duplicateMeshes.map(m => ({
+                name: m.name,
+                id: m.id,
+                isEnabled: m.isEnabled(),
+                isVisible: m.isVisible,
+                isDisposed: m.isDisposed(),
+                position: m.position ? `(${m.position.x.toFixed(1)}, ${m.position.y.toFixed(1)}, ${m.position.z.toFixed(1)})` : 'none'
+            }))
+        });
+
+        // Ensure complete mesh disposal with detailed logging
         if (mesh) {
+            console.log('🗑️ DISPOSING ORIGINAL MESH:', partData.id, {
+                meshName: mesh.name,
+                meshId: mesh.id,
+                isEnabled: mesh.isEnabled(),
+                isVisible: mesh.isVisible,
+                isDisposed: mesh.isDisposed(),
+                hasParent: !!mesh.parent,
+                inScene: this.scene.meshes.includes(mesh)
+            });
+            
+            // Remove from scene first
+            if (this.scene.meshes.includes(mesh)) {
+                this.scene.removeMesh(mesh);
+                console.log('✅ Removed mesh from scene');
+            }
+            
+            // Clear parent relationships
+            if (mesh.parent) {
+                mesh.parent = null;
+                console.log('✅ Cleared parent relationship');
+            }
+            
+            // Disable and hide
             mesh.setEnabled(false);
             mesh.isVisible = false;
+            
+            // Dispose material
             if (mesh.material) {
                 mesh.material.dispose();
+                console.log('✅ Disposed material');
             }
+            
+            // Final disposal
             mesh.dispose();
-            console.log('🗑️ Disposed original mesh:', partData.id);
+            console.log('✅ MESH DISPOSAL COMPLETE for:', partData.id);
+        } else {
+            console.warn('⚠️ No mesh to dispose for part:', partData.id);
+        }
+
+        // CRITICAL FIX: Dispose ALL duplicate meshes for this part
+        if (duplicateMeshes.length > 1) {
+            console.log('🚨 DISPOSING', duplicateMeshes.length, 'DUPLICATE MESHES for part:', partData.id);
+            duplicateMeshes.forEach((dupMesh, index) => {
+                if (!dupMesh.isDisposed()) {
+                    console.log(`🗑️ Disposing duplicate ${index + 1}:`, dupMesh.name);
+                    if (this.scene.meshes.includes(dupMesh)) {
+                        this.scene.removeMesh(dupMesh);
+                    }
+                    if (dupMesh.parent) dupMesh.parent = null;
+                    dupMesh.setEnabled(false);
+                    dupMesh.isVisible = false;
+                    if (dupMesh.material) dupMesh.material.dispose();
+                    dupMesh.dispose();
+                    console.log('✅ Duplicate mesh disposed:', dupMesh.name);
+                }
+            });
         }
         
         // Add cut pieces to workBenchParts array first

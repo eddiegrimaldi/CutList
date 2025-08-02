@@ -174,7 +174,8 @@ export class CutToolSystem {
                 this.drawingWorld.routerBitSystem.deactivate();
             }
             
-            // Waste selection removed - use right-click context menu instead
+            // Show waste selection modal
+            this.showWasteSelectionModal([piece1Data, piece2Data]);
             
             return true;
             
@@ -795,8 +796,8 @@ export class CutToolSystem {
         
         
         // Animate camera to optimal cutting position
-        // DISABLED: Camera animation after rip cut - user request
         this.animateCameraForCutting(cutDirection);
+        
         // Clear any existing preview
         this.clearCutPreview();
     }
@@ -1068,11 +1069,10 @@ export class CutToolSystem {
         if (pointerInfo.event.button !== 0) return false;
         
         
-        // Execute cut immediately without modal
-        this.executeCut(this.hoveredPart, this.cutPosition);
+        // Show editable measurements modal instead of immediate execution
+        this.showEditMeasurementsModal(this.hoveredPart, this.cutPosition);
         
         // Return true to indicate we handled this event
-        console.log("CUT EXECUTED - Camera should NOT move after this point");
         return true;
     }
     
@@ -1378,13 +1378,34 @@ export class CutToolSystem {
         // If mesh is null, use stored partData directly
         if (!mesh) {
             partData = this.pendingPartData;
+            console.log('🔍 CUTTING DEBUG - Using stored partData (no mesh):', partData?.id);
         } else {
             partData = this.getPartData(mesh);
             
-            // Check if this is a routed mesh that needs CSG cutting
-            if (partData.meshGeometry && partData.meshGeometry.hasCustomGeometry && partData.status !== "raw_material") {
+            // DEBUG: Log partData properties to understand loaded board characteristics
+            console.log('🔍 CUTTING DEBUG - Part Data:', {
+                id: partData.id,
+                status: partData.status,
+                hasGeometry: !!partData.meshGeometry,
+                hasCustomGeometry: partData.meshGeometry?.hasCustomGeometry,
+                materialName: partData.materialName
+            });
+            
+            // ENFORCE BOARD CONSISTENCY: All raw materials MUST use regular cutting path
+            // This ensures loaded boards behave identically to fresh boards
+            if (partData.status === "raw_material") {
+                console.log('⚡ ENFORCING regular cutting path for raw material:', partData.id);
+                // Clear any geometry flags that might route to CSG (force consistent behavior)
+                if (partData.meshGeometry) {
+                    partData.meshGeometry.hasCustomGeometry = false;
+                }
+            } else if (partData.meshGeometry && partData.meshGeometry.hasCustomGeometry) {
+                // Only non-raw materials with actual modifications use CSG cutting
+                console.log('🔀 Taking CSG cutting path for modified board:', partData.id);
                 const result = this.executeCsgCut(mesh, partData, cutPosition);
                 return result;
+            } else {
+                console.log('⚡ Taking regular cutting path for:', partData.id);
             }
             
             // CRITICAL: Serialize the original mesh geometry BEFORE cutting to preserve router modifications
@@ -1541,12 +1562,22 @@ export class CutToolSystem {
             return;
         }
         
-        // Remove original
+        // Remove original mesh completely
         const partIndex = this.drawingWorld.workBenchParts.findIndex(p => p.id === partData.id);
         if (partIndex !== -1) {
             this.drawingWorld.workBenchParts.splice(partIndex, 1);
         }
-        mesh.dispose();
+        
+        // Ensure complete mesh disposal
+        if (mesh) {
+            mesh.setEnabled(false);
+            mesh.isVisible = false;
+            if (mesh.material) {
+                mesh.material.dispose();
+            }
+            mesh.dispose();
+            console.log('🗑️ Disposed original mesh:', partData.id);
+        }
         
         // Add cut pieces to workBenchParts array first
         this.drawingWorld.workBenchParts.push(piece1Data);
@@ -1560,9 +1591,6 @@ export class CutToolSystem {
         const piece1ThicknessCm = piece1Data.dimensions.thickness * 2.54;
         
         const mesh1 = this.drawingWorld.createWorkBenchMaterial(piece1Data);
-        // 🔍 BOARD INTEGRITY AUDIT for first cut piece
-        this.drawingWorld.auditBoardIntegrity(mesh1, piece1Data, "CUT-PIECE-1");
-
         if (!mesh1) {
             return;
         }
@@ -1595,9 +1623,6 @@ export class CutToolSystem {
         
         const mesh2 = this.drawingWorld.createWorkBenchMaterial(piece2Data);
         if (!mesh2) {
-        // 🔍 BOARD INTEGRITY AUDIT for second cut piece
-        this.drawingWorld.auditBoardIntegrity(mesh2, piece2Data, "CUT-PIECE-2");
-
             return;
         }
         mesh2.position = originalPosition.clone();
@@ -1640,9 +1665,6 @@ export class CutToolSystem {
         mesh2.partData = piece2Data;
         mesh2.name = piece2Data.id; // Ensure mesh name matches part ID
         
-        // CRITICAL: Remove original mesh after cut pieces are created
-        this.removeOriginalMesh(mesh, partData);
-
         
         // IMMEDIATELY release tool and return to pointer mode
         
@@ -1667,9 +1689,19 @@ export class CutToolSystem {
         // Update project explorer to show new pieces
         this.drawingWorld.updateWorkBenchDisplay();
         
-        // ONLY show waste selection if we have two valid pieces
+        // Animate camera to focus on leftmost piece (from camera perspective)
         if (mesh1 && mesh2) {
-            // Waste selection removed - use right-click context menu instead
+            // Determine which piece is leftmost from camera perspective
+            const piece1Pos = this.activeCutDirection === 'cross' ? mesh1.position.x : mesh1.position.z;
+            const piece2Pos = this.activeCutDirection === 'cross' ? mesh2.position.x : mesh2.position.z;
+            const leftmostMesh = piece1Pos < piece2Pos ? mesh1 : mesh2;
+            console.log('🎥 Camera focusing on leftmost piece:', leftmostMesh.name, 'at position:', leftmostMesh.position);
+            
+            // Animate camera to focus on leftmost piece
+            this.animateCameraToFocusPiece(leftmostMesh, this.activeCutDirection);
+            
+            // ONLY show waste selection if we have two valid pieces
+            this.showWasteSelectionModal([mesh1, mesh2], [piece1Data, piece2Data]);
         } else {
         }
         
@@ -1681,20 +1713,9 @@ export class CutToolSystem {
     }
     
     /**
-     * Animate camera to optimal cutting position
+     * Animate camera to focus on specific cut piece
      */
-    animateCameraForCutting(cutDirection) {
-        
-        // Find the selected object or first work bench part
-        let targetMesh = this.drawingWorld.selectedPart;
-        if (!targetMesh) {
-            // Find first work bench part
-            const workBenchParts = this.scene.meshes.filter(m => m.isWorkBenchPart);
-            if (workBenchParts.length > 0) {
-                targetMesh = workBenchParts[0];
-            }
-        }
-        
+    animateCameraToFocusPiece(targetMesh, cutDirection) {
         if (!targetMesh) {
             return;
         }
@@ -1748,6 +1769,24 @@ export class CutToolSystem {
         
         // Create smooth camera animation
         this.createCameraAnimation(targetPosition, targetTarget);
+    }
+
+    /**
+     * Animate camera to optimal cutting position (legacy function for backward compatibility)
+     */
+    animateCameraForCutting(cutDirection) {
+        
+        // Find the selected object or first work bench part
+        let targetMesh = this.drawingWorld.selectedPart;
+        if (!targetMesh) {
+            // Find first work bench part
+            const workBenchParts = this.scene.meshes.filter(m => m.isWorkBenchPart);
+            if (workBenchParts.length > 0) {
+                targetMesh = workBenchParts[0];
+            }
+        }
+        
+        this.animateCameraToFocusPiece(targetMesh, cutDirection);
     }
     
     /**
@@ -2265,10 +2304,9 @@ export class CutToolSystem {
         this.deactivate();
         
         // Switch back to pointer tool in the main drawing world
-        // DISABLED: Auto pointer tool selection may cause camera movement
-        // if (this.drawingWorld && this.drawingWorld.selectSketchTool) {
-        //     this.drawingWorld.selectSketchTool("pointer");
-        // }
+        if (this.drawingWorld && this.drawingWorld.selectSketchTool) {
+            this.drawingWorld.selectSketchTool('pointer');
+        }
     }
     
     /**

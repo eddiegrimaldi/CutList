@@ -7306,31 +7306,30 @@ class DrawingWorld {
                     const uvs = [];
                     const vertexCount = positions.length / 3;
                     
-                    
-                    // Generate grain-oriented UV mapping for wood texture
-                    // Get board dimensions to determine grain direction
+                    // Generate stretched UV mapping - grain runs along LENGTH
                     const bounds = mesh.getBoundingInfo();
-                    const size = bounds.maximum.subtract(bounds.minimum);
-                    const isLengthInX = Math.abs(size.x) > Math.abs(size.z);
+                    const min = bounds.minimum;
+                    const max = bounds.maximum;
+                    const sizeX = Math.abs(max.x - min.x);
+                    const sizeZ = Math.abs(max.z - min.z);
                     
-                    console.log("🌾 Board dimensions:", size.x.toFixed(1), "x", size.z.toFixed(1), "- Grain along", isLengthInX ? "X" : "Z");
+                    // Grain should run along the LONGER dimension
+                    const grainAlongX = sizeX > sizeZ;
                     
                     for (let i = 0; i < vertexCount; i++) {
                         const x = positions[i * 3];
-                        const y = positions[i * 3 + 1]; 
                         const z = positions[i * 3 + 2];
                         
                         let u, v;
-                        if (isLengthInX) {
-                            // Length in X direction - grain runs along X
-                            u = x * 0.01;  // Grain direction (along length)
-                            v = z * 0.01;  // Across width
+                        if (grainAlongX) {
+                            // X is length (grain direction), Z is width
+                            u = (x - min.x) / sizeX;  // Grain along X (0-1)
+                            v = (z - min.z) / sizeZ;  // Width along Z (0-1)
                         } else {
-                            // Length in Z direction - grain runs along Z  
-                            u = z * 0.01;  // Grain direction (along length)
-                            v = x * 0.01;  // Across width
+                            // Z is length (grain direction), X is width
+                            u = (z - min.z) / sizeZ;  // Grain along Z (0-1)
+                            v = (x - min.x) / sizeX;  // Width along X (0-1)
                         }
-                        
                         uvs.push(u, v);
                     }
                     

@@ -43,7 +43,6 @@ class DrawingWorld {
         
         // Materials system
         this.materialsLibrary = null;
-        this.boardFactory = null;
         this.projectParts = [];
         this.workBenchParts = [];
         this.selectedMaterial = null;
@@ -6569,20 +6568,6 @@ class DrawingWorld {
             console.log('Initializing materials system...');
             this.materialsLibrary = new MaterialsLibrary();
             
-            // Initialize BoardFactory
-            this.boardFactory = new BoardFactory(this.scene, this.materialsLibrary);
-            console.log("BoardFactory initialized");
-            
-            // TEST: Verify Board system is available
-            if (typeof Board !== "undefined" && typeof BoardFactory !== "undefined") {
-                console.log("✅ Board system loaded successfully");
-                console.log("   Board class:", typeof Board);
-                console.log("   BoardFactory class:", typeof BoardFactory);
-                console.log("   boardFactory instance:", this.boardFactory ? "initialized" : "not initialized");
-            } else {
-                console.error("❌ Board system failed to load!");
-            }
-            
             const success = await this.materialsLibrary.loadDatabase();
             if (success) {
                 console.log('Materials database loaded successfully');
@@ -6873,78 +6858,50 @@ class DrawingWorld {
     }
 
     addMaterialToProject() {
-        if (!this.selectedMaterial || !this.materialsLibrary || !this.boardFactory) {
-            console.error('Cannot add material: missing dependencies');
-            return;
-        }
+        if (!this.selectedMaterial || !this.materialsLibrary) return;
 
         const length = parseFloat(document.getElementById('config-length').value);
         const width = parseFloat(document.getElementById('config-width').value);
         const thickness = parseFloat(document.getElementById('config-thickness').value);
         const grade = document.getElementById('config-grade').value;
 
-        try {
-            // Use BoardFactory to create the board
-            const board = this.boardFactory.createFromMaterial(
-                this.selectedMaterial,
-                length,
-                width,
-                thickness,
-                grade
-            );
-            
-            // Set to work bench
-            board.project.bench = 'work';
-            
-            // Add to work bench parts (for backward compatibility during transition)
-            // Convert Board to old part format temporarily
-            const part = {
-                id: board.id,
-                materialId: board.material.id,
-                materialName: board.material.species,
-                dimensions: board.getConventionalDimensions(),
-                grade: board.material.grade,
-                cost: board.economics.total_cost,
-                boardFeet: board.economics.board_feet,
-                status: 'raw_material',
-                bench: 'work',
-                createdAt: new Date().toISOString(),
-                _board: board  // Keep reference to actual Board object
-            };
-            
-            this.workBenchParts.push(part);
-            
-            // Switch to work bench and make this the current work part
-            this.switchBench('work');
-            this.currentWorkPart = part;
-            
-            // Update UI
-            this.updateWorkBenchDisplay();
-            
-            // The mesh is already created by BoardFactory
-            // Position it appropriately
-            const spawnPosition = this.findOptimalSpawnPosition(
-                board.dimensions.x * 2.54,
-                board.dimensions.y * 2.54,
-                board.dimensions.z * 2.54
-            );
-            board.transform.position = {
-                x: spawnPosition.x / 2.54,
-                y: spawnPosition.y / 2.54,
-                z: spawnPosition.z / 2.54
-            };
-            this.boardFactory.updateMeshTransform(board);
-            
-            // Close modal
-            this.closeMaterialModal();
-            
-            console.log('✅ Material added to work bench using Board system:', board);
-            
-        } catch (error) {
-            console.error('Failed to add material:', error);
-            alert('Failed to add material. Please try again.');
-        }
-    }    }
+        const material = this.materialsLibrary.getMaterial(this.selectedMaterial);
+        const costInfo = this.materialsLibrary.calculateCost(this.selectedMaterial, length, width, thickness, grade);
+
+        // Create part object for Work Bench
+        const part = {
+            id: `workpart_${Date.now()}`,
+            materialId: this.selectedMaterial,
+            materialName: material.name,
+            dimensions: { length, width, thickness },
+            grade: grade || "select",
+            cost: costInfo.totalCost,
+            boardFeet: costInfo.boardFeet,
+            status: 'raw_material',
+            bench: 'work',
+            createdAt: new Date().toISOString()
+        };
+
+        // Add to work bench (not project yet!)
+        this.workBenchParts.push(part);
+        
+        // Switch to work bench and make this the current work part
+        this.switchBench('work');
+        this.currentWorkPart = part;
+        
+        // Update UI
+        this.updateWorkBenchDisplay();
+        
+        // Create 3D representation on work bench
+        this.createWorkBenchMaterial(part);
+        
+        // Note: "To Assembly" button now shows based on selection, not material addition
+        
+        // Close modal
+        this.closeMaterialModal();
+        
+        console.log('Material added to work bench:', part);
+    }
 
     updatePartsListDisplay() {
         // Update both work bench and project parts displays
@@ -7340,48 +7297,6 @@ class DrawingWorld {
                 mesh.setIndices(meshData.indices);
             }
             
-            
-            // CRITICAL FIX: Generate UV coordinates for ANY mesh geometry
-            if (!mesh.isVerticesDataPresent(BABYLON.VertexBuffer.UVKind)) {
-                console.log("🔧 Generating UV coordinates for restored mesh");
-                const positions = mesh.getVerticesData(BABYLON.VertexBuffer.PositionKind);
-                if (positions) {
-                    const uvs = [];
-                    const vertexCount = positions.length / 3;
-                    
-                    // Generate stretched UV mapping - grain runs along LENGTH
-                    const bounds = mesh.getBoundingInfo();
-                    const min = bounds.minimum;
-                    const max = bounds.maximum;
-                    const sizeX = Math.abs(max.x - min.x);
-                    const sizeZ = Math.abs(max.z - min.z);
-                    
-                    // Grain should run along the LONGER dimension
-                    const grainAlongX = sizeX > sizeZ;
-                    
-                    for (let i = 0; i < vertexCount; i++) {
-                        const x = positions[i * 3];
-                        const z = positions[i * 3 + 2];
-                        
-                        let u, v;
-                        if (grainAlongX) {
-                            // X is length (grain direction), Z is width
-                            u = (x - min.x) / sizeX;  // Grain along X (0-1)
-                            v = (z - min.z) / sizeZ;  // Width along Z (0-1)
-                        } else {
-                            // Z is length (grain direction), X is width
-                            u = (z - min.z) / sizeZ;  // Grain along Z (0-1)
-                            v = (x - min.x) / sizeX;  // Width along X (0-1)
-                        }
-                        uvs.push(u, v);
-                    }
-                    
-                    mesh.setVerticesData(BABYLON.VertexBuffer.UVKind, uvs);
-                    console.log("✅ UV coordinates generated for", vertexCount, "vertices");
-                } else {
-                    console.warn("⚠️ No position data found for UV generation");
-                }
-            }
             // Restore transforms
             mesh.position = new BABYLON.Vector3(meshData.position.x, meshData.position.y, meshData.position.z);
             mesh.rotation = new BABYLON.Vector3(meshData.rotation.x, meshData.rotation.y, meshData.rotation.z);
@@ -7398,22 +7313,6 @@ class DrawingWorld {
                         meshData.material.diffuseColor.b
                     );
                 }
-                // CRITICAL FIX: Load texture from materials library for restored boards
-                const materialName = meshData.material.name;
-                if (materialName && this.materialsLibrary) {
-                    const materialId = materialName.split("_material_")[0];
-                    const materialData = this.materialsLibrary.getMaterial(materialId);
-                    if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                        try {
-                            const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
-                            material.diffuseTexture = texture;
-                            material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1);
-                        } catch (error) {
-                            console.warn("Failed to load texture for restored mesh:", error);
-                        }
-                    }
-                }
-                
                 mesh.material = material;
             }
             
@@ -7434,13 +7333,6 @@ class DrawingWorld {
         // CRITICAL: Check if part has preserved geometry from previous modifications
         if (part.meshGeometry && part.meshGeometry.hasCustomGeometry) {
             box = this.restoreMeshGeometry(part.meshGeometry, part.id);
-            box = this.restoreMeshGeometry(part.meshGeometry, part.id);
-            
-            // CRITICAL FIX: Replace restored material with properly textured material
-            if (box && box.material) {
-                console.log("🔧 Replacing restored material with textured material for:", part.materialName);
-                box.material = this.getMaterialColor(part.materialId);
-            }
         }
         
         // If no preserved geometry or restoration failed, create default box

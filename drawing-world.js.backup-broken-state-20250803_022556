@@ -43,7 +43,6 @@ class DrawingWorld {
         
         // Materials system
         this.materialsLibrary = null;
-        this.boardFactory = null;
         this.projectParts = [];
         this.workBenchParts = [];
         this.selectedMaterial = null;
@@ -6569,20 +6568,6 @@ class DrawingWorld {
             console.log('Initializing materials system...');
             this.materialsLibrary = new MaterialsLibrary();
             
-            // Initialize BoardFactory
-            this.boardFactory = new BoardFactory(this.scene, this.materialsLibrary);
-            console.log("BoardFactory initialized");
-            
-            // TEST: Verify Board system is available
-            if (typeof Board !== "undefined" && typeof BoardFactory !== "undefined") {
-                console.log("✅ Board system loaded successfully");
-                console.log("   Board class:", typeof Board);
-                console.log("   BoardFactory class:", typeof BoardFactory);
-                console.log("   boardFactory instance:", this.boardFactory ? "initialized" : "not initialized");
-            } else {
-                console.error("❌ Board system failed to load!");
-            }
-            
             const success = await this.materialsLibrary.loadDatabase();
             if (success) {
                 console.log('Materials database loaded successfully');
@@ -6873,78 +6858,58 @@ class DrawingWorld {
     }
 
     addMaterialToProject() {
-        if (!this.selectedMaterial || !this.materialsLibrary || !this.boardFactory) {
-            console.error('Cannot add material: missing dependencies');
-            return;
-        }
+        if (!this.selectedMaterial || !this.materialsLibrary) return;
 
         const length = parseFloat(document.getElementById('config-length').value);
         const width = parseFloat(document.getElementById('config-width').value);
         const thickness = parseFloat(document.getElementById('config-thickness').value);
         const grade = document.getElementById('config-grade').value;
 
-        try {
-            // Use BoardFactory to create the board
-            const board = this.boardFactory.createFromMaterial(
-                this.selectedMaterial,
-                length,
-                width,
-                thickness,
-                grade
-            );
-            
-            // Set to work bench
-            board.project.bench = 'work';
-            
-            // Add to work bench parts (for backward compatibility during transition)
-            // Convert Board to old part format temporarily
-            const part = {
-                id: board.id,
-                materialId: board.material.id,
-                materialName: board.material.species,
-                dimensions: board.getConventionalDimensions(),
-                grade: board.material.grade,
-                cost: board.economics.total_cost,
-                boardFeet: board.economics.board_feet,
-                status: 'raw_material',
-                bench: 'work',
-                createdAt: new Date().toISOString(),
-                _board: board  // Keep reference to actual Board object
-            };
-            
-            this.workBenchParts.push(part);
-            
-            // Switch to work bench and make this the current work part
-            this.switchBench('work');
-            this.currentWorkPart = part;
-            
-            // Update UI
-            this.updateWorkBenchDisplay();
-            
-            // The mesh is already created by BoardFactory
-            // Position it appropriately
-            const spawnPosition = this.findOptimalSpawnPosition(
-                board.dimensions.x * 2.54,
-                board.dimensions.y * 2.54,
-                board.dimensions.z * 2.54
-            );
-            board.transform.position = {
-                x: spawnPosition.x / 2.54,
-                y: spawnPosition.y / 2.54,
-                z: spawnPosition.z / 2.54
-            };
-            this.boardFactory.updateMeshTransform(board);
-            
-            // Close modal
-            this.closeMaterialModal();
-            
-            console.log('✅ Material added to work bench using Board system:', board);
-            
-        } catch (error) {
-            console.error('Failed to add material:', error);
-            alert('Failed to add material. Please try again.');
-        }
-    }    }
+        const material = this.materialsLibrary.getMaterial(this.selectedMaterial);
+        const costInfo = this.materialsLibrary.calculateCost(this.selectedMaterial, length, width, thickness, grade);
+
+        // Create part object for Work Bench
+        const grainDirection = length >= width ? 'length' : 'width';
+        const part = {
+            id: `workpart_${Date.now()}`,
+            materialId: this.selectedMaterial,
+            materialName: material.name,
+            dimensions: { length, width, thickness },
+            grade: grade || "select",
+            cost: costInfo.totalCost,
+            boardFeet: costInfo.boardFeet,
+            status: 'raw_material',
+            bench: 'work',
+            createdAt: new Date().toISOString(),
+            // GRAIN DIRECTION: Set once at creation, independent of dimensions
+            grainDirection: grainDirection
+        };
+        
+        console.log(`🔍 BOARD CREATION: New board created`);
+        console.log(`🔍 BOARD CREATION: Dimensions - length: ${length}, width: ${width}, thickness: ${thickness}`);
+        console.log(`🔍 BOARD CREATION: Grain direction set to: ${grainDirection}`);
+        console.log(`🔍 BOARD CREATION: Full part data:`, part);
+
+        // Add to work bench (not project yet!)
+        this.workBenchParts.push(part);
+        
+        // Switch to work bench and make this the current work part
+        this.switchBench('work');
+        this.currentWorkPart = part;
+        
+        // Update UI
+        this.updateWorkBenchDisplay();
+        
+        // Create 3D representation on work bench
+        this.createWorkBenchMaterial(part);
+        
+        // Note: "To Assembly" button now shows based on selection, not material addition
+        
+        // Close modal
+        this.closeMaterialModal();
+        
+        console.log('Material added to work bench:', part);
+    }
 
     updatePartsListDisplay() {
         // Update both work bench and project parts displays
@@ -6969,6 +6934,9 @@ class DrawingWorld {
         const xPosition = (this.projectParts.length - 1) * (lengthCm + 5); // Space parts apart
         box.position = new BABYLON.Vector3(xPosition, thicknessCm / 2, 0);
 
+        // GRAIN DIRECTION FIX: Apply proper UV coordinates using stored grain direction
+        this.applyGrainDirectionUV(box, part);
+        
         // Apply material with texture
         box.material = this.getMaterialColor(part.materialId);
 
@@ -7317,10 +7285,86 @@ class DrawingWorld {
     }
     
     /**
+     * Apply proper UV coordinates to mesh based on stored grain direction
+     */
+    applyGrainDirectionUV(mesh, partData) {
+        if (!mesh || !partData) return;
+        
+        console.log(`🌾 APPLY UV: Applying grain direction UV to ${partData.materialName}`);
+        console.log(`🌾 APPLY UV: Part grainDirection: ${partData.grainDirection}`);
+        
+        const positions = mesh.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+        if (!positions) return;
+        
+        const uvs = [];
+        const vertexCount = positions.length / 3;
+        
+        // Get mesh bounds
+        const bounds = mesh.getBoundingInfo();
+        const min = bounds.minimum;
+        const max = bounds.maximum;
+        const sizeX = Math.abs(max.x - min.x);
+        const sizeZ = Math.abs(max.z - min.z);
+        
+        // Use stored grain direction if available - FIXED LOGIC
+        let grainAlongX;
+        if (partData.grainDirection) {
+            // CRITICAL FIX: Grain direction must be consistent regardless of piece dimensions
+            // Check the ACTUAL relationship between partData dimensions and mesh dimensions
+            const lengthCm = partData.dimensions.length * 2.54;
+            const widthCm = partData.dimensions.width * 2.54;
+            
+            // Determine which mesh axis corresponds to the part's length dimension
+            const lengthIsAlongX = Math.abs(sizeX - lengthCm) < Math.abs(sizeZ - lengthCm);
+            
+            if (partData.grainDirection === 'length') {
+                grainAlongX = lengthIsAlongX; // Grain follows length dimension
+            } else {
+                grainAlongX = !lengthIsAlongX; // Grain follows width dimension  
+            }
+            
+            console.log(`🌾 APPLY UV: Part dimensions - length: ${partData.dimensions?.length}" (${lengthCm.toFixed(1)}cm), width: ${partData.dimensions?.width}" (${widthCm.toFixed(1)}cm)`);
+            console.log(`🌾 APPLY UV: Mesh dimensions - X: ${sizeX.toFixed(1)}cm, Z: ${sizeZ.toFixed(1)}cm`);
+            console.log(`🌾 APPLY UV: Length dimension is along ${lengthIsAlongX ? 'X' : 'Z'} axis`);
+            console.log(`🌾 APPLY UV: Grain direction ${partData.grainDirection} → ${grainAlongX ? 'X' : 'Z'} axis`);
+        } else {
+            // Fallback to dimension-based (should not happen for new parts)
+            grainAlongX = sizeX > sizeZ;
+            console.log(`🌾 APPLY UV: No grainDirection, fallback to ${grainAlongX ? 'X' : 'Z'} axis`);
+        }
+        
+        // TEXTURE SCALING: Balance between natural appearance and showing full image
+        // Strategy: Use the full texture (0-1 range) but adjust aspect ratio for grain direction
+        const aspectRatio = grainAlongX ? (sizeX / sizeZ) : (sizeZ / sizeX);
+        
+        console.log(`🌾 TEXTURE MAPPING: Grain along ${grainAlongX ? 'X' : 'Z'}, aspect ratio: ${aspectRatio.toFixed(2)}`);
+        
+        for (let i = 0; i < vertexCount; i++) {
+            const x = positions[i * 3];
+            const z = positions[i * 3 + 2];
+            
+            let u, v;
+            if (grainAlongX) {
+                // X is grain direction (length), Z is cross-grain (width)
+                u = (x - min.x) / sizeX;  // Full texture along grain (0-1)
+                v = (z - min.z) / sizeZ;  // Full texture across grain (0-1)
+            } else {
+                // Z is grain direction (length), X is cross-grain (width)  
+                u = (z - min.z) / sizeZ;  // Full texture along grain (0-1)
+                v = (x - min.x) / sizeX;  // Full texture across grain (0-1)
+            }
+            uvs.push(u, v);
+        }
+        
+        mesh.setVerticesData(BABYLON.VertexBuffer.UVKind, uvs);
+        console.log(`✅ APPLY UV: Applied grain-based UV coordinates to ${partData.materialName}`);
+    }
+    
+    /**
      * Restore mesh geometry from serialized data
      * Recreates the mesh with preserved modifications
      */
-    restoreMeshGeometry(meshData, newMeshId) {
+    restoreMeshGeometry(meshData, newMeshId, partData = null) {
         if (!meshData || !meshData.hasCustomGeometry) {
             return null; // No custom geometry to restore
         }
@@ -7349,15 +7393,46 @@ class DrawingWorld {
                     const uvs = [];
                     const vertexCount = positions.length / 3;
                     
-                    // Generate stretched UV mapping - grain runs along LENGTH
+                    // Generate stretched UV mapping using stored grain direction
                     const bounds = mesh.getBoundingInfo();
                     const min = bounds.minimum;
                     const max = bounds.maximum;
                     const sizeX = Math.abs(max.x - min.x);
                     const sizeZ = Math.abs(max.z - min.z);
                     
-                    // Grain should run along the LONGER dimension
-                    const grainAlongX = sizeX > sizeZ;
+                    // Use stored grain direction if available, otherwise fallback to dimension-based - FIXED LOGIC
+                    let grainAlongX;
+                    if (partData && partData.grainDirection) {
+                        // CRITICAL FIX: Grain direction must be consistent regardless of piece dimensions
+                        // Check the ACTUAL relationship between partData dimensions and mesh dimensions
+                        const lengthCm = partData.dimensions.length * 2.54;
+                        const widthCm = partData.dimensions.width * 2.54;
+                        
+                        // Determine which mesh axis corresponds to the part's length dimension
+                        const lengthIsAlongX = Math.abs(sizeX - lengthCm) < Math.abs(sizeZ - lengthCm);
+                        
+                        if (partData.grainDirection === 'length') {
+                            grainAlongX = lengthIsAlongX; // Grain follows length dimension
+                        } else {
+                            grainAlongX = !lengthIsAlongX; // Grain follows width dimension  
+                        }
+                        
+                        console.log(`🌾 RESTORE UV: Part dimensions - length: ${partData.dimensions?.length}" (${lengthCm.toFixed(1)}cm), width: ${partData.dimensions?.width}" (${widthCm.toFixed(1)}cm)`);
+                        console.log(`🌾 RESTORE UV: Mesh dimensions - X: ${sizeX.toFixed(1)}cm, Z: ${sizeZ.toFixed(1)}cm`);
+                        console.log(`🌾 RESTORE UV: Length dimension is along ${lengthIsAlongX ? 'X' : 'Z'} axis`);
+                        console.log(`🌾 RESTORE UV: Grain direction ${partData.grainDirection} → ${grainAlongX ? 'X' : 'Z'} axis`);
+                    } else {
+                        // Fallback: grain along longer dimension (old behavior)
+                        grainAlongX = sizeX > sizeZ;
+                        console.log(`🌾 RESTORE UV: Fallback - grain along ${grainAlongX ? 'X' : 'Z'} axis (longer dimension) for part: ${partData?.materialName || 'unknown'}`);
+                        console.log(`🌾 RESTORE UV: No grainDirection found in partData:`, partData);
+                    }
+                    
+                    // TEXTURE SCALING: Balance between natural appearance and showing full image
+                    // Strategy: Use the full texture (0-1 range) but adjust aspect ratio for grain direction
+                    const aspectRatio = grainAlongX ? (sizeX / sizeZ) : (sizeZ / sizeX);
+                    
+                    console.log(`🌾 RESTORE TEXTURE MAPPING: Grain along ${grainAlongX ? 'X' : 'Z'}, aspect ratio: ${aspectRatio.toFixed(2)}`);
                     
                     for (let i = 0; i < vertexCount; i++) {
                         const x = positions[i * 3];
@@ -7365,13 +7440,13 @@ class DrawingWorld {
                         
                         let u, v;
                         if (grainAlongX) {
-                            // X is length (grain direction), Z is width
-                            u = (x - min.x) / sizeX;  // Grain along X (0-1)
-                            v = (z - min.z) / sizeZ;  // Width along Z (0-1)
+                            // X is grain direction (length), Z is cross-grain (width)
+                            u = (x - min.x) / sizeX;  // Full texture along grain (0-1)
+                            v = (z - min.z) / sizeZ;  // Full texture across grain (0-1)
                         } else {
-                            // Z is length (grain direction), X is width
-                            u = (z - min.z) / sizeZ;  // Grain along Z (0-1)
-                            v = (x - min.x) / sizeX;  // Width along X (0-1)
+                            // Z is grain direction (length), X is cross-grain (width)
+                            u = (z - min.z) / sizeZ;  // Full texture along grain (0-1)
+                            v = (x - min.x) / sizeX;  // Full texture across grain (0-1)
                         }
                         uvs.push(u, v);
                     }
@@ -7433,8 +7508,7 @@ class DrawingWorld {
         
         // CRITICAL: Check if part has preserved geometry from previous modifications
         if (part.meshGeometry && part.meshGeometry.hasCustomGeometry) {
-            box = this.restoreMeshGeometry(part.meshGeometry, part.id);
-            box = this.restoreMeshGeometry(part.meshGeometry, part.id);
+            box = this.restoreMeshGeometry(part.meshGeometry, part.id, part);
             
             // CRITICAL FIX: Replace restored material with properly textured material
             if (box && box.material) {
@@ -7450,13 +7524,16 @@ class DrawingWorld {
             const lengthCm = part.dimensions.length * 2.54;
             const widthCm = part.dimensions.width * 2.54;
             const thicknessCm = part.dimensions.thickness * 2.54;
-
+            
             // Create box geometry
             box = BABYLON.MeshBuilder.CreateBox(part.id, {
                 width: widthCm,
                 height: thicknessCm,
                 depth: lengthCm
             }, this.scene);
+            
+            // GRAIN DIRECTION FIX: Apply proper UV coordinates using stored grain direction
+            this.applyGrainDirectionUV(box, part);
             
             // Create material-specific appearance for new boxes
         // Apply material with texture
@@ -8260,7 +8337,7 @@ class DrawingWorld {
             // CRITICAL: Check if part has preserved geometry from previous modifications
             if (part.meshGeometry && part.meshGeometry.hasCustomGeometry) {
                 console.log('Restoring preserved geometry for assembly part:', part.materialName);
-                box = this.restoreMeshGeometry(part.meshGeometry, part.id);
+                box = this.restoreMeshGeometry(part.meshGeometry, part.id, part);
             }
             
             // If no preserved geometry or restoration failed, create default box
@@ -8277,6 +8354,9 @@ class DrawingWorld {
                     depth: lengthCm
                 }, this.scene);
 
+                // GRAIN DIRECTION FIX: Apply proper UV coordinates using stored grain direction
+                this.applyGrainDirectionUV(box, part);
+                
                 // Create material-specific appearance for new boxes
         // Apply material with texture
                 box.material = this.getMaterialColor(part.materialId);

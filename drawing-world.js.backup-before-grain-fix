@@ -43,7 +43,6 @@ class DrawingWorld {
         
         // Materials system
         this.materialsLibrary = null;
-        this.boardFactory = null;
         this.projectParts = [];
         this.workBenchParts = [];
         this.selectedMaterial = null;
@@ -6569,20 +6568,6 @@ class DrawingWorld {
             console.log('Initializing materials system...');
             this.materialsLibrary = new MaterialsLibrary();
             
-            // Initialize BoardFactory
-            this.boardFactory = new BoardFactory(this.scene, this.materialsLibrary);
-            console.log("BoardFactory initialized");
-            
-            // TEST: Verify Board system is available
-            if (typeof Board !== "undefined" && typeof BoardFactory !== "undefined") {
-                console.log("✅ Board system loaded successfully");
-                console.log("   Board class:", typeof Board);
-                console.log("   BoardFactory class:", typeof BoardFactory);
-                console.log("   boardFactory instance:", this.boardFactory ? "initialized" : "not initialized");
-            } else {
-                console.error("❌ Board system failed to load!");
-            }
-            
             const success = await this.materialsLibrary.loadDatabase();
             if (success) {
                 console.log('Materials database loaded successfully');
@@ -6873,78 +6858,50 @@ class DrawingWorld {
     }
 
     addMaterialToProject() {
-        if (!this.selectedMaterial || !this.materialsLibrary || !this.boardFactory) {
-            console.error('Cannot add material: missing dependencies');
-            return;
-        }
+        if (!this.selectedMaterial || !this.materialsLibrary) return;
 
         const length = parseFloat(document.getElementById('config-length').value);
         const width = parseFloat(document.getElementById('config-width').value);
         const thickness = parseFloat(document.getElementById('config-thickness').value);
         const grade = document.getElementById('config-grade').value;
 
-        try {
-            // Use BoardFactory to create the board
-            const board = this.boardFactory.createFromMaterial(
-                this.selectedMaterial,
-                length,
-                width,
-                thickness,
-                grade
-            );
-            
-            // Set to work bench
-            board.project.bench = 'work';
-            
-            // Add to work bench parts (for backward compatibility during transition)
-            // Convert Board to old part format temporarily
-            const part = {
-                id: board.id,
-                materialId: board.material.id,
-                materialName: board.material.species,
-                dimensions: board.getConventionalDimensions(),
-                grade: board.material.grade,
-                cost: board.economics.total_cost,
-                boardFeet: board.economics.board_feet,
-                status: 'raw_material',
-                bench: 'work',
-                createdAt: new Date().toISOString(),
-                _board: board  // Keep reference to actual Board object
-            };
-            
-            this.workBenchParts.push(part);
-            
-            // Switch to work bench and make this the current work part
-            this.switchBench('work');
-            this.currentWorkPart = part;
-            
-            // Update UI
-            this.updateWorkBenchDisplay();
-            
-            // The mesh is already created by BoardFactory
-            // Position it appropriately
-            const spawnPosition = this.findOptimalSpawnPosition(
-                board.dimensions.x * 2.54,
-                board.dimensions.y * 2.54,
-                board.dimensions.z * 2.54
-            );
-            board.transform.position = {
-                x: spawnPosition.x / 2.54,
-                y: spawnPosition.y / 2.54,
-                z: spawnPosition.z / 2.54
-            };
-            this.boardFactory.updateMeshTransform(board);
-            
-            // Close modal
-            this.closeMaterialModal();
-            
-            console.log('✅ Material added to work bench using Board system:', board);
-            
-        } catch (error) {
-            console.error('Failed to add material:', error);
-            alert('Failed to add material. Please try again.');
-        }
-    }    }
+        const material = this.materialsLibrary.getMaterial(this.selectedMaterial);
+        const costInfo = this.materialsLibrary.calculateCost(this.selectedMaterial, length, width, thickness, grade);
+
+        // Create part object for Work Bench
+        const part = {
+            id: `workpart_${Date.now()}`,
+            materialId: this.selectedMaterial,
+            materialName: material.name,
+            dimensions: { length, width, thickness },
+            grade: grade || "select",
+            cost: costInfo.totalCost,
+            boardFeet: costInfo.boardFeet,
+            status: 'raw_material',
+            bench: 'work',
+            createdAt: new Date().toISOString()
+        };
+
+        // Add to work bench (not project yet!)
+        this.workBenchParts.push(part);
+        
+        // Switch to work bench and make this the current work part
+        this.switchBench('work');
+        this.currentWorkPart = part;
+        
+        // Update UI
+        this.updateWorkBenchDisplay();
+        
+        // Create 3D representation on work bench
+        this.createWorkBenchMaterial(part);
+        
+        // Note: "To Assembly" button now shows based on selection, not material addition
+        
+        // Close modal
+        this.closeMaterialModal();
+        
+        console.log('Material added to work bench:', part);
+    }
 
     updatePartsListDisplay() {
         // Update both work bench and project parts displays
@@ -7349,31 +7306,13 @@ class DrawingWorld {
                     const uvs = [];
                     const vertexCount = positions.length / 3;
                     
-                    // Generate stretched UV mapping - grain runs along LENGTH
-                    const bounds = mesh.getBoundingInfo();
-                    const min = bounds.minimum;
-                    const max = bounds.maximum;
-                    const sizeX = Math.abs(max.x - min.x);
-                    const sizeZ = Math.abs(max.z - min.z);
-                    
-                    // Grain should run along the LONGER dimension
-                    const grainAlongX = sizeX > sizeZ;
-                    
+                    // Generate planar UV mapping based on world coordinates
                     for (let i = 0; i < vertexCount; i++) {
                         const x = positions[i * 3];
                         const z = positions[i * 3 + 2];
                         
-                        let u, v;
-                        if (grainAlongX) {
-                            // X is length (grain direction), Z is width
-                            u = (x - min.x) / sizeX;  // Grain along X (0-1)
-                            v = (z - min.z) / sizeZ;  // Width along Z (0-1)
-                        } else {
-                            // Z is length (grain direction), X is width
-                            u = (z - min.z) / sizeZ;  // Grain along Z (0-1)
-                            v = (x - min.x) / sizeX;  // Width along X (0-1)
-                        }
-                        uvs.push(u, v);
+                        // Use X,Z coordinates for UV mapping (top-down projection)
+                        uvs.push(x * 0.01, z * 0.01);
                     }
                     
                     mesh.setVerticesData(BABYLON.VertexBuffer.UVKind, uvs);

@@ -148,7 +148,18 @@ class BoardFactory {
         // Apply texture if available
         if (board.material.texture) {
             try {
-                const texture = new BABYLON.Texture(board.material.texture, this.scene);
+                // Check if material has texture variants
+                const materialData = this.materialsLibrary.getMaterial(board.material.id);
+                let textureUrl = board.material.texture;
+                
+                if (materialData?.visual_assets?.texture_variants && materialData.visual_assets.texture_variants.length > 0) {
+                    // Pick a random variant
+                    const variants = materialData.visual_assets.texture_variants;
+                    const randomIndex = Math.floor(Math.random() * variants.length);
+                    textureUrl = variants[randomIndex];
+                    board.material.texture_variant = randomIndex; // Store which variant for consistency
+                    console.log(`🎲 Selected texture variant ${randomIndex + 1} of ${variants.length} for ${board.name}`);
+                }                const texture = new BABYLON.Texture(textureUrl, this.scene);
                 // Set texture to stretch across the entire face
                 texture.wrapU = BABYLON.Texture.CLAMP_ADDRESSMODE;
                 texture.wrapV = BABYLON.Texture.CLAMP_ADDRESSMODE;

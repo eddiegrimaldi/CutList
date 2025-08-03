@@ -963,7 +963,33 @@
             
             // Wait for all file uploads to complete
             await Promise.all(uploadPromises);
-            
+            // Upload texture variants
+            // Upload texture variants
+            if (Object.keys(textureVariants).length > 0) {
+                console.log('Uploading texture variants...');
+                material.visual_assets.texture_variants = material.visual_assets.texture_variants || [];
+                
+                // Clear existing new variants (keep existing ones from database)
+                const existingVariants = material.visual_assets.texture_variants.filter(path => 
+                    !path.includes('_variant_'));
+                material.visual_assets.texture_variants = existingVariants;
+                
+                // Upload each variant with unique names
+                let variantIndex = 1;
+                for (const [variantId, file] of Object.entries(textureVariants)) {
+                    try {
+                        const variantPath = await uploadImageFile(file, materialId, 'texture_variant_' + variantIndex);
+                        if (variantPath) {
+                            material.visual_assets.texture_variants.push(variantPath);
+                            console.log('Uploaded variant ' + variantIndex + ':', variantPath);
+                        }
+                        variantIndex++;
+                    } catch (error) {
+                        console.error('Failed to upload variant:', error);
+                    }
+                }
+            }                }
+            }            
             // Add to materials
             materials[materialId] = material;
 
@@ -1081,6 +1107,9 @@
         window.onclick = function(event) {
             const modal = document.getElementById('material-modal');
             if (event.target === modal) {
+                // Clear texture variants for next use
+                textureVariants = {};
+                document.getElementById("texture-variants-list").innerHTML = "";
                 closeMaterialModal();
             }
         }

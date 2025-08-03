@@ -9,6 +9,7 @@ class BoardFactory {
         this.scene = scene;
         this.materialsLibrary = materialsLibrary;
         this.boards = new Map(); // Track all boards by ID
+        this.recentVariants = new Map(); // Track recent variants by material ID
     }
     
     /**
@@ -153,13 +154,33 @@ class BoardFactory {
                 let textureUrl = board.material.texture;
                 
                 if (materialData?.visual_assets?.texture_variants && materialData.visual_assets.texture_variants.length > 0) {
-                    // Pick a random variant
-                    const variants = materialData.visual_assets.texture_variants;
-                    const randomIndex = Math.floor(Math.random() * variants.length);
-                    textureUrl = variants[randomIndex];
-                    board.material.texture_variant = randomIndex; // Store which variant for consistency
-                    console.log(`🎲 Selected texture variant ${randomIndex + 1} of ${variants.length} for ${board.name}`);
-                }                const texture = new BABYLON.Texture(textureUrl, this.scene);
+                    // Get all available textures (main + variants)
+                    const allTextures = [materialData.visual_assets.texture_diffuse, ...materialData.visual_assets.texture_variants];
+                    
+                    // Get recently used variants for this material (last 2-3)
+                    const recentForMaterial = this.recentVariants.get(board.material.id) || [];
+                    
+                    // Filter out recent variants
+                    const availableTextures = allTextures.filter(texture => !recentForMaterial.includes(texture));
+                    
+                    // If all textures were recently used, reset and use all
+                    if (availableTextures.length === 0) {
+                        availableTextures.push(...allTextures);
+                        this.recentVariants.set(board.material.id, []);
+                    }
+                    
+                    // Pick a random texture from available ones
+                    const randomIndex = Math.floor(Math.random() * availableTextures.length);
+                    textureUrl = availableTextures[randomIndex];
+                    
+                    // Update recent variants (keep last 2-3)
+                    const updatedRecent = [...recentForMaterial, textureUrl].slice(-Math.min(3, allTextures.length - 1));
+                    this.recentVariants.set(board.material.id, updatedRecent);
+                    
+                    // Store which texture was selected
+                    board.material.selected_texture = textureUrl;
+                    console.log(`🎲 Selected texture: ${textureUrl.split('/').pop()} (avoiding ${recentForMaterial.length} recent)`);
+                }                }                const texture = new BABYLON.Texture(textureUrl, this.scene);
                 // Set texture to stretch across the entire face
                 texture.wrapU = BABYLON.Texture.CLAMP_ADDRESSMODE;
                 texture.wrapV = BABYLON.Texture.CLAMP_ADDRESSMODE;

@@ -182,9 +182,43 @@ class BoardFactory {
                     console.log(`🎲 Selected texture: ${textureUrl.split('/').pop()} (avoiding ${recentForMaterial.length} recent)`);
                 }                }                const texture = new BABYLON.Texture(textureUrl, this.scene);
                 // Set texture to stretch across the entire face
-                texture.wrapU = BABYLON.Texture.CLAMP_ADDRESSMODE;
-                texture.wrapV = BABYLON.Texture.CLAMP_ADDRESSMODE;
-                
+                texture.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
+                texture.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
+                // Apply UV offset for variation when no variants exist
+                if (!materialData?.visual_assets?.texture_variants || materialData.visual_assets.texture_variants.length === 0) {
+                    // No variants, use UV offset for variation
+                    
+                    // Track recent UV offsets for this material
+                    if (!this.recentUVOffsets) {
+                        this.recentUVOffsets = new Map();
+                    }
+                    
+                    const recentOffsets = this.recentUVOffsets.get(board.material.id) || [];
+                    
+                    // Generate random UV offset that avoids recent ones
+                    let uOffset, vOffset;
+                    let attempts = 0;
+                    const maxAttempts = 10;
+                    
+                    do {
+                        // Random offset between 0 and 0.7 (leaving 0.3 margin so we don't go off texture)
+                        uOffset = Math.random() * 0.7;
+                        vOffset = Math.random() * 0.7;
+                        attempts++;
+                    } while (attempts < maxAttempts && recentOffsets.some(offset => 
+                        Math.abs(offset.u - uOffset) < 0.15 && Math.abs(offset.v - vOffset) < 0.15
+                    ));
+                    
+                    // Apply the offset
+                    texture.uOffset = uOffset;
+                    texture.vOffset = vOffset;
+                    
+                    // Remember this offset
+                    const newOffsets = [...recentOffsets, {u: uOffset, v: vOffset}].slice(-3);
+                    this.recentUVOffsets.set(board.material.id, newOffsets);
+                    
+                    console.log(`📍 UV offset applied: (${uOffset.toFixed(2)}, ${vOffset.toFixed(2)}) for ${board.name}`);
+                }                
                 // UV mapping should align with grain direction
                 // This ensures texture grain matches actual grain
                 if (board.dimensions.grain_axis === 'x') {

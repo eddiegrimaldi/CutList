@@ -775,17 +775,9 @@
                 document.getElementById('thumbnail-preview').style.display = 'block';
             }
             
-            if (material.visual_assets?.texture_diffuse) {
+            if (material.visual_assets?.texture) {
                 document.getElementById('texture-preview').innerHTML = `<img src="${material.visual_assets.texture_diffuse}" alt="Texture">`;
                 document.getElementById('texture-preview').style.display = 'block';
-            
-            // Show texture info
-            const textureInfo = document.getElementById("texture-info");
-            if (textureInfo) {
-                textureInfo.innerHTML = "<strong>Texture Info:</strong><br>" +
-                    "Main texture: " + (material.visual_assets?.texture_diffuse || "Not set") + "<br>" +
-                    "Texture variants: " + (material.visual_assets?.texture_variants?.length || 0) + " variants";
-            }
             }
             
             document.getElementById('material-modal').style.display = 'block';

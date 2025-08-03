@@ -149,6 +149,9 @@ class BoardFactory {
         if (board.material.texture) {
             try {
                 const texture = new BABYLON.Texture(board.material.texture, this.scene);
+                // Set texture to stretch across the entire face
+                texture.wrapU = BABYLON.Texture.CLAMP_ADDRESSMODE;
+                texture.wrapV = BABYLON.Texture.CLAMP_ADDRESSMODE;
                 
                 // UV mapping should align with grain direction
                 // This ensures texture grain matches actual grain

@@ -595,18 +595,6 @@
                             </div>
                             <input type="file" id="texture-upload" accept="image/*" style="display: none;" onchange="previewImage(this, 'texture-preview')">
                             <div class="upload-preview" id="texture-preview"></div>
-                        
-                        <\!-- Texture Variants Section -->
-                        <div class="form-group" style="margin-top: 20px; border-top: 2px solid #ecf0f1; padding-top: 20px;">
-                            <label>📦 Texture Variants</label>
-                            <p style="font-size: 0.8rem; color: #7f8c8d;">Add multiple texture variations for realistic appearance</p>
-                            
-                            <div id="texture-variants-list" style="margin-bottom: 15px;"></div>
-                            
-                            <button type="button" class="btn btn-secondary" onclick="addTextureVariantInput()">
-                                ➕ Add Texture Variant
-                            </button>
-                        </div>
                         </div>
                     </div>
 
@@ -754,48 +742,7 @@
             document.getElementById('material-modal').style.display = 'block';
         }
 
-        // Texture Variants Management
-        let textureVariantCount = 0;
-        let textureVariants = {};
-        
-        function addTextureVariantInput() {
-            const variantId = 'variant_' + (++textureVariantCount);
-            const container = document.getElementById('texture-variants-list');
-            
-            const variantDiv = document.createElement('div');
-            variantDiv.id = variantId;
-            variantDiv.style.cssText = 'display: flex; align-items: center; margin-bottom: 10px; padding: 10px; background: #f8f9fa; border-radius: 5px;';
-            
-            variantDiv.innerHTML = '<div style="flex: 1;">' +
-                '<div class="file-upload" onclick="document.getElementById(\'' + variantId + '_input\').click()" style="margin: 0;">' +
-                '<p>🎨 Click to upload variant ' + textureVariantCount + '</p>' +
-                '</div>' +
-                '<input type="file" id="' + variantId + '_input" accept="image/*" style="display: none;" ' +
-                'onchange="handleVariantUpload(\'' + variantId + '\', this)">' +
-                '</div>' +
-                '<div id="' + variantId + '_preview" style="margin: 0 10px;"></div>' +
-                '<button type="button" class="btn btn-danger btn-sm" onclick="removeVariant(\'' + variantId + '\')">✖</button>';
-            
-            container.appendChild(variantDiv);
-        }
-        
-        function handleVariantUpload(variantId, input) {
-            if (input.files && input.files[0]) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    document.getElementById(variantId + '_preview').innerHTML = 
-                        '<img src="' + e.target.result + '" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;">';
-                    textureVariants[variantId] = input.files[0];
-                };
-                reader.readAsDataURL(input.files[0]);
-            }
-        }
-        
-        function removeVariant(variantId) {
-            document.getElementById(variantId).remove();
-            delete textureVariants[variantId];
-        }
-                function editMaterial(materialId) {
+        function editMaterial(materialId) {
             editingMaterialId = materialId;
             const material = materials[materialId];
             

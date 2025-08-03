@@ -153,11 +153,11 @@ class BoardFactory {
                 // UV mapping should align with grain direction
                 // This ensures texture grain matches actual grain
                 if (board.dimensions.grain_axis === 'x') {
-                    texture.uScale = board.dimensions.x / 12; // Repeat every foot
-                    texture.vScale = board.dimensions.y / 12;
+                    texture.uScale = 1; // No tiling // Repeat every foot
+                    texture.vScale = 1; // No tiling
                 } else if (board.dimensions.grain_axis === 'y') {
-                    texture.uScale = board.dimensions.y / 12;
-                    texture.vScale = board.dimensions.x / 12;
+                    texture.uScale = 1; // No tiling
+                    texture.vScale = 1; // No tiling
                 }
                 
                 material.diffuseTexture = texture;

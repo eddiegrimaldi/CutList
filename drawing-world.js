@@ -3753,6 +3753,7 @@ class DrawingWorld {
         
         // Reset state
         this.selectedMaterialId = null;
+        this.selectedMaterial = null;
         this.showMaterialGrid();
     }
 
@@ -6885,6 +6886,13 @@ class DrawingWorld {
 
         try {
             // Use BoardFactory to create the board
+            console.log("About to create board with:", {
+                materialId: this.selectedMaterial,
+                length: length,
+                width: width,
+                thickness: thickness,
+                grade: grade
+            });
             const board = this.boardFactory.createFromMaterial(
                 this.selectedMaterial,
                 length,
@@ -6941,10 +6949,11 @@ class DrawingWorld {
             console.log('✅ Material added to work bench using Board system:', board);
             
         } catch (error) {
-            console.error('Failed to add material:', error);
-            alert('Failed to add material. Please try again.');
+            console.error("Failed to add material:", error);
+            console.error("Error details:", error.message, error.stack);
+            // alert removed - check console for errors
         }
-    }    }
+    }
 
     updatePartsListDisplay() {
         // Update both work bench and project parts displays

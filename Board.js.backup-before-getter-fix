@@ -65,24 +65,18 @@ class Board {
         
         // === ECONOMICS ===
         this.economics = {
-            cost_per_bf: data.economics?.cost_per_bf || 0
-        };
-        
-        // Define getters using Object.defineProperty to maintain 'this' context
-        Object.defineProperty(this.economics, 'board_feet', {
-            get: () => (this.dimensions.x * this.dimensions.y * this.dimensions.z) / 144
-        });
-        
-        Object.defineProperty(this.economics, 'total_cost', {
-            get: () => this.economics.board_feet * this.economics.cost_per_bf
-        });
-        
-        Object.defineProperty(this.economics, 'weight', {
-            get: () => {
+            cost_per_bf: data.economics?.cost_per_bf || 0,
+            get board_feet() {
+                return (this.dimensions.x * this.dimensions.y * this.dimensions.z) / 144;
+            },
+            get total_cost() {
+                return this.board_feet * this.cost_per_bf;
+            },
+            get weight() {
                 const volume_ft3 = (this.dimensions.x * this.dimensions.y * this.dimensions.z) / 1728;
                 return volume_ft3 * this.material.density;
             }
-        });
+        };
         
         // === OPERATIONS HISTORY ===
         this.operations = data.operations || [];

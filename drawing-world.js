@@ -43,6 +43,7 @@ class DrawingWorld {
         
         // Materials system
         this.materialsLibrary = null;
+        this.boardFactory = null;
         this.projectParts = [];
         this.workBenchParts = [];
         this.selectedMaterial = null;
@@ -6567,6 +6568,10 @@ class DrawingWorld {
         try {
             console.log('Initializing materials system...');
             this.materialsLibrary = new MaterialsLibrary();
+            
+            // Initialize BoardFactory
+            this.boardFactory = new BoardFactory(this.scene, this.materialsLibrary);
+            console.log("BoardFactory initialized");
             
             const success = await this.materialsLibrary.loadDatabase();
             if (success) {

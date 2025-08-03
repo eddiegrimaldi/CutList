@@ -11,6 +11,8 @@
     <script src="https://cdn.babylonjs.com/materialsLibrary/babylonjs.materials.min.js"></script>
     <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
     <script src="MaterialsLibrary.js?v=<?php echo time(); ?>"></script>
+    <script src="Board.js?v=<?php echo time(); ?>"></script>
+    <script src="BoardFactory.js?v=<?php echo time(); ?>"></script>
     <script>
         console.log('Babylon.js version:', BABYLON.Engine.Version);
     </script>

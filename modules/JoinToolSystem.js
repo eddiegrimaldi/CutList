@@ -328,29 +328,27 @@ export class JoinToolSystem {
     showCornerPoints(mesh) {
         this.clearSnapPoints();
         
+        // Get the world-space bounding box
         const boundingInfo = mesh.getBoundingInfo();
-        const min = boundingInfo.boundingBox.minimum;
-        const max = boundingInfo.boundingBox.maximum;
+        const worldMin = boundingInfo.boundingBox.minimumWorld;
+        const worldMax = boundingInfo.boundingBox.maximumWorld;
         
+        console.log("Creating snap points for mesh:", mesh.name);
+        console.log("World bounds - min:", worldMin.toString(), "max:", worldMax.toString());
         
-        // Transform local coordinates to world space
-        const worldMatrix = mesh.getWorldMatrix();
-        
-        // Only show corner points (8 corners) - transform to world space
-        const localCorners = [
-            new BABYLON.Vector3(min.x, min.y, min.z),
-            new BABYLON.Vector3(max.x, min.y, min.z),
-            new BABYLON.Vector3(min.x, max.y, min.z),
-            new BABYLON.Vector3(max.x, max.y, min.z),
-            new BABYLON.Vector3(min.x, min.y, max.z),
-            new BABYLON.Vector3(max.x, min.y, max.z),
-            new BABYLON.Vector3(min.x, max.y, max.z),
-            new BABYLON.Vector3(max.x, max.y, max.z)
+        // Create corner points directly in world space
+        const worldCorners = [
+            new BABYLON.Vector3(worldMin.x, worldMin.y, worldMin.z),
+            new BABYLON.Vector3(worldMax.x, worldMin.y, worldMin.z),
+            new BABYLON.Vector3(worldMin.x, worldMax.y, worldMin.z),
+            new BABYLON.Vector3(worldMax.x, worldMax.y, worldMin.z),
+            new BABYLON.Vector3(worldMin.x, worldMin.y, worldMax.z),
+            new BABYLON.Vector3(worldMax.x, worldMin.y, worldMax.z),
+            new BABYLON.Vector3(worldMin.x, worldMax.y, worldMax.z),
+            new BABYLON.Vector3(worldMax.x, worldMax.y, worldMax.z)
         ];
         
-        localCorners.forEach((localCorner, index) => {
-            // Transform local corner to world space
-            const worldCorner = BABYLON.Vector3.TransformCoordinates(localCorner, worldMatrix);
+        worldCorners.forEach((worldCorner, index) => {
             this.createSnapPoint(worldCorner, this.snapTypes.CORNER, `corner_${index}`, mesh);
         });
         
@@ -407,13 +405,15 @@ export class JoinToolSystem {
         });
         
         // Face centers (6 faces)
+        // For face snap points, we want them ON the surface, not at the center
+        // This is crucial for butt joints
         const faces = [
-            new BABYLON.Vector3(min.x, center.y, center.z), // Left
-            new BABYLON.Vector3(max.x, center.y, center.z), // Right
-            new BABYLON.Vector3(center.x, min.y, center.z), // Bottom
-            new BABYLON.Vector3(center.x, max.y, center.z), // Top
-            new BABYLON.Vector3(center.x, center.y, min.z), // Front
-            new BABYLON.Vector3(center.x, center.y, max.z)  // Back
+            new BABYLON.Vector3(min.x, center.y, center.z), // Left face surface
+            new BABYLON.Vector3(max.x, center.y, center.z), // Right face surface
+            new BABYLON.Vector3(center.x, min.y, center.z), // Bottom face surface
+            new BABYLON.Vector3(center.x, max.y, center.z), // Top face surface
+            new BABYLON.Vector3(center.x, center.y, min.z), // Front face surface
+            new BABYLON.Vector3(center.x, center.y, max.z)  // Back face surface
         ];
         
         faces.forEach((face, index) => {
@@ -465,23 +465,75 @@ export class JoinToolSystem {
     executeJoin() {
         if (!this.snapPoint1 || !this.snapPoint2) return;
         
+        console.log("=== EXECUTE JOIN DEBUG ===");
+        console.log("Snap1 position:", this.snapPoint1.position.toString());
+        console.log("Snap2 position:", this.snapPoint2.position.toString());
         
         // Calculate translation vector
         const translation = this.snapPoint1.position.subtract(this.snapPoint2.position);
+        console.log("Translation vector:", translation.toString());
         
-        // Move piece 2 to align with piece 1
+        // Store original position
+        const originalPosition = this.selectedMesh2.position.clone();
+        console.log("Mesh2 original position:", originalPosition.toString());
+        
+        // Temporarily move piece 2 to check for collision
         this.selectedMesh2.position = this.selectedMesh2.position.add(translation);
+        console.log("Mesh2 new position:", this.selectedMesh2.position.toString());
         
-        // Check for collisions
-        if (this.checkCollision(this.selectedMesh1, this.selectedMesh2)) {
-            this.selectedMesh2.position = this.selectedMesh2.position.subtract(translation);
+        // Check for collisions at the new position
+        const hasCollision = this.checkCollision(this.selectedMesh1, this.selectedMesh2);
+        
+        if (hasCollision) {
+            // Collision detected - restore original position
+            this.selectedMesh2.position = originalPosition;
             this.showInstructions('Collision detected! Choose different snap points.');
+            console.log("JOIN BLOCKED BY COLLISION");
             return;
         }
         
+        // No collision - the move is already done, update Board transform if needed
+        console.log("Updating board transforms...");
+        
+        if (this.selectedMesh2.board) {
+            console.log("Updating via mesh.board");
+            // Update Board transform to match new position
+            this.selectedMesh2.board.transform.position = {
+                x: this.selectedMesh2.position.x / 2.54,
+                y: this.selectedMesh2.position.y / 2.54,
+                z: this.selectedMesh2.position.z / 2.54
+            };
+        }
+        if (this.selectedMesh2.partData && this.selectedMesh2.partData._board) {
+            console.log("Updating via partData._board");
+            // Update Board transform via partData
+            this.selectedMesh2.partData._board.transform.position = {
+                x: this.selectedMesh2.position.x / 2.54,
+                y: this.selectedMesh2.position.y / 2.54,
+                z: this.selectedMesh2.position.z / 2.54
+            };
+        }
+        
+        // Also update the partData meshGeometry for persistence
+        if (this.selectedMesh2.partData) {
+            console.log("Updating partData.meshGeometry");
+            this.selectedMesh2.partData.meshGeometry = {
+                position: {
+                    x: this.selectedMesh2.position.x,
+                    y: this.selectedMesh2.position.y,
+                    z: this.selectedMesh2.position.z
+                }
+            };
+        }
+        
         // Success - finalize join
+        console.log("JOIN SUCCESSFUL - Boards should be joined!");
         this.showInstructions('Parts joined successfully!');
         this.clearAllHighlights();
+        this.clearSnapPoints();
+        
+        // Reset selection state
+        this.resetSelection();
         
         // Auto-deactivate after success
         setTimeout(() => {
@@ -496,11 +548,69 @@ export class JoinToolSystem {
      * Check for collision between two meshes
      */
     checkCollision(mesh1, mesh2) {
-        // Simple bounding box collision check
-        const bounds1 = mesh1.getBoundingInfo().boundingBox;
-        const bounds2 = mesh2.getBoundingInfo().boundingBox;
+        // Force refresh bounding info in case it's stale
+        mesh1.refreshBoundingInfo();
+        mesh2.refreshBoundingInfo();
         
-        return bounds1.intersectsMinMax(bounds2.minimum, bounds2.maximum);
+        // Get WORLD space bounding boxes
+        const boundingInfo1 = mesh1.getBoundingInfo();
+        const boundingInfo2 = mesh2.getBoundingInfo();
+        
+        const worldMin1 = boundingInfo1.boundingBox.minimumWorld;
+        const worldMax1 = boundingInfo1.boundingBox.maximumWorld;
+        const worldMin2 = boundingInfo2.boundingBox.minimumWorld;
+        const worldMax2 = boundingInfo2.boundingBox.maximumWorld;
+        
+        console.log("=== COLLISION CHECK DEBUG ===");
+        console.log("Mesh1 world bounds:", worldMin1.toString(), "to", worldMax1.toString());
+        console.log("Mesh2 world bounds:", worldMin2.toString(), "to", worldMax2.toString());
+        
+        // Check if boxes intersect at all using world coordinates
+        const intersects = !(worldMax1.x < worldMin2.x || worldMin1.x > worldMax2.x ||
+                           worldMax1.y < worldMin2.y || worldMin1.y > worldMax2.y ||
+                           worldMax1.z < worldMin2.z || worldMin1.z > worldMax2.z);
+        console.log("Boxes intersect:", intersects);
+        
+        if (!intersects) {
+            // No intersection at all - boards aren't touching
+            console.log("No intersection - allowing join");
+            return false;
+        }
+        
+        // Calculate the overlap amount in each dimension using world coordinates
+        const overlapX = Math.min(worldMax1.x, worldMax2.x) - Math.max(worldMin1.x, worldMin2.x);
+        const overlapY = Math.min(worldMax1.y, worldMax2.y) - Math.max(worldMin1.y, worldMin2.y);
+        const overlapZ = Math.min(worldMax1.z, worldMax2.z) - Math.max(worldMin1.z, worldMin2.z);
+        
+        console.log("Overlap amounts - X:", overlapX, "Y:", overlapY, "Z:", overlapZ);
+        
+        // For butt joints, we expect one dimension to have minimal overlap (just touching)
+        // and the other two dimensions to have significant overlap
+        const tolerance = 0.5; // 5mm tolerance for "touching" in cm units
+        
+        // Count how many dimensions have minimal overlap
+        let minimalOverlapCount = 0;
+        if (overlapX < tolerance) minimalOverlapCount++;
+        if (overlapY < tolerance) minimalOverlapCount++;
+        if (overlapZ < tolerance) minimalOverlapCount++;
+        
+        console.log("Minimal overlap count:", minimalOverlapCount, "(tolerance:", tolerance, ")");
+        
+        // For a valid butt joint, exactly one dimension should have minimal overlap
+        if (minimalOverlapCount === 1) {
+            console.log("Valid butt joint - allowing join");
+            return false; // No collision, this is a valid butt joint
+        }
+        
+        // If all dimensions have significant overlap, it's a real collision
+        if (minimalOverlapCount === 0) {
+            console.log("Real collision - blocking join");
+            return true;
+        }
+        
+        // If 2 or 3 dimensions have minimal overlap, boards are barely touching at edge/corner
+        console.log("Edge/corner touch - allowing join");
+        return false;
     }
     
     /**

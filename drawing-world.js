@@ -4537,6 +4537,7 @@ class DrawingWorld {
     handleRightClickContextMenu(pointerInfo) {
         // Prevent browser context menu
         pointerInfo.event.preventDefault();
+        pointerInfo.event.stopPropagation();
         
         // Pick what's under the mouse
         const pickInfo = this.scene.pick(
@@ -7442,7 +7443,6 @@ class DrawingWorld {
         
         // CRITICAL: Check if part has preserved geometry from previous modifications
         if (part.meshGeometry && part.meshGeometry.hasCustomGeometry) {
-            box = this.restoreMeshGeometry(part.meshGeometry, part.id);
             box = this.restoreMeshGeometry(part.meshGeometry, part.id);
             
             // CRITICAL FIX: Replace restored material with properly textured material

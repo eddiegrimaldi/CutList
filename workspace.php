@@ -654,15 +654,30 @@
                     const partCopy = { ...part };
                     
                     // Find the corresponding mesh in the scene
+                    // Check both partData and board references
                     const mesh = drawingWorld.scene.meshes.find(m => 
-                        m.partData && m.partData.id === part.id
+                        (m.partData && m.partData.id === part.id) ||
+                        (m.board && m.board.id === part.id) ||
+                        (m.id === part.id)
                     );
                     
                     if (mesh) {
+                        console.log('Found mesh for part:', part.id, 'at position:', mesh.position.toString());
                         partCopy.meshGeometry = drawingWorld.serializeMeshGeometry(mesh);
+                        if (partCopy.meshGeometry && partCopy.meshGeometry.position) {
+                            console.log('Saved position:', partCopy.meshGeometry.position);
+                        }
                         console.log('Saved geometry for part:', part.id, part.materialName);
                     } else {
                         console.warn('No mesh found for part:', part.id, part.materialName);
+                        console.log('Available meshes:', drawingWorld.scene.meshes.map(m => ({
+                            id: m.id,
+                            name: m.name,
+                            hasPartData: !!m.partData,
+                            partDataId: m.partData?.id,
+                            hasBoard: !!m.board,
+                            boardId: m.board?.id
+                        })));
                     }
                     
                     return partCopy;
@@ -674,8 +689,11 @@
                     const partCopy = { ...part };
                     
                     // Find the corresponding mesh in the scene
+                    // Check both partData and board references
                     const mesh = drawingWorld.scene.meshes.find(m => 
-                        m.partData && m.partData.id === part.id
+                        (m.partData && m.partData.id === part.id) ||
+                        (m.board && m.board.id === part.id) ||
+                        (m.id === part.id)
                     );
                     
                     if (mesh) {
@@ -971,12 +989,125 @@
                 this.selectedPart = null;
             },
             
+            // duplicatePart implementation
             duplicatePart() {
                 if (!this.selectedPart || !window.drawingWorld) return;
                 
-                console.log('Duplicating part:', this.selectedPart.materialName);
-                // TODO: Implement duplication functionality
-                NotificationSystem.info('Feature Coming Soon', 'Part duplication functionality will be available in a future update');
+                const drawingWorld = window.drawingWorld;
+                const originalPart = this.selectedPart;
+                console.log('Duplicating part:', originalPart.materialName);
+                
+                // Create a deep copy of the part data
+                const timestamp = Date.now();
+                const duplicatedPart = {
+                    ...originalPart,
+                    id: `${originalPart.type || 'workpart'}_${timestamp}_duplicate`,
+                    name: `${originalPart.name || originalPart.materialName} (Copy)`,
+                    // Deep clone dimensions
+                    dimensions: {
+                        length: originalPart.dimensions.length,
+                        width: originalPart.dimensions.width,
+                        thickness: originalPart.dimensions.thickness,
+                        length_inches: originalPart.dimensions.length_inches,
+                        width_inches: originalPart.dimensions.width_inches,
+                        thickness_inches: originalPart.dimensions.thickness_inches
+                    },
+                    // Deep clone meshGeometry if it exists
+                    meshGeometry: originalPart.meshGeometry ? {
+                        ...originalPart.meshGeometry,
+                        position: originalPart.meshGeometry.position ? {
+                            x: originalPart.meshGeometry.position.x,
+                            y: originalPart.meshGeometry.position.y,
+                            z: originalPart.meshGeometry.position.z
+                        } : null,
+                        rotation: originalPart.meshGeometry.rotation ? {
+                            x: originalPart.meshGeometry.rotation.x,
+                            y: originalPart.meshGeometry.rotation.y,
+                            z: originalPart.meshGeometry.rotation.z
+                        } : null
+                    } : null
+                };
+                
+                // Find the original mesh to get its current position
+                const originalMesh = drawingWorld.scene.meshes.find(m => 
+                    m.partData && m.partData.id === originalPart.id
+                );
+                
+                if (originalMesh) {
+                    // Store the current position from the mesh
+                    if (!duplicatedPart.meshGeometry) {
+                        duplicatedPart.meshGeometry = {};
+                    }
+                    duplicatedPart.meshGeometry.position = {
+                        x: originalMesh.position.x,
+                        y: originalMesh.position.y,
+                        z: originalMesh.position.z
+                    };
+                    duplicatedPart.meshGeometry.rotation = {
+                        x: originalMesh.rotation.x,
+                        y: originalMesh.rotation.y,
+                        z: originalMesh.rotation.z
+                    };
+                }
+                
+                // Add to appropriate array and create mesh
+                let newMesh = null;
+                
+                if (drawingWorld.currentBench === 'work') {
+                    // Temporarily set isLoadingProject to skip camera animation
+                    const wasLoading = drawingWorld.isLoadingProject;
+                    drawingWorld.isLoadingProject = true;
+                    
+                    drawingWorld.workBenchParts.push(duplicatedPart);
+                    newMesh = drawingWorld.createWorkBenchMaterial(duplicatedPart, true); // Pass isRestoring=true to use saved position
+                    drawingWorld.updateWorkBenchDisplay();
+                    
+                    // Restore original loading state
+                    drawingWorld.isLoadingProject = wasLoading;
+                } else {
+                    // Temporarily set isLoadingProject to skip camera animation
+                    const wasLoading = drawingWorld.isLoadingProject;
+                    drawingWorld.isLoadingProject = true;
+                    
+                    drawingWorld.projectParts.push(duplicatedPart);
+                    newMesh = drawingWorld.createAssemblyPart(duplicatedPart, true); // Pass isRestoring=true to use saved position
+                    drawingWorld.updateProjectPartsDisplay();
+                    
+                    // Restore original loading state
+                    drawingWorld.isLoadingProject = wasLoading;
+                }
+                
+                // If we successfully created a new mesh
+                if (newMesh || duplicatedPart) {
+                    // Find the actual mesh that was created (createWorkBenchMaterial might not return it)
+                    if (!newMesh || !newMesh.partData) {
+                        newMesh = drawingWorld.scene.meshes.find(m => 
+                            m.partData && m.partData.id === duplicatedPart.id
+                        );
+                    }
+                    
+                    if (newMesh) {
+                        // Select the new part
+                        drawingWorld.selectPart(duplicatedPart);
+                        
+                        // Activate pointer tool with move mode
+                        if (window.drawingWorld.toolSystem) {
+                            // First activate pointer tool
+                            window.drawingWorld.toolSystem.activateTool('pointer');
+                            
+                            // Then set to move mode and activate gizmo
+                            setTimeout(() => {
+                                if (window.drawingWorld.pointerToolSystem) {
+                                    window.drawingWorld.pointerToolSystem.setMode('move');
+                                    window.drawingWorld.pointerToolSystem.showPositionGizmo(newMesh);
+                                }
+                            }, 50); // Small delay to ensure tool is fully activated
+                        }
+                    }
+                }
+                
+                NotificationSystem.info('Part Duplicated', `Created copy of "${originalPart.materialName}"`);
+                console.log('Part duplicated successfully:', duplicatedPart.id);
             },
             
             wastePart() {

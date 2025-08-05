@@ -62,6 +62,7 @@ class ModernGizmoSystem {
         this.axisLength = 3;
         this.axisThickness = 0.15;
         this.arrowSize = 0.5;
+        this.originGap = 0.3; // Gap between arrows and origin
         this.planeSize = 0.8;
         this.centerSize = 0.3;
         
@@ -112,14 +113,14 @@ class ModernGizmoSystem {
         axes.forEach(axis => {
             // Create axis line
             const line = BABYLON.MeshBuilder.CreateCylinder(`axis_${axis.name}`, {
-                height: this.axisLength,
+                height: this.axisLength - this.originGap,
                 diameter: this.axisThickness,
-                tessellation: 8
+                tessellation: 32
             }, this.scene);
             
             // Position and orient
             line.parent = this.gizmoRoot;
-            line.position = axis.direction.scale(this.axisLength / 2);
+            line.position = axis.direction.scale((this.axisLength + this.originGap) / 2);
             
             if (axis.name === 'x') line.rotation.z = Math.PI / 2;
             else if (axis.name === 'z') line.rotation.x = Math.PI / 2;
@@ -129,43 +130,75 @@ class ModernGizmoSystem {
                 height: this.arrowSize,
                 diameterTop: 0,
                 diameterBottom: this.arrowSize,
-                tessellation: 8
+                tessellation: 32
             }, this.scene);
             
             arrow.parent = this.gizmoRoot;
             arrow.position = axis.direction.scale(this.axisLength);
             
             if (axis.name === 'x') arrow.rotation.z = -Math.PI / 2;
-            else if (axis.name === 'z') arrow.rotation.x = -Math.PI / 2;
+            else if (axis.name === "z") arrow.rotation.x = Math.PI / 2;
             
             // Create material
             const material = new BABYLON.StandardMaterial(`mat_${axis.name}`, this.scene);
             material.diffuseColor = new BABYLON.Color3(1, 1, 1); // Pure white
             material.specularColor = new BABYLON.Color3(0, 0, 0); // No specular
             material.emissiveColor = new BABYLON.Color3(1, 1, 1); // Self-illuminated white
-            material.disableLighting = true; // No shadows or lighting
+            material.disableLighting = true;
+            
+            // Create solid black border with cloned geometry (no blur/depth)
+            const borderSize = 1.5; // 20% larger for visible border
+            
+            // Black line border
+            const blackLine = line.clone('border_line_' + axis.name);
+            blackLine.parent = this.gizmoRoot;
+            blackLine.scaling.x = borderSize;
+            blackLine.scaling.z = borderSize;
+            blackLine.renderingGroupId = 0;
+            
+            // Black arrow border - create truncated cone for consistent border
+            const borderWidth = 0.04;
+            const blackArrow = BABYLON.MeshBuilder.CreateCylinder('border_arrow_' + axis.name, {
+                height: this.arrowSize,
+                diameterTop: borderWidth * 2,
+                diameterBottom: this.arrowSize + borderWidth * 2,
+                tessellation: 32
+            }, this.scene);
+            
+            blackArrow.parent = this.gizmoRoot;
+            blackArrow.position = axis.direction.scale(this.axisLength);
+            
+            if (axis.name === 'x') blackArrow.rotation.z = -Math.PI / 2;
+            else if (axis.name === 'z') blackArrow.rotation.x = Math.PI / 2;
+            
+            blackArrow.renderingGroupId = 0;
+            
+            // Black material
+            const blackMat = new BABYLON.StandardMaterial('border_mat_' + axis.name, this.scene);
+            blackMat.diffuseColor = new BABYLON.Color3(0, 0, 0);
+            blackMat.emissiveColor = new BABYLON.Color3(0, 0, 0);
+            blackMat.specularColor = new BABYLON.Color3(0, 0, 0);
+            blackMat.disableLighting = true;
+            
+            blackLine.material = blackMat;
+            blackArrow.material = blackMat;
+            
+            // White renders on top
+            line.renderingGroupId = 1;
+            arrow.renderingGroupId = 1; // No shadows or lighting
             
             line.material = material;
             arrow.material = material;
             
-            // Add black outline for halo effect
-            line.renderOutline = true;
-            line.outlineWidth = 0.1;
-            line.outlineColor = new BABYLON.Color3(0, 0, 0);
-            
-            arrow.renderOutline = true;
-            arrow.outlineWidth = 0.1;
-            arrow.outlineColor = new BABYLON.Color3(0, 0, 0);
-            
             // Create invisible hit box for easier selection
             const hitBox = BABYLON.MeshBuilder.CreateBox(`hitbox_${axis.name}`, {
-                width: axis.name === 'x' ? this.axisLength : this.axisThickness * 3,
-                height: axis.name === 'y' ? this.axisLength : this.axisThickness * 3,
-                depth: axis.name === 'z' ? this.axisLength : this.axisThickness * 3
+                width: axis.name === 'x' ? this.axisLength - this.originGap : this.axisThickness * 3,
+                height: axis.name === 'y' ? this.axisLength - this.originGap : this.axisThickness * 3,
+                depth: axis.name === 'z' ? this.axisLength - this.originGap : this.axisThickness * 3
             }, this.scene);
             
             hitBox.parent = this.gizmoRoot;
-            hitBox.position = axis.direction.scale(this.axisLength / 2);
+            hitBox.position = axis.direction.scale((this.axisLength + this.originGap) / 2);
             hitBox.isVisible = false;
             hitBox.isPickable = true;
             
@@ -204,7 +237,15 @@ class ModernGizmoSystem {
             }, this.scene);
             
             planeMesh.parent = this.gizmoRoot;
-            planeMesh.position = BABYLON.Vector3.Zero();
+            // Position plane outward from origin
+            const offset = this.planeSize / 2 + this.originGap / 2;
+            if (plane.name === 'xy') {
+                planeMesh.position = new BABYLON.Vector3(offset, offset, 0);
+            } else if (plane.name === 'xz') {
+                planeMesh.position = new BABYLON.Vector3(offset, 0, offset);
+            } else if (plane.name === 'yz') {
+                planeMesh.position = new BABYLON.Vector3(0, offset, offset);
+            }
             
             // Orient plane
             if (plane.name === 'xz') {

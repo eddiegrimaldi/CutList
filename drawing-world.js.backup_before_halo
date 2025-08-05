@@ -354,12 +354,9 @@ class ModernGizmoSystem {
     
     applyHoverEffect(handle) {
         if (handle.type === 'axis') {
-            // Change to axis color on hover
-            const axisColor = this.colors[handle.axis];
-            handle.material.emissiveColor = axisColor;
-            handle.material.diffuseColor = axisColor;
-            handle.material.emissiveColor = axisColor;
-            handle.material.diffuseColor = axisColor;
+            handle.material.emissiveColor = this.colors.hover.scale(0.5);
+            handle.line.scaling = new BABYLON.Vector3(1.2, 1.2, 1.2);
+            handle.arrow.scaling = new BABYLON.Vector3(1.2, 1.2, 1.2);
         } else if (handle.type === 'plane') {
             handle.material.alpha = 0.5;
             handle.material.emissiveColor = this.colors.hover.scale(0.3);
@@ -371,12 +368,9 @@ class ModernGizmoSystem {
     
     resetHandleAppearance(handle) {
         if (handle.type === 'axis') {
-            handle.material.emissiveColor = new BABYLON.Color3(1, 1, 1);
-            handle.material.diffuseColor = new BABYLON.Color3(1, 1, 1);
-            handle.material.emissiveColor = new BABYLON.Color3(1, 1, 1);
-            handle.material.diffuseColor = new BABYLON.Color3(1, 1, 1);
-            handle.material.emissiveColor = new BABYLON.Color3(1, 1, 1);
-            handle.material.diffuseColor = new BABYLON.Color3(1, 1, 1);
+            handle.material.emissiveColor = handle.defaultColor.scale(0.3);
+            handle.line.scaling = BABYLON.Vector3.One();
+            handle.arrow.scaling = BABYLON.Vector3.One();
         } else if (handle.type === 'plane') {
             handle.material.alpha = handle.defaultAlpha;
             handle.material.emissiveColor = handle.defaultColor.scale(0.2);
@@ -399,6 +393,20 @@ class ModernGizmoSystem {
         
         // Setup drag plane based on handle type
         this.setupDragPlane(handle, pickInfo);
+        
+        // Calculate initial offset
+        const ray = this.scene.createPickingRay(
+            this.scene.pointerX,
+            this.scene.pointerY,
+            BABYLON.Matrix.Identity(),
+            this.camera
+        );
+        
+        const distance = this.dragPlane.intersectsLine(ray);
+        if (distance) {
+            const pickedPoint = ray.origin.add(ray.direction.scale(distance));
+            this.dragOffset = this.targetMesh.position.subtract(pickedPoint);
+        }
     }
     
     setupDragPlane(handle, pickInfo) {

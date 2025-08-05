@@ -10,6 +10,519 @@ import { PlaneToolSystem } from './modules/PlaneToolSystem.js';
 import { JoinToolSystem } from './modules/JoinToolSystem.js';
 import { DrillPressSystem } from './modules/DrillPressSystem.js';
 
+/**
+ * Modern Gizmo System Redesign
+ * - Smooth, professional appearance
+ * - Easy to grab with larger hit zones
+ * - Buttery smooth movement
+ * - Visual feedback on hover and drag
+ */
+
+class ModernGizmoSystem {
+    constructor(scene, camera, canvas) {
+        this.scene = scene;
+        // Modern gizmo system
+        this.modernGizmo = null;
+        
+        // Pointer tool system for compatibility
+        this.pointerToolSystem = {
+            setMode: (mode) => {
+                console.log('Pointer tool mode set to:', mode);
+                this.pointerMode = mode;
+            },
+            showPositionGizmo: (mesh) => {
+                console.log('Showing position gizmo for mesh:', mesh.name);
+                if (this.selectedPart) {
+                    this.createDragHandles(mesh);
+                }
+            }
+        };
+
+        this.camera = camera;
+        this.canvas = canvas;
+        
+        // Gizmo components
+        this.gizmoRoot = null;
+        this.axisHandles = [];
+        this.planeHandles = [];
+        this.centerSphere = null;
+        
+        // Interaction state
+        this.isDragging = false;
+        this.hoveredHandle = null;
+        this.activeHandle = null;
+        this.targetMesh = null;
+        
+        // Drag state
+        this.dragStartPosition = null;
+        this.dragPlane = null;
+        this.dragOffset = null;
+        
+        // Visual settings
+        this.axisLength = 3;
+        this.axisThickness = 0.15;
+        this.arrowSize = 0.5;
+        this.planeSize = 0.8;
+        this.centerSize = 0.3;
+        
+        // Colors
+        this.colors = {
+            x: new BABYLON.Color3(0.9, 0.2, 0.2),      // Soft red
+            y: new BABYLON.Color3(0.2, 0.9, 0.2),      // Soft green
+            z: new BABYLON.Color3(0.2, 0.2, 0.9),      // Soft blue
+            xy: new BABYLON.Color3(0.9, 0.9, 0.2),     // Yellow
+            xz: new BABYLON.Color3(0.9, 0.2, 0.9),     // Magenta
+            yz: new BABYLON.Color3(0.2, 0.9, 0.9),     // Cyan
+            hover: new BABYLON.Color3(1, 1, 0),        // Bright yellow
+            active: new BABYLON.Color3(1, 0.5, 0),     // Orange
+            center: new BABYLON.Color3(0.8, 0.8, 0.8)  // Light gray
+        };
+        
+        this.setupObservables();
+    }
+    
+    createGizmo(targetMesh) {
+        this.dispose();
+        this.targetMesh = targetMesh;
+        
+        // Create root node at mesh position
+        this.gizmoRoot = new BABYLON.TransformNode("gizmoRoot", this.scene);
+        this.updateGizmoPosition();
+        
+        // Create axis handles
+        this.createAxisHandles();
+        
+        // Create plane handles
+        this.createPlaneHandles();
+        
+        // Create center sphere for free movement
+        this.createCenterSphere();
+        
+        // Setup scaling based on camera distance
+        this.setupCameraDistanceScaling();
+    }
+    
+    createAxisHandles() {
+        const axes = [
+            { name: 'x', direction: new BABYLON.Vector3(1, 0, 0), color: this.colors.x },
+            { name: 'y', direction: new BABYLON.Vector3(0, 1, 0), color: this.colors.y },
+            { name: 'z', direction: new BABYLON.Vector3(0, 0, 1), color: this.colors.z }
+        ];
+        
+        axes.forEach(axis => {
+            // Create axis line
+            const line = BABYLON.MeshBuilder.CreateCylinder(`axis_${axis.name}`, {
+                height: this.axisLength,
+                diameter: this.axisThickness,
+                tessellation: 8
+            }, this.scene);
+            
+            // Position and orient
+            line.parent = this.gizmoRoot;
+            line.position = axis.direction.scale(this.axisLength / 2);
+            
+            if (axis.name === 'x') line.rotation.z = Math.PI / 2;
+            else if (axis.name === 'z') line.rotation.x = Math.PI / 2;
+            
+            // Create arrow cone
+            const arrow = BABYLON.MeshBuilder.CreateCylinder(`arrow_${axis.name}`, {
+                height: this.arrowSize,
+                diameterTop: 0,
+                diameterBottom: this.arrowSize,
+                tessellation: 8
+            }, this.scene);
+            
+            arrow.parent = this.gizmoRoot;
+            arrow.position = axis.direction.scale(this.axisLength);
+            
+            if (axis.name === 'x') arrow.rotation.z = -Math.PI / 2;
+            else if (axis.name === 'z') arrow.rotation.x = -Math.PI / 2;
+            
+            // Create material
+            const material = new BABYLON.StandardMaterial(`mat_${axis.name}`, this.scene);
+            material.diffuseColor = axis.color;
+            material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1);
+            material.emissiveColor = axis.color.scale(0.3);
+            
+            line.material = material;
+            arrow.material = material;
+            
+            // Create invisible hit box for easier selection
+            const hitBox = BABYLON.MeshBuilder.CreateBox(`hitbox_${axis.name}`, {
+                width: axis.name === 'x' ? this.axisLength : this.axisThickness * 3,
+                height: axis.name === 'y' ? this.axisLength : this.axisThickness * 3,
+                depth: axis.name === 'z' ? this.axisLength : this.axisThickness * 3
+            }, this.scene);
+            
+            hitBox.parent = this.gizmoRoot;
+            hitBox.position = axis.direction.scale(this.axisLength / 2);
+            hitBox.isVisible = false;
+            hitBox.isPickable = true;
+            
+            // Store references
+            const handle = {
+                axis: axis.name,
+                direction: axis.direction,
+                line: line,
+                arrow: arrow,
+                hitBox: hitBox,
+                material: material,
+                defaultColor: axis.color.clone(),
+                type: 'axis'
+            };
+            
+            // Tag meshes
+            [line, arrow, hitBox].forEach(mesh => {
+                mesh.gizmoHandle = handle;
+                mesh.isGizmo = true;
+            });
+            
+            this.axisHandles.push(handle);
+        });
+    }
+    
+    createPlaneHandles() {
+        const planes = [
+            { name: 'xy', normal: new BABYLON.Vector3(0, 0, 1), color: this.colors.xy },
+            { name: 'xz', normal: new BABYLON.Vector3(0, 1, 0), color: this.colors.xz },
+            { name: 'yz', normal: new BABYLON.Vector3(1, 0, 0), color: this.colors.yz }
+        ];
+        
+        planes.forEach(plane => {
+            const planeMesh = BABYLON.MeshBuilder.CreatePlane(`plane_${plane.name}`, {
+                size: this.planeSize
+            }, this.scene);
+            
+            planeMesh.parent = this.gizmoRoot;
+            planeMesh.position = BABYLON.Vector3.Zero();
+            
+            // Orient plane
+            if (plane.name === 'xz') {
+                planeMesh.rotation.x = Math.PI / 2;
+            } else if (plane.name === 'yz') {
+                planeMesh.rotation.y = Math.PI / 2;
+            }
+            
+            // Create material
+            const material = new BABYLON.StandardMaterial(`mat_plane_${plane.name}`, this.scene);
+            material.diffuseColor = plane.color;
+            material.alpha = 0.3;
+            material.backFaceCulling = false;
+            material.emissiveColor = plane.color.scale(0.2);
+            
+            planeMesh.material = material;
+            
+            // Store reference
+            const handle = {
+                name: plane.name,
+                normal: plane.normal,
+                mesh: planeMesh,
+                material: material,
+                defaultColor: plane.color.clone(),
+                defaultAlpha: 0.3,
+                type: 'plane'
+            };
+            
+            planeMesh.gizmoHandle = handle;
+            planeMesh.isGizmo = true;
+            
+            this.planeHandles.push(handle);
+        });
+    }
+    
+    createCenterSphere() {
+        this.centerSphere = BABYLON.MeshBuilder.CreateSphere("gizmo_center", {
+            diameter: this.centerSize,
+            segments: 16
+        }, this.scene);
+        
+        this.centerSphere.parent = this.gizmoRoot;
+        
+        const material = new BABYLON.StandardMaterial("mat_center", this.scene);
+        material.diffuseColor = this.colors.center;
+        material.specularColor = new BABYLON.Color3(0.5, 0.5, 0.5);
+        material.emissiveColor = this.colors.center.scale(0.2);
+        
+        this.centerSphere.material = material;
+        
+        const handle = {
+            type: 'center',
+            mesh: this.centerSphere,
+            material: material,
+            defaultColor: this.colors.center.clone()
+        };
+        
+        this.centerSphere.gizmoHandle = handle;
+        this.centerSphere.isGizmo = true;
+    }
+    
+    setupCameraDistanceScaling() {
+        // Scale gizmo based on distance from camera
+        this.scene.registerBeforeRender(() => {
+            if (!this.gizmoRoot || !this.targetMesh) return;
+            
+            const distance = BABYLON.Vector3.Distance(
+                this.camera.position,
+                this.gizmoRoot.position
+            );
+            
+            // Scale factor based on distance
+            const scale = Math.max(distance * 0.05, 1);
+            this.gizmoRoot.scaling = new BABYLON.Vector3(scale, scale, scale);
+        });
+    }
+    
+    setupObservables() {
+        // Pointer move for hover effects
+        this.scene.onPointerObservable.add((pointerInfo) => {
+            switch (pointerInfo.type) {
+                case BABYLON.PointerEventTypes.POINTERMOVE:
+                    this.handlePointerMove(pointerInfo);
+                    break;
+                case BABYLON.PointerEventTypes.POINTERDOWN:
+                    this.handlePointerDown(pointerInfo);
+                    break;
+                case BABYLON.PointerEventTypes.POINTERUP:
+                    this.handlePointerUp(pointerInfo);
+                    break;
+            }
+        });
+    }
+    
+    handlePointerMove(pointerInfo) {
+        if (this.isDragging) {
+            this.updateDrag(pointerInfo);
+            return;
+        }
+        
+        // Check for hover
+        const pickInfo = this.scene.pick(
+            this.scene.pointerX,
+            this.scene.pointerY,
+            (mesh) => mesh.isGizmo
+        );
+        
+        if (pickInfo.hit && pickInfo.pickedMesh.gizmoHandle) {
+            this.setHoveredHandle(pickInfo.pickedMesh.gizmoHandle);
+        } else {
+            this.setHoveredHandle(null);
+        }
+    }
+    
+    handlePointerDown(pointerInfo) {
+        if (pointerInfo.event.button !== 0) return; // Only left click
+        
+        const pickInfo = pointerInfo.pickInfo;
+        if (pickInfo.hit && pickInfo.pickedMesh.isGizmo) {
+            this.startDrag(pickInfo.pickedMesh.gizmoHandle, pickInfo);
+        }
+    }
+    
+    handlePointerUp(pointerInfo) {
+        if (this.isDragging) {
+            this.endDrag();
+        }
+    }
+    
+    setHoveredHandle(handle) {
+        if (this.hoveredHandle === handle) return;
+        
+        // Reset previous hover
+        if (this.hoveredHandle) {
+            this.resetHandleAppearance(this.hoveredHandle);
+        }
+        
+        this.hoveredHandle = handle;
+        
+        // Apply hover effect
+        if (handle && !this.isDragging) {
+            this.applyHoverEffect(handle);
+        }
+    }
+    
+    applyHoverEffect(handle) {
+        if (handle.type === 'axis') {
+            handle.material.emissiveColor = this.colors.hover.scale(0.5);
+            handle.line.scaling = new BABYLON.Vector3(1.2, 1.2, 1.2);
+            handle.arrow.scaling = new BABYLON.Vector3(1.2, 1.2, 1.2);
+        } else if (handle.type === 'plane') {
+            handle.material.alpha = 0.5;
+            handle.material.emissiveColor = this.colors.hover.scale(0.3);
+        } else if (handle.type === 'center') {
+            handle.material.emissiveColor = this.colors.hover.scale(0.5);
+            handle.mesh.scaling = new BABYLON.Vector3(1.2, 1.2, 1.2);
+        }
+    }
+    
+    resetHandleAppearance(handle) {
+        if (handle.type === 'axis') {
+            handle.material.emissiveColor = handle.defaultColor.scale(0.3);
+            handle.line.scaling = BABYLON.Vector3.One();
+            handle.arrow.scaling = BABYLON.Vector3.One();
+        } else if (handle.type === 'plane') {
+            handle.material.alpha = handle.defaultAlpha;
+            handle.material.emissiveColor = handle.defaultColor.scale(0.2);
+        } else if (handle.type === 'center') {
+            handle.material.emissiveColor = handle.defaultColor.scale(0.2);
+            handle.mesh.scaling = BABYLON.Vector3.One();
+        }
+    }
+    
+    startDrag(handle, pickInfo) {
+        this.isDragging = true;
+        this.activeHandle = handle;
+        this.dragStartPosition = this.targetMesh.position.clone();
+        
+        // Disable camera control
+        this.camera.detachControl(this.canvas);
+        
+        // Apply active appearance
+        handle.material.emissiveColor = this.colors.active.scale(0.6);
+        
+        // Setup drag plane based on handle type
+        this.setupDragPlane(handle, pickInfo);
+        
+        // Calculate initial offset
+        const ray = this.scene.createPickingRay(
+            this.scene.pointerX,
+            this.scene.pointerY,
+            BABYLON.Matrix.Identity(),
+            this.camera
+        );
+        
+        const distance = this.dragPlane.intersectsLine(ray);
+        if (distance) {
+            const pickedPoint = ray.origin.add(ray.direction.scale(distance));
+            this.dragOffset = this.targetMesh.position.subtract(pickedPoint);
+        }
+    }
+    
+    setupDragPlane(handle, pickInfo) {
+        const meshPosition = this.targetMesh.position;
+        
+        if (handle.type === 'axis') {
+            // Create plane perpendicular to camera that contains the axis
+            const cameraDirection = this.camera.position.subtract(meshPosition).normalize();
+            const normal = BABYLON.Vector3.Cross(handle.direction, cameraDirection).normalize();
+            
+            // If axis is parallel to camera, use alternate plane
+            if (normal.length() < 0.1) {
+                normal.copyFrom(BABYLON.Vector3.Cross(handle.direction, BABYLON.Vector3.Up()).normalize());
+            }
+            
+            this.dragPlane = BABYLON.Plane.FromPositionAndNormal(meshPosition, normal);
+            
+        } else if (handle.type === 'plane') {
+            // Use the plane's normal
+            this.dragPlane = BABYLON.Plane.FromPositionAndNormal(meshPosition, handle.normal);
+            
+        } else if (handle.type === 'center') {
+            // Use screen-aligned plane
+            const cameraDirection = this.camera.position.subtract(meshPosition).normalize();
+            this.dragPlane = BABYLON.Plane.FromPositionAndNormal(meshPosition, cameraDirection);
+        }
+    }
+    
+    updateDrag(pointerInfo) {
+        if (!this.isDragging || !this.activeHandle || !this.dragPlane) return;
+        
+        // Create ray from mouse position
+        const ray = this.scene.createPickingRay(
+            this.scene.pointerX,
+            this.scene.pointerY,
+            BABYLON.Matrix.Identity(),
+            this.camera
+        );
+        
+        // Find intersection with drag plane
+        const distance = this.dragPlane.intersectsLine(ray);
+        if (!distance) return;
+        
+        const pickedPoint = ray.origin.add(ray.direction.scale(distance));
+        let newPosition = pickedPoint.add(this.dragOffset);
+        
+        // Apply constraints based on handle type
+        if (this.activeHandle.type === 'axis') {
+            // Project movement onto axis
+            const movement = newPosition.subtract(this.dragStartPosition);
+            const axisMovement = BABYLON.Vector3.Dot(movement, this.activeHandle.direction);
+            newPosition = this.dragStartPosition.add(
+                this.activeHandle.direction.scale(axisMovement)
+            );
+            
+        } else if (this.activeHandle.type === 'plane') {
+            // Constrain to plane (remove component along normal)
+            const movement = newPosition.subtract(this.dragStartPosition);
+            const normalComponent = BABYLON.Vector3.Dot(movement, this.activeHandle.normal);
+            newPosition = newPosition.subtract(
+                this.activeHandle.normal.scale(normalComponent)
+            );
+        }
+        
+        // Apply position
+        this.targetMesh.position = newPosition;
+        this.updateGizmoPosition();
+        
+        // Update part data if exists
+        if (this.targetMesh.partData) {
+            this.targetMesh.partData.meshGeometry = this.targetMesh.partData.meshGeometry || {};
+            this.targetMesh.partData.meshGeometry.position = {
+                x: newPosition.x,
+                y: newPosition.y,
+                z: newPosition.z
+            };
+        }
+    }
+    
+    endDrag() {
+        this.isDragging = false;
+        
+        // Re-enable camera control
+        this.camera.attachControl(this.canvas, true);
+        
+        // Reset appearance
+        if (this.activeHandle) {
+            this.resetHandleAppearance(this.activeHandle);
+        }
+        
+        this.activeHandle = null;
+        this.dragPlane = null;
+        this.dragOffset = null;
+    }
+    
+    updateGizmoPosition() {
+        if (this.gizmoRoot && this.targetMesh) {
+            this.gizmoRoot.position = this.targetMesh.position.clone();
+        }
+    }
+    
+    show() {
+        if (this.gizmoRoot) {
+            this.gizmoRoot.setEnabled(true);
+        }
+    }
+    
+    hide() {
+        if (this.gizmoRoot) {
+            this.gizmoRoot.setEnabled(false);
+        }
+    }
+    
+    dispose() {
+        if (this.gizmoRoot) {
+            this.gizmoRoot.dispose();
+            this.gizmoRoot = null;
+        }
+        
+        this.axisHandles = [];
+        this.planeHandles = [];
+        this.centerSphere = null;
+        this.hoveredHandle = null;
+        this.activeHandle = null;
+        this.targetMesh = null;
+    }
+}
+
 class DrawingWorld {
     constructor() {
         this.canvas = document.getElementById('renderCanvas');
@@ -8880,257 +9393,33 @@ class DrawingWorld {
     }
 
     createDragHandles(mesh) {
-        // Clear existing handles
+        // Clear any existing handles
         this.clearDragHandles();
         
-        this.dragHandles = [];
-        
-        // OVERRIDE: Calculate position from actual vertex data instead of broken bounding box
-        const vertices = mesh.getVerticesData(BABYLON.VertexBuffer.PositionKind);
-        let actualCenter = mesh.getAbsolutePosition(); // fallback
-        
-        if (vertices && vertices.length > 0) {
-            // Calculate actual center from vertex data
-            let minX = Infinity, minY = Infinity, minZ = Infinity;
-            let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
-            
-            for (let i = 0; i < vertices.length; i += 3) {
-                const x = vertices[i];
-                const y = vertices[i + 1];
-                const z = vertices[i + 2];
-                
-                minX = Math.min(minX, x);
-                minY = Math.min(minY, y);
-                minZ = Math.min(minZ, z);
-                maxX = Math.max(maxX, x);
-                maxY = Math.max(maxY, y);
-                maxZ = Math.max(maxZ, z);
-            }
-            
-            // Calculate center from actual vertex bounds
-            const centerX = (minX + maxX) / 2;
-            const centerY = (minY + maxY) / 2;
-            const centerZ = (minZ + maxZ) / 2;
-            
-            // Transform to world space
-            const localCenter = new BABYLON.Vector3(centerX, centerY, centerZ);
-            actualCenter = BABYLON.Vector3.TransformCoordinates(localCenter, mesh.getWorldMatrix());
-            
-            console.log('GIZMO OVERRIDE: Using actual vertex center:', actualCenter);
-            console.log('GIZMO OVERRIDE: vs mesh.getAbsolutePosition():', mesh.getAbsolutePosition());
+        // Create new modern gizmo
+        if (!this.modernGizmo) {
+            this.modernGizmo = new ModernGizmoSystem(this.scene, this.camera, this.canvas);
         }
         
-        const partPosition = actualCenter;
-        const boundingInfo = mesh.getBoundingInfo();
-        const worldMatrix = mesh.getWorldMatrix();
+        this.modernGizmo.createGizmo(mesh);
+        this.modernGizmo.show();
         
-        // Gizmo positioning is working correctly - dimensions match actual geometry
-        
-        // Get all bounding box corners and transform to world space
-        const corners = [
-            boundingInfo.minimum,
-            new BABYLON.Vector3(boundingInfo.maximum.x, boundingInfo.minimum.y, boundingInfo.minimum.z),
-            new BABYLON.Vector3(boundingInfo.minimum.x, boundingInfo.maximum.y, boundingInfo.minimum.z),
-            new BABYLON.Vector3(boundingInfo.minimum.x, boundingInfo.minimum.y, boundingInfo.maximum.z),
-            new BABYLON.Vector3(boundingInfo.maximum.x, boundingInfo.maximum.y, boundingInfo.minimum.z),
-            new BABYLON.Vector3(boundingInfo.maximum.x, boundingInfo.minimum.y, boundingInfo.maximum.z),
-            new BABYLON.Vector3(boundingInfo.minimum.x, boundingInfo.maximum.y, boundingInfo.maximum.z),
-            boundingInfo.maximum
-        ];
-        
-        // Find the HIGHEST Y coordinate in world space (Y is up in Babylon)
-        let highestY = -Infinity;
-        corners.forEach(corner => {
-            const worldCorner = BABYLON.Vector3.TransformCoordinates(corner, worldMatrix);
-            if (worldCorner.y > highestY) {
-                highestY = worldCorner.y;
-            }
-        });
-        
-        // Position handles ABOVE the highest point with clearance
-        const clearance = 5; // 5 units above highest point
-        const handleHeight = highestY + clearance;
-        
-        // Create professional single-axis arrow handles (X, Y, Z)
-        const axisHandles = [
-            { axis: 'X', color: new BABYLON.Color3(1, 0, 0), direction: new BABYLON.Vector3(1, 0, 0) },
-            { axis: 'Y', color: new BABYLON.Color3(0, 1, 0), direction: new BABYLON.Vector3(0, 1, 0) },
-            { axis: 'Z', color: new BABYLON.Color3(0, 0, 1), direction: new BABYLON.Vector3(0, 0, 1) }
-        ];
-        
-        axisHandles.forEach(data => {
-            // Create SMALLER arrow shaft (cylinder)
-            const shaft = BABYLON.MeshBuilder.CreateCylinder(`shaft_${data.axis}`, {
-                height: 15,
-                diameter: 0.8
-            }, this.scene);
-            
-            // Create SMALLER arrow head (cone) with BLUNT tip
-            const head = BABYLON.MeshBuilder.CreateCylinder(`head_${data.axis}`, {
-                height: 4,
-                diameterTop: 0.5,
-                diameterBottom: 2.5
-            }, this.scene);
-            
-            // Position 1 unit away from origin in their direction, at handle height
-            let shaftPos, headPos;
-            
-            if (data.axis === 'X') {
-                // Red X axis - 1 unit away horizontally
-                shaftPos = new BABYLON.Vector3(partPosition.x + 8, handleHeight, partPosition.z);
-                headPos = new BABYLON.Vector3(partPosition.x + 12, handleHeight, partPosition.z);
-                shaft.rotation.z = Math.PI / 2;
-                head.rotation.z = -Math.PI / 2;
-            } else if (data.axis === 'Y') {
-                // Green Y axis - 1 unit away, points further up
-                shaftPos = new BABYLON.Vector3(partPosition.x, handleHeight + 8, partPosition.z);
-                headPos = new BABYLON.Vector3(partPosition.x, handleHeight + 12, partPosition.z);
-                head.rotation.y = Math.PI;
-            } else if (data.axis === 'Z') {
-                // Blue Z axis - 1 unit away in Z direction
-                shaftPos = new BABYLON.Vector3(partPosition.x, handleHeight, partPosition.z + 8);
-                headPos = new BABYLON.Vector3(partPosition.x, handleHeight, partPosition.z + 12);
-                shaft.rotation.x = Math.PI / 2;
-                head.rotation.x = -Math.PI / 2;
-            }
-            
-            shaft.position = shaftPos;
-            head.position = headPos;
-            
-            // Create WHITE material with black halo outline
-            const handleMaterial = new BABYLON.StandardMaterial(`handleMaterial_${data.axis}`, this.scene);
-            handleMaterial.diffuseColor = new BABYLON.Color3(1, 1, 1); // WHITE
-            handleMaterial.emissiveColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Slight glow
-            handleMaterial.specularColor = new BABYLON.Color3(0.8, 0.8, 0.8);
-            
-            // Add black outline effect
-            handleMaterial.outlineWidth = 0.05;
-            handleMaterial.outlineColor = new BABYLON.Color3(0, 0, 0); // BLACK halo
-            
-            shaft.material = handleMaterial;
-            head.material = handleMaterial;
-            
-            // Enable outline rendering
-            shaft.enableEdgesRendering();
-            shaft.edgesWidth = 2.0;
-            shaft.edgesColor = new BABYLON.Color4(0, 0, 0, 1); // Black outline
-            
-            head.enableEdgesRendering();
-            head.edgesWidth = 2.0;
-            head.edgesColor = new BABYLON.Color4(0, 0, 0, 1); // Black outline
-            
-            // Make both parts of the handle pickable
-            shaft.isDragHandle = true;
-            shaft.axis = data.axis;
-            shaft.handleType = 'single';
-            shaft.targetPart = mesh;
-            
-            head.isDragHandle = true;
-            head.axis = data.axis;
-            head.handleType = 'single';
-            head.targetPart = mesh;
-            
-            this.dragHandles.push(shaft, head);
-        });
-        
-        // Create DISTINCT dual-axis plane handles ABOVE highest point
-        const planeHandles = [
-            { 
-                axes: 'XY', 
-                color: new BABYLON.Color3(1, 0.5, 0), // ORANGE (X+Y, Z locked)
-                description: 'XY Plane (Z locked)'
-            },
-            { 
-                axes: 'XZ', 
-                color: new BABYLON.Color3(0.5, 1, 0), // LIME GREEN (X+Z, Y locked)  
-                description: 'XZ Plane (Y locked)'
-            },
-            { 
-                axes: 'YZ', 
-                color: new BABYLON.Color3(1, 0, 0.5), // HOT PINK (Y+Z, X locked)
-                description: 'YZ Plane (X locked)'
-            }
-        ];
-        
-        planeHandles.forEach((data, index) => {
-            // Create SMALLER flat square for plane movement
-            const planeHandle = BABYLON.MeshBuilder.CreateGround(`plane_${data.axes}`, {
-                width: 4,
-                height: 4
-            }, this.scene);
-            
-            // Position handles in tight cluster ABOVE highest point
-            let handlePos;
-            if (data.axes === 'XY') {
-                // XY plane - positioned to right-back corner above highest point
-                handlePos = new BABYLON.Vector3(partPosition.x + 6, handleHeight, partPosition.z + 6);
-            } else if (data.axes === 'XZ') {
-                // XZ plane - positioned to right-front corner above highest point  
-                handlePos = new BABYLON.Vector3(partPosition.x + 6, handleHeight + 2, partPosition.z - 6);
-                planeHandle.rotation.x = Math.PI / 2;
-            } else if (data.axes === 'YZ') {
-                // YZ plane - positioned to left-back corner above highest point
-                handlePos = new BABYLON.Vector3(partPosition.x - 6, handleHeight + 2, partPosition.z + 6);
-                planeHandle.rotation.y = Math.PI / 2;
-                planeHandle.rotation.z = Math.PI / 2;
-            }
-            
-            planeHandle.position = handlePos;
-            
-            // Create DISTINCT material for plane handle
-            const planeMaterial = new BABYLON.StandardMaterial(`planeMaterial_${data.axes}`, this.scene);
-            planeMaterial.diffuseColor = data.color;
-            planeMaterial.emissiveColor = data.color.scale(0.5);
-            planeMaterial.alpha = 0.8; // More opaque
-            planeMaterial.backFaceCulling = false;
-            
-            // Add outline for better visibility
-            planeMaterial.outlineWidth = 0.03;
-            planeMaterial.outlineColor = new BABYLON.Color3(0, 0, 0);
-            
-            planeHandle.material = planeMaterial;
-            
-            // Store handle info for plane movement
-            planeHandle.isDragHandle = true;
-            planeHandle.axes = data.axes;
-            planeHandle.handleType = 'plane';
-            planeHandle.targetPart = mesh;
-            planeHandle.lockedAxis = data.axes === 'XY' ? 'Z' : (data.axes === 'XZ' ? 'Y' : 'X');
-            
-            this.dragHandles.push(planeHandle);
-        });
-        
-        // DEBUG: Log what the gizmo system is actually seeing
-        console.log('🎯 GIZMO ACTUAL DEBUG - Mesh being used for gizmo positioning:', {
-            name: mesh.name,
-            id: mesh.id,
-            meshDimensions: mesh.dimensions,
-            meshPartData: mesh.partData,
-            meshPartDataDimensions: mesh.partData?.dimensions,
-            boundingInfo: mesh.getBoundingInfo(),
-            boundingSize: mesh.getBoundingInfo().maximum.subtract(mesh.getBoundingInfo().minimum)
-        });
-        
-        console.log(`Created ${this.dragHandles.length} professional drag handles`);
-        
-        // CRITICAL: Re-enable drag interaction after clearing - this was the bug!
-        this.enableDragHandleInteraction();
+        console.log('Created modern gizmo for mesh:', mesh.name);
     }
 
     clearDragHandles() {
-        // Remove pointer observer FIRST to prevent mouse event leaks
-        if (this.dragPointerObserver) {
-            this.scene.onPointerObservable.remove(this.dragPointerObserver);
-            this.dragPointerObserver = null;
+        // Dispose modern gizmo
+        if (this.modernGizmo) {
+            this.modernGizmo.dispose();
         }
         
-        // Then dispose visual handles
+        // Clear old drag handles if any remain
         if (this.dragHandles) {
-            this.dragHandles.forEach(handle => {
-                handle.dispose();
-            });
+            this.dragHandles.forEach(handle => handle.dispose());
             this.dragHandles = [];
         }
+        
+        console.log('Cleared all drag handles and gizmos');
     }
 
     rotatePart(degrees, axis) {
@@ -9365,10 +9654,9 @@ class DrawingWorld {
     }
 
     enableDragHandleInteraction() {
-        // Prevent duplicate observers
-        if (this.dragPointerObserver) {
-            return; // Already enabled
-        }
+        // Modern gizmo handles its own interactions
+        console.log('Drag interactions handled by ModernGizmoSystem');
+    }
         
         // Add mouse event handlers for drag handles
         this.dragPointerObserver = this.scene.onPointerObservable.add((pointerInfo) => {

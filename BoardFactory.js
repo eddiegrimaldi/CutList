@@ -180,7 +180,7 @@ class BoardFactory {
                     // Store which texture was selected
                     board.material.selected_texture = textureUrl;
                     console.log(`🎲 Selected texture: ${textureUrl.split('/').pop()} (avoiding ${recentForMaterial.length} recent)`);
-                }                }                const texture = new BABYLON.Texture(textureUrl, this.scene);
+                }                const texture = new BABYLON.Texture(textureUrl, this.scene);
                 // Set texture to stretch across the entire face
                 texture.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
                 texture.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;

@@ -385,7 +385,31 @@ export class PlaneToolSystem {
         
         // Update part data
         this.selectedPart.dimensions.thickness = newThickness;
+        this.selectedPart.dimensions.thickness_inches = newThickness / 2.54; // Update inches too
         this.selectedPart.status = 'planed';
+        
+        // CRITICAL: Update meshGeometry to preserve the planed state
+        // This ensures duplicates and saves reflect the actual board state
+        if (targetMesh) {
+            // Preserve the modified geometry
+            const meshData = this.drawingWorld.serializeMeshGeometry(targetMesh);
+            this.selectedPart.meshGeometry = meshData;
+            this.selectedPart.meshGeometry.hasCustomGeometry = true;
+            
+            // Update the stored position too
+            this.selectedPart.meshGeometry.position = {
+                x: targetMesh.position.x,
+                y: targetMesh.position.y,
+                z: targetMesh.position.z
+            };
+            this.selectedPart.meshGeometry.rotation = {
+                x: targetMesh.rotation.x,
+                y: targetMesh.rotation.y,
+                z: targetMesh.rotation.z
+            };
+            
+            console.log('PlaneToolSystem: Updated meshGeometry for planed board', this.selectedPart.id);
+        }
         
         // Add to processing history
         if (!this.selectedPart.processingHistory) this.selectedPart.processingHistory = [];

@@ -62,7 +62,6 @@ class ModernGizmoSystem {
         this.axisLength = 3;
         this.axisThickness = 0.15;
         this.arrowSize = 0.5;
-        this.originGap = 0.5; // Gap between arrows and origin
         this.planeSize = 0.8;
         this.centerSize = 0.3;
         
@@ -104,29 +103,23 @@ class ModernGizmoSystem {
     }
     
     createAxisHandles() {
-        // Calculate camera position for dynamic axis orientation
-        const cameraPos = this.camera.position.subtract(this.gizmoRoot.position);
-        const xDir = cameraPos.x > 0 ? 1 : -1;
-        const zDir = cameraPos.z > 0 ? 1 : -1;
-        
         const axes = [
-            { name: 'x', direction: new BABYLON.Vector3(xDir, 0, 0), color: this.colors.x },
+            { name: 'x', direction: new BABYLON.Vector3(1, 0, 0), color: this.colors.x },
             { name: 'y', direction: new BABYLON.Vector3(0, 1, 0), color: this.colors.y },
-            { name: 'z', direction: new BABYLON.Vector3(0, 0, zDir), color: this.colors.z }
+            { name: 'z', direction: new BABYLON.Vector3(0, 0, 1), color: this.colors.z }
         ];
         
         axes.forEach(axis => {
             // Create axis line
             const line = BABYLON.MeshBuilder.CreateCylinder(`axis_${axis.name}`, {
-                height: this.axisLength - this.originGap,
+                height: this.axisLength,
                 diameter: this.axisThickness,
-                tessellation: 32
+                tessellation: 8
             }, this.scene);
             
             // Position and orient
             line.parent = this.gizmoRoot;
-            // Position line starting from originGap distance
-            line.position = axis.direction.scale(this.originGap + (this.axisLength - this.originGap) / 2);
+            line.position = axis.direction.scale(this.axisLength / 2);
             
             if (axis.name === 'x') line.rotation.z = Math.PI / 2;
             else if (axis.name === 'z') line.rotation.x = Math.PI / 2;
@@ -136,82 +129,43 @@ class ModernGizmoSystem {
                 height: this.arrowSize,
                 diameterTop: 0,
                 diameterBottom: this.arrowSize,
-                tessellation: 32
+                tessellation: 8
             }, this.scene);
             
             arrow.parent = this.gizmoRoot;
             arrow.position = axis.direction.scale(this.axisLength);
             
-            if (axis.name === 'x') {
-                arrow.rotation.z = axis.direction.x > 0 ? -Math.PI / 2 : Math.PI / 2;
-            } else if (axis.name === "z") {
-                arrow.rotation.x = axis.direction.z > 0 ? Math.PI / 2 : -Math.PI / 2;
-            }
+            if (axis.name === 'x') arrow.rotation.z = -Math.PI / 2;
+            else if (axis.name === 'z') arrow.rotation.x = -Math.PI / 2;
             
             // Create material
             const material = new BABYLON.StandardMaterial(`mat_${axis.name}`, this.scene);
             material.diffuseColor = new BABYLON.Color3(1, 1, 1); // Pure white
             material.specularColor = new BABYLON.Color3(0, 0, 0); // No specular
             material.emissiveColor = new BABYLON.Color3(1, 1, 1); // Self-illuminated white
-            material.disableLighting = true;
-            
-            // Create solid black border with cloned geometry (no blur/depth)
-            const borderSize = 1.5; // 20% larger for visible border
-            
-            // Black line border
-            const blackLine = line.clone('border_line_' + axis.name);
-            blackLine.parent = this.gizmoRoot;
-            blackLine.position = line.position.clone(); // Match main line position
-            blackLine.scaling.x = borderSize;
-            blackLine.scaling.z = borderSize;
-            blackLine.renderingGroupId = 0;
-            
-            // Black arrow border - create truncated cone for consistent border
-            const borderWidth = 0.04;
-            const blackArrow = BABYLON.MeshBuilder.CreateCylinder('border_arrow_' + axis.name, {
-                height: this.arrowSize,
-                diameterTop: borderWidth * 2,
-                diameterBottom: this.arrowSize + borderWidth * 2,
-                tessellation: 32
-            }, this.scene);
-            
-            blackArrow.parent = this.gizmoRoot;
-            blackArrow.position = axis.direction.scale(this.axisLength);
-            
-            if (axis.name === 'x') {
-                blackArrow.rotation.z = axis.direction.x > 0 ? -Math.PI / 2 : Math.PI / 2;
-            } else if (axis.name === 'z') {
-                blackArrow.rotation.x = axis.direction.z > 0 ? Math.PI / 2 : -Math.PI / 2;
-            }
-            
-            blackArrow.renderingGroupId = 0;
-            
-            // Black material
-            const blackMat = new BABYLON.StandardMaterial('border_mat_' + axis.name, this.scene);
-            blackMat.diffuseColor = new BABYLON.Color3(0, 0, 0);
-            blackMat.emissiveColor = new BABYLON.Color3(0, 0, 0);
-            blackMat.specularColor = new BABYLON.Color3(0, 0, 0);
-            blackMat.disableLighting = true;
-            
-            blackLine.material = blackMat;
-            blackArrow.material = blackMat;
-            
-            // White renders on top
-            line.renderingGroupId = 1;
-            arrow.renderingGroupId = 1; // No shadows or lighting
+            material.disableLighting = true; // No shadows or lighting
             
             line.material = material;
             arrow.material = material;
             
+            // Add black outline for halo effect
+            line.renderOutline = true;
+            line.outlineWidth = 0.1;
+            line.outlineColor = new BABYLON.Color3(0, 0, 0);
+            
+            arrow.renderOutline = true;
+            arrow.outlineWidth = 0.1;
+            arrow.outlineColor = new BABYLON.Color3(0, 0, 0);
+            
             // Create invisible hit box for easier selection
             const hitBox = BABYLON.MeshBuilder.CreateBox(`hitbox_${axis.name}`, {
-                width: axis.name === 'x' ? this.axisLength - this.originGap : this.axisThickness * 3,
-                height: axis.name === 'y' ? this.axisLength - this.originGap : this.axisThickness * 3,
-                depth: axis.name === 'z' ? this.axisLength - this.originGap : this.axisThickness * 3
+                width: axis.name === 'x' ? this.axisLength : this.axisThickness * 3,
+                height: axis.name === 'y' ? this.axisLength : this.axisThickness * 3,
+                depth: axis.name === 'z' ? this.axisLength : this.axisThickness * 3
             }, this.scene);
             
             hitBox.parent = this.gizmoRoot;
-            hitBox.position = axis.direction.scale((this.axisLength + this.originGap) / 2);
+            hitBox.position = axis.direction.scale(this.axisLength / 2);
             hitBox.isVisible = false;
             hitBox.isPickable = true;
             
@@ -250,15 +204,7 @@ class ModernGizmoSystem {
             }, this.scene);
             
             planeMesh.parent = this.gizmoRoot;
-            // Position plane outward from origin
-            const offset = this.planeSize / 2 + this.originGap / 2;
-            if (plane.name === 'xy') {
-                planeMesh.position = new BABYLON.Vector3(offset, offset, 0);
-            } else if (plane.name === 'xz') {
-                planeMesh.position = new BABYLON.Vector3(offset, 0, offset);
-            } else if (plane.name === 'yz') {
-                planeMesh.position = new BABYLON.Vector3(0, offset, offset);
-            }
+            planeMesh.position = BABYLON.Vector3.Zero();
             
             // Orient plane
             if (plane.name === 'xz') {
@@ -290,22 +236,6 @@ class ModernGizmoSystem {
             
             planeMesh.gizmoHandle = handle;
             planeMesh.isGizmo = true;
-            
-            // Create border plane for visibility
-            const borderPlane = planeMesh.clone('border_plane_' + plane.name);
-            borderPlane.parent = this.gizmoRoot;
-            borderPlane.scaling = new BABYLON.Vector3(1.1, 1.1, 1.1); // 10% larger
-            borderPlane.position = planeMesh.position.clone();
-            borderPlane.rotation = planeMesh.rotation.clone();
-            
-            const borderMat = new BABYLON.StandardMaterial('mat_border_plane_' + plane.name, this.scene);
-            borderMat.diffuseColor = new BABYLON.Color3(0.3, 0.3, 0.3); // Dark gray
-            borderMat.alpha = 0.5;
-            borderMat.backFaceCulling = false;
-            borderMat.disableLighting = true;
-            borderPlane.material = borderMat;
-            borderPlane.renderingGroupId = 0; // Render behind main plane
-            planeMesh.renderingGroupId = 1;
             
             this.planeHandles.push(handle);
         });
@@ -575,150 +505,12 @@ class ModernGizmoSystem {
     show() {
         if (this.gizmoRoot) {
             this.gizmoRoot.setEnabled(true);
-            
-            // Start updating axis orientations based on camera
-            if (!this.updateObserver) {
-                this.updateObserver = this.scene.onBeforeRenderObservable.add(() => {
-                    this.updateAxisOrientations();
-                });
-            }
         }
     }
     
     hide() {
         if (this.gizmoRoot) {
             this.gizmoRoot.setEnabled(false);
-            
-            // Stop updating
-            if (this.updateObserver) {
-                this.scene.onBeforeRenderObservable.remove(this.updateObserver);
-                this.updateObserver = null;
-            }
-        }
-    }
-    
-    updateAxisOrientations() {
-        if (!this.gizmoRoot || !this.gizmoRoot.isEnabled()) return;
-        
-        // Calculate camera position relative to gizmo
-        const cameraPos = this.camera.position.subtract(this.gizmoRoot.position);
-        const xDir = cameraPos.x > 0 ? 1 : -1;
-        const zDir = cameraPos.z > 0 ? 1 : -1;
-        
-        // Update X axis
-        const xLine = this.scene.getMeshByName('axis_x');
-        const xArrow = this.scene.getMeshByName('arrow_x');
-        const xBlackLine = this.scene.getMeshByName('border_line_x');
-        const xBlackArrow = this.scene.getMeshByName('border_arrow_x');
-        
-        if (xLine && xArrow) {
-            console.log('Found X axis meshes, xDir:', xDir);
-            // Update positions
-            xLine.position.x = xDir * (this.originGap + (this.axisLength - this.originGap) / 2);
-            xLine.position.y = 0;
-            xLine.position.z = 0;
-            xArrow.position.x = xDir * this.axisLength;
-            xArrow.position.y = 0;
-            xArrow.position.z = 0;
-            
-            // Update rotations
-            xArrow.rotation.z = xDir > 0 ? -Math.PI / 2 : Math.PI / 2;
-            
-            if (xBlackLine && xBlackArrow) {
-                // Update black line position to match main line
-                xBlackLine.position.x = xDir * (this.originGap + (this.axisLength - this.originGap) / 2);
-                xBlackLine.position.y = 0;
-                xBlackLine.position.z = 0;
-                
-                // Update black arrow position to match main arrow
-                xBlackArrow.position.x = xDir * this.axisLength;
-                xBlackArrow.position.y = 0;
-                xBlackArrow.position.z = 0;
-                xBlackArrow.rotation.z = xDir > 0 ? -Math.PI / 2 : Math.PI / 2;
-            }
-        }
-        
-        // Update Z axis
-        const zLine = this.scene.getMeshByName('axis_z');
-        const zArrow = this.scene.getMeshByName('arrow_z');
-        const zBlackLine = this.scene.getMeshByName('border_line_z');
-        const zBlackArrow = this.scene.getMeshByName('border_arrow_z');
-        
-        if (zLine && zArrow) {
-            console.log('Found Z axis meshes, zDir:', zDir);
-            // Update positions
-            zLine.position.x = 0;
-            zLine.position.y = 0;
-            zLine.position.z = zDir * (this.originGap + (this.axisLength - this.originGap) / 2);
-            zArrow.position.x = 0;
-            zArrow.position.y = 0;
-            zArrow.position.z = zDir * this.axisLength;
-            
-            // Update rotations
-            zArrow.rotation.x = zDir > 0 ? Math.PI / 2 : -Math.PI / 2;
-            
-            if (zBlackLine && zBlackArrow) {
-                // Update black line position to match main line
-                zBlackLine.position.x = 0;
-                zBlackLine.position.y = 0;
-                zBlackLine.position.z = zDir * (this.originGap + (this.axisLength - this.originGap) / 2);
-                
-                // Update black arrow position to match main arrow
-                zBlackArrow.position.x = 0;
-                zBlackArrow.position.y = 0;
-                zBlackArrow.position.z = zDir * this.axisLength;
-                zBlackArrow.rotation.x = zDir > 0 ? Math.PI / 2 : -Math.PI / 2;
-            }
-        }
-        
-        // Update drag planes to stay between axes
-        const planeOffset = 0.15; // Offset from axes
-        const xyPlane = this.scene.getMeshByName('plane_xy');
-        const xzPlane = this.scene.getMeshByName('plane_xz');
-        const yzPlane = this.scene.getMeshByName('plane_yz');
-        
-        console.log('Drag planes found:', { xy: !!xyPlane, xz: !!xzPlane, yz: !!yzPlane });
-        
-        if (xyPlane) {
-            // XY plane moves with X axis (offset from both X and Y axes)
-            xyPlane.position.x = xDir * (this.planeSize / 2 + this.originGap / 2);
-            xyPlane.position.y = this.planeSize / 2 + this.originGap / 2;
-            xyPlane.position.z = -planeOffset;
-            
-            // Update border plane too
-            const xyBorder = this.scene.getMeshByName('border_plane_xy');
-            if (xyBorder) {
-                xyBorder.position.x = xyPlane.position.x;
-                xyBorder.position = xyPlane.position.clone();
-            }
-        }
-        
-        if (xzPlane) {
-            // XZ plane moves with both X and Z (offset from both axes)
-            xzPlane.position.x = xDir * (this.planeSize / 2 + this.originGap / 2);
-            xzPlane.position.y = -planeOffset;
-            xzPlane.position.z = zDir * (this.planeSize / 2 + this.originGap / 2);
-            
-            // Update border plane too
-            const xzBorder = this.scene.getMeshByName('border_plane_xz');
-            if (xzBorder) {
-                xzBorder.position.x = xzPlane.position.x;
-                xzBorder.position = xzPlane.position.clone();
-            }
-        }
-        
-        if (yzPlane) {
-            // YZ plane moves with Z axis (offset from both Y and Z axes)
-            yzPlane.position.x = -planeOffset;
-            yzPlane.position.y = this.planeSize / 2 + this.originGap / 2;
-            yzPlane.position.z = zDir * (this.planeSize / 2 + this.originGap / 2);
-            
-            // Update border plane too
-            const yzBorder = this.scene.getMeshByName('border_plane_yz');
-            if (yzBorder) {
-                yzBorder.position.x = yzPlane.position.x;
-                yzBorder.position = yzPlane.position.clone();
-            }
         }
     }
     
@@ -5709,7 +5501,7 @@ class DrawingWorld {
         this.extrusionGizmo.negativeArrow.parent = this.extrusionGizmo.root;
         
         // Create center sphere for face identification
-        this.extrusionGizmo.centerSphere = BABYLON.MeshBuilder.CreateSphere("extrusionCenter", {diameter: 0.2}, this.scene);
+        this.extrusionGizmo.centerSphere = BABYLON.MeshBuilder.CreateSphere("extrusionCenter", {diameter: 0.3}, this.scene);
         this.extrusionGizmo.centerSphere.material = this.createGizmoMaterial(new BABYLON.Color3(1, 1, 0)); // Yellow
         this.extrusionGizmo.centerSphere.parent = this.extrusionGizmo.root;
         this.extrusionGizmo.centerSphere.isPickable = false;
@@ -9609,12 +9401,6 @@ class DrawingWorld {
     }
 
     createDragHandles(mesh) {
-        // Check if mesh is valid
-        if (!mesh) {
-            console.warn('createDragHandles called with invalid mesh');
-            return;
-        }
-        
         // Clear any existing handles
         this.clearDragHandles();
         

@@ -1787,6 +1787,12 @@ export class CutToolSystem {
             return;
         }
         
+        // Check if targetMesh is actually a mesh with getBoundingInfo
+        if (!targetMesh.getBoundingInfo || typeof targetMesh.getBoundingInfo !== 'function') {
+            console.error('animateCameraToFocusPiece: targetMesh is not a valid mesh', targetMesh);
+            return;
+        }
+        
         const meshBounds = targetMesh.getBoundingInfo();
         const meshSize = meshBounds.maximum.subtract(meshBounds.minimum);
         const meshCenter = targetMesh.position;

@@ -10950,6 +10950,16 @@ class DrawingWorld {
                         if (this.transformDisplay) {
                             this.transformDisplay.focus();
                             this.transformDisplay.select();
+                        // Clean up if user clicks away without pressing Enter
+                        if (this.transformDisplay) {
+                            this.transformDisplay.addEventListener('blur', () => {
+                                setTimeout(() => {
+                                    if (this.transformDisplay && this.transformDisplay.style.display !== 'none') {
+                                        this.hideTransformDisplay();
+                                    }
+                                }, 200);
+                            }, { once: true });
+                        }
                         }
                     }
                 });
@@ -10989,6 +10999,16 @@ class DrawingWorld {
                         if (this.transformDisplay) {
                             this.transformDisplay.focus();
                             this.transformDisplay.select();
+                        // Clean up if user clicks away without pressing Enter
+                        if (this.transformDisplay) {
+                            this.transformDisplay.addEventListener('blur', () => {
+                                setTimeout(() => {
+                                    if (this.transformDisplay && this.transformDisplay.style.display !== 'none') {
+                                        this.hideTransformDisplay();
+                                    }
+                                }, 200);
+                            }, { once: true });
+                        }
                         }
                     }
                 });
@@ -11028,6 +11048,16 @@ class DrawingWorld {
                         if (this.transformDisplay) {
                             this.transformDisplay.focus();
                             this.transformDisplay.select();
+                        // Clean up if user clicks away without pressing Enter
+                        if (this.transformDisplay) {
+                            this.transformDisplay.addEventListener('blur', () => {
+                                setTimeout(() => {
+                                    if (this.transformDisplay && this.transformDisplay.style.display !== 'none') {
+                                        this.hideTransformDisplay();
+                                    }
+                                }, 200);
+                            }, { once: true });
+                        }
                         }
                     }
                 });
@@ -12073,20 +12103,20 @@ class DrawingWorld {
                 )
             );
             
-            // For rotation, position in the middle of the rotation arc
+            // For rotation, position inside or very close to the arc
             // For position, offset from the gizmo
             if (type === 'rotation') {
-                // Position based on which axis is rotating
+                // Position based on which axis is rotating - much closer
                 let offsetX = 0, offsetY = 0;
                 if (axis === 'x') {
                     offsetX = 0;
-                    offsetY = -60;  // Above
+                    offsetY = -25;  // Just above, inside the arc
                 } else if (axis === 'y') {
-                    offsetX = 60;   // To the right
+                    offsetX = 25;   // Close to the right side
                     offsetY = 0;
                 } else if (axis === 'z') {
-                    offsetX = 45;   // Diagonal
-                    offsetY = -45;
+                    offsetX = 18;   // Inside the diagonal arc
+                    offsetY = -18;
                 }
                 this.transformDisplay.style.left = (coordinates.x + offsetX) + 'px';
                 this.transformDisplay.style.top = (coordinates.y + offsetY) + 'px';

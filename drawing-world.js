@@ -10807,6 +10807,7 @@ class DrawingWorld {
                     const mesh = this.positionGizmo.attachedMesh;
                     if (mesh) {
                         this.createGhostMesh(mesh);
+                    this.isDragging = true;
                         this.transformType = 'position';
                         this.currentDragAxis = 'x';
                         if (!this.transformDisplay) {
@@ -10818,9 +10819,14 @@ class DrawingWorld {
                 this.positionGizmo.xGizmo.dragBehavior.onDragEndObservable.add(() => {
                     const mesh = this.positionGizmo.attachedMesh;
                     if (mesh) {
-                        this.hideTransformDisplay();
-                        this.removeGhostMesh();
-                        this.showTransformConfirmationModal(mesh, mesh.position, 'position');
+                        this.isDragging = false;
+                        // Update display position and focus for editing
+                        const delta = mesh.position.subtract(this.transformStartPosition);
+                        this.updateTransformDisplay(delta, 'position');
+                        if (this.transformDisplay) {
+                            this.transformDisplay.focus();
+                            this.transformDisplay.select();
+                        }
                     }
                 });
             }
@@ -10830,6 +10836,7 @@ class DrawingWorld {
                     const mesh = this.positionGizmo.attachedMesh;
                     if (mesh) {
                         this.createGhostMesh(mesh);
+                    this.isDragging = true;
                         this.transformType = 'position';
                         this.currentDragAxis = 'y';
                         if (!this.transformDisplay) {
@@ -10841,9 +10848,14 @@ class DrawingWorld {
                 this.positionGizmo.yGizmo.dragBehavior.onDragEndObservable.add(() => {
                     const mesh = this.positionGizmo.attachedMesh;
                     if (mesh) {
-                        this.hideTransformDisplay();
-                        this.removeGhostMesh();
-                        this.showTransformConfirmationModal(mesh, mesh.position, 'position');
+                        this.isDragging = false;
+                        // Update display position and focus for editing
+                        const delta = mesh.position.subtract(this.transformStartPosition);
+                        this.updateTransformDisplay(delta, 'position');
+                        if (this.transformDisplay) {
+                            this.transformDisplay.focus();
+                            this.transformDisplay.select();
+                        }
                     }
                 });
             }
@@ -10853,6 +10865,7 @@ class DrawingWorld {
                     const mesh = this.positionGizmo.attachedMesh;
                     if (mesh) {
                         this.createGhostMesh(mesh);
+                    this.isDragging = true;
                         this.transformType = 'position';
                         this.currentDragAxis = 'z';
                         if (!this.transformDisplay) {
@@ -10864,9 +10877,14 @@ class DrawingWorld {
                 this.positionGizmo.zGizmo.dragBehavior.onDragEndObservable.add(() => {
                     const mesh = this.positionGizmo.attachedMesh;
                     if (mesh) {
-                        this.hideTransformDisplay();
-                        this.removeGhostMesh();
-                        this.showTransformConfirmationModal(mesh, mesh.position, 'position');
+                        this.isDragging = false;
+                        // Update display position and focus for editing
+                        const delta = mesh.position.subtract(this.transformStartPosition);
+                        this.updateTransformDisplay(delta, 'position');
+                        if (this.transformDisplay) {
+                            this.transformDisplay.focus();
+                            this.transformDisplay.select();
+                        }
                     }
                 });
             }
@@ -10914,10 +10932,15 @@ class DrawingWorld {
                 this.rotationGizmo.xGizmo.dragBehavior.onDragEndObservable.add(() => {
                     const mesh = this.rotationGizmo.attachedMesh;
                     if (mesh) {
-                        this.hideTransformDisplay();
-                        this.removeGhostMesh();
+                        this.isDragging = false;
                         mesh.refreshBoundingInfo();
-                        this.showTransformConfirmationModal(mesh, mesh.rotation, 'rotation');
+                        // Update display and focus for editing
+                        const delta = mesh.rotation.subtract(this.transformStartRotation);
+                        this.updateTransformDisplay(delta, 'rotation');
+                        if (this.transformDisplay) {
+                            this.transformDisplay.focus();
+                            this.transformDisplay.select();
+                        }
                     }
                 });
             }
@@ -10938,10 +10961,15 @@ class DrawingWorld {
                 this.rotationGizmo.yGizmo.dragBehavior.onDragEndObservable.add(() => {
                     const mesh = this.rotationGizmo.attachedMesh;
                     if (mesh) {
-                        this.hideTransformDisplay();
-                        this.removeGhostMesh();
+                        this.isDragging = false;
                         mesh.refreshBoundingInfo();
-                        this.showTransformConfirmationModal(mesh, mesh.rotation, 'rotation');
+                        // Update display and focus for editing
+                        const delta = mesh.rotation.subtract(this.transformStartRotation);
+                        this.updateTransformDisplay(delta, 'rotation');
+                        if (this.transformDisplay) {
+                            this.transformDisplay.focus();
+                            this.transformDisplay.select();
+                        }
                     }
                 });
             }
@@ -10962,10 +10990,15 @@ class DrawingWorld {
                 this.rotationGizmo.zGizmo.dragBehavior.onDragEndObservable.add(() => {
                     const mesh = this.rotationGizmo.attachedMesh;
                     if (mesh) {
-                        this.hideTransformDisplay();
-                        this.removeGhostMesh();
+                        this.isDragging = false;
                         mesh.refreshBoundingInfo();
-                        this.showTransformConfirmationModal(mesh, mesh.rotation, 'rotation');
+                        // Update display and focus for editing
+                        const delta = mesh.rotation.subtract(this.transformStartRotation);
+                        this.updateTransformDisplay(delta, 'rotation');
+                        if (this.transformDisplay) {
+                            this.transformDisplay.focus();
+                            this.transformDisplay.select();
+                        }
                     }
                 });
             }
@@ -11927,42 +11960,97 @@ class DrawingWorld {
             this.transformDisplay.remove();
         }
         
-        // Create display container
-        const display = document.createElement("div");
-        display.id = "transform-display";
-        display.style.position = "fixed";
-        display.style.top = "50%";
-        display.style.left = "50%";
-        display.style.transform = "translate(-50%, -50%)";
-        display.style.background = "rgba(0, 0, 0, 0.8)";
-        display.style.color = "white";
-        display.style.padding = "10px 20px";
-        display.style.borderRadius = "5px";
-        display.style.fontSize = "24px";
-        display.style.fontWeight = "bold";
-        display.style.display = "none";
-        display.style.zIndex = "10000";
-        display.style.pointerEvents = "none";
+        // Create minimal inline input
+        const display = document.createElement('input');
+        display.id = 'transform-display';
+        display.type = 'number';
+        display.style.position = 'absolute';
+        display.style.width = '70px';
+        display.style.padding = '2px 4px';
+        display.style.background = 'rgba(255, 255, 255, 0.9)';
+        display.style.border = '2px solid #4CAF50';
+        display.style.borderRadius = '3px';
+        display.style.fontSize = '12px';
+        display.style.fontWeight = 'bold';
+        display.style.textAlign = 'center';
+        display.style.display = 'none';
+        display.style.zIndex = '10000';
+        display.step = '0.25';
+        
         document.body.appendChild(display);
         this.transformDisplay = display;
+        this.isDragging = false;
+        
+        // Handle Enter key
+        display.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const value = parseFloat(display.value);
+                const mesh = this.positionGizmo.attachedMesh || this.rotationGizmo.attachedMesh;
+                
+                if (mesh && !isNaN(value)) {
+                    if (this.transformType === 'position') {
+                        const newPos = this.transformStartPosition.clone();
+                        newPos[this.currentDragAxis] = this.transformStartPosition[this.currentDragAxis] + value;
+                        mesh.position = newPos;
+                    } else if (this.transformType === 'rotation') {
+                        const newRot = this.transformStartRotation.clone();
+                        newRot[this.currentDragAxis] = this.transformStartRotation[this.currentDragAxis] + (value * Math.PI / 180);
+                        mesh.rotation = newRot;
+                    }
+                    
+                    if (mesh.partData) {
+                        mesh.partData.position = mesh.position.asArray();
+                        mesh.partData.rotation = mesh.rotation.asArray();
+                        this.autosave();
+                    }
+                }
+                
+                display.style.display = 'none';
+                this.removeGhostMesh();
+                this.currentDragAxis = null;
+            }
+        });
     }
+
     
     updateTransformDisplay(value, type) {
         if (!this.transformDisplay) return;
         
         const axis = this.currentDragAxis || 'x';
-        const axisUpper = axis.toUpperCase();
+        let displayValue = 0;
         
         if (type === 'position') {
-            const displayValue = value[axis] || 0;
-            this.transformDisplay.textContent = 'Move ' + axisUpper + ': ' + displayValue.toFixed(2) + '"';
+            displayValue = value[axis] || 0;
+            this.transformDisplay.value = displayValue.toFixed(2);
+            this.transformDisplay.step = '0.25';
         } else if (type === 'rotation') {
-            const displayValue = (value[axis] || 0) * 180 / Math.PI;
-            this.transformDisplay.textContent = 'Rotate ' + axisUpper + ': ' + displayValue.toFixed(1) + '°';
+            displayValue = (value[axis] || 0) * 180 / Math.PI;
+            this.transformDisplay.value = displayValue.toFixed(1);
+            this.transformDisplay.step = '15';
+        }
+        
+        // Position near the mesh/gizmo
+        const mesh = this.positionGizmo.attachedMesh || this.rotationGizmo.attachedMesh;
+        if (mesh && this.scene && this.scene.activeCamera) {
+            const coordinates = BABYLON.Vector3.Project(
+                mesh.position,
+                BABYLON.Matrix.Identity(),
+                this.scene.getTransformMatrix(),
+                this.scene.activeCamera.viewport.toGlobal(
+                    this.engine.getRenderWidth(),
+                    this.engine.getRenderHeight()
+                )
+            );
+            
+            // Position offset from mesh center
+            this.transformDisplay.style.left = (coordinates.x + 40) + 'px';
+            this.transformDisplay.style.top = (coordinates.y - 20) + 'px';
         }
         
         this.transformDisplay.style.display = 'block';
     }
+
 
     
     hideTransformDisplay() {

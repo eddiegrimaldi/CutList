@@ -11979,15 +11979,18 @@ class DrawingWorld {
         const display = document.createElement("div");
         display.id = "transform-display";
         display.style.position = "fixed";
-        display.style.background = "rgba(0, 0, 0, 0.8)";
-        display.style.color = "white";
-        display.style.padding = "4px 8px";
-        display.style.borderRadius = "5px";
-        display.style.fontSize = "18px";
+        // No background - just plain text
+        display.style.color = "black";
+        // No padding needed
+        // No border radius needed
+        display.style.fontSize = "24px";
         display.style.fontWeight = "bold";
         display.style.display = "none";
         display.style.zIndex = "10000";
         display.style.pointerEvents = "none";
+        display.style.top = "50%";
+        display.style.left = "50%";
+        display.style.transform = "translate(-50%, -50%)";
         document.body.appendChild(display);
         this.transformDisplay = display;
     }
@@ -12002,41 +12005,38 @@ class DrawingWorld {
         let displayText = '';
         if (type === "position") {
             const val = value[axis] || 0;
-            displayText = axis.toUpperCase() + ': ' + val.toFixed(2) + '"';
+            displayText = val.toFixed(2) + '"';
         } else if (type === "rotation") {
             const val = (value[axis] || 0) * 180 / Math.PI;
-            displayText = axis.toUpperCase() + ': ' + val.toFixed(1) + '°';
+            displayText = val.toFixed(1) + '°';
         }
         
         this.transformDisplay.textContent = displayText;
         
         // Position near the mesh
-        const mesh = this.positionGizmo?.attachedMesh || this.rotationGizmo?.attachedMesh;
-        if (mesh && this.scene && this.scene.activeCamera) {
-            const coordinates = BABYLON.Vector3.Project(
-                mesh.position,
-                BABYLON.Matrix.Identity(),
-                this.scene.getTransformMatrix(),
-                this.scene.activeCamera.viewport.toGlobal(
-                    this.engine.getRenderWidth(),
-                    this.engine.getRenderHeight()
-                )
-            );
-            
-            // Position offset based on type and axis
-            let offsetX = 30, offsetY = -30;
-            if (type === 'rotation') {
+        // const mesh = this.positionGizmo?.attachedMesh || this.rotationGizmo?.attachedMesh;
+        // if (mesh && this.scene && this.scene.activeCamera) {
+        // const coordinates = BABYLON.Vector3.Project(
+        // mesh.position,
+        // BABYLON.Matrix.Identity(),
+        // this.scene.getTransformMatrix(),
+        // this.scene.activeCamera.viewport.toGlobal(
+        // this.engine.getRenderWidth(),
+        // this.engine.getRenderHeight()
+        // )
+        // );
+        //             // Position offset based on type and axis
+        // let offsetX = 30, offsetY = -30;
+        // if (type === 'rotation') {
                 // Position in the arc area
-                if (axis === 'x') { offsetX = 0; offsetY = -40; }
-                else if (axis === 'y') { offsetX = 40; offsetY = 0; }
-                else if (axis === 'z') { offsetX = 30; offsetY = -30; }
-            }
-            
-            this.transformDisplay.style.left = (coordinates.x + offsetX) + 'px';
-            this.transformDisplay.style.top = (coordinates.y + offsetY) + 'px';
-        }
-        
-        this.transformDisplay.style.display = 'block';
+        // if (axis === 'x') { offsetX = 0; offsetY = -40; }
+        // else if (axis === 'y') { offsetX = 40; offsetY = 0; }
+        // else if (axis === 'z') { offsetX = 30; offsetY = -30; }
+        // }
+        //         // this.transformDisplay.style.left = (coordinates.x + offsetX) + 'px';
+        // this.transformDisplay.style.top = (coordinates.y + offsetY) + 'px';
+        // }
+        //         this.transformDisplay.style.display = 'block';
     }
 
 
@@ -12130,7 +12130,7 @@ class DrawingWorld {
             content = '<h3 style="margin-top: 0;">Confirm Movement</h3>';
             content += '<div style="margin-bottom: 10px;">';
             content += '<label>' + axisUpper + ' Axis: ';
-            content += '<input type="number" id="transform-value" value="' + value.toFixed(2) + '" step="0.25" style="width: 60px; height: 60px; font-size: 24px; text-align: center; padding: 5px; box-sizing: border-box;">';
+            content += '<input type="number" id="transform-value" value="' + value.toFixed(2) + '" step="0.25" style="min-width: 60px; width: auto; height: 60px; font-size: 24px; text-align: center; padding: 5px 10px; box-sizing: border-box;">';
             content += ' inches</label>';
             content += '</div>';
         } else if (type === 'rotation') {
@@ -12140,7 +12140,7 @@ class DrawingWorld {
             content = '<h3 style="margin-top: 0;">Confirm Rotation</h3>';
             content += '<div style="margin-bottom: 10px;">';
             content += '<label>' + axisUpper + ' Axis: ';
-            content += '<input type="number" id="transform-value" value="' + value.toFixed(1) + '" step="15" style="width: 60px; height: 60px; font-size: 24px; text-align: center; padding: 5px; box-sizing: border-box;">';
+            content += '<input type="number" id="transform-value" value="' + value.toFixed(1) + '" step="15" style="min-width: 60px; width: auto; height: 60px; font-size: 24px; text-align: center; padding: 5px 10px; box-sizing: border-box;">';
             content += ' degrees</label>';
             content += '</div>';
         }

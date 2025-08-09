@@ -12011,13 +12011,12 @@ class DrawingWorld {
         // No padding needed
         // No border radius needed
         display.style.fontSize = "24px";
+        display.style.textShadow = "0 0 3px white, 0 0 3px white, 0 0 3px white, 0 0 3px white";
+        display.style.webkitTextStroke = "2px white";
         display.style.fontWeight = "bold";
         display.style.display = "none";
         display.style.zIndex = "10000";
         display.style.pointerEvents = "none";
-        display.style.top = "50%";
-        display.style.left = "50%";
-        display.style.transform = "translate(-50%, -50%)";
         document.body.appendChild(display);
         this.transformDisplay = display;
     }
@@ -12040,29 +12039,29 @@ class DrawingWorld {
         
         this.transformDisplay.textContent = displayText;
         
-        // Position near the mesh
-        // const mesh = this.positionGizmo?.attachedMesh || this.rotationGizmo?.attachedMesh;
-        // if (mesh && this.scene && this.scene.activeCamera) {
-        // const coordinates = BABYLON.Vector3.Project(
-        // mesh.position,
-        // BABYLON.Matrix.Identity(),
-        // this.scene.getTransformMatrix(),
-        // this.scene.activeCamera.viewport.toGlobal(
-        // this.engine.getRenderWidth(),
-        // this.engine.getRenderHeight()
-        // )
-        // );
-        //             // Position offset based on type and axis
-        // let offsetX = 30, offsetY = -30;
-        // if (type === 'rotation') {
-                // Position in the arc area
-        // if (axis === 'x') { offsetX = 0; offsetY = -40; }
-        // else if (axis === 'y') { offsetX = 40; offsetY = 0; }
-        // else if (axis === 'z') { offsetX = 30; offsetY = -30; }
-        // }
-        //         // this.transformDisplay.style.left = (coordinates.x + offsetX) + 'px';
-        // this.transformDisplay.style.top = (coordinates.y + offsetY) + 'px';
-        // }
+        // Position at center of active gizmo
+        const activeGizmo = type === 'position' ? this.positionGizmo : this.rotationGizmo;
+        const mesh = activeGizmo?.attachedMesh;
+        
+        if (mesh && this.scene && this.scene.activeCamera) {
+            // Get gizmo position (which might be different from mesh position for rotation)
+            const gizmoPos = activeGizmo._rootMesh ? activeGizmo._rootMesh.position : mesh.position;
+            
+            const coordinates = BABYLON.Vector3.Project(
+                gizmoPos,
+                BABYLON.Matrix.Identity(),
+                this.scene.getTransformMatrix(),
+                this.scene.activeCamera.viewport.toGlobal(
+                    this.engine.getRenderWidth(),
+                    this.engine.getRenderHeight()
+                )
+            );
+            
+            this.transformDisplay.style.left = coordinates.x + 'px';
+            this.transformDisplay.style.top = coordinates.y + 'px';
+            this.transformDisplay.style.transform = 'translate(-50%, -50%)';
+        }
+        
                 this.transformDisplay.style.display = 'block';
     }
 

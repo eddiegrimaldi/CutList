@@ -638,7 +638,11 @@ class ModernGizmoSystem {
                 console.log('Right-click detected, camera mode:', this.camera.mode);
                 if (this.camera.mode === BABYLON.Camera.ORTHOGRAPHIC_CAMERA) {
                     console.log('Switching back to perspective mode');
+                    this.removeOrthoRulers();
                     this.camera.mode = BABYLON.Camera.PERSPECTIVE_CAMERA;
+                    
+                    // Remove rulers when returning to perspective
+                    this.removeOrthoRulers();
                     // Clear ortho size
                     this.currentOrthoSize = null;
                     // Restore beta limits for perspective mode
@@ -655,6 +659,9 @@ class ModernGizmoSystem {
                 if (this.camera.mode === BABYLON.Camera.ORTHOGRAPHIC_CAMERA) {
                     console.log('Switching back to perspective mode from drag');
                     this.camera.mode = BABYLON.Camera.PERSPECTIVE_CAMERA;
+                    
+                    // Remove rulers when returning to perspective
+                    this.removeOrthoRulers();
                     // Clear ortho size
                     this.currentOrthoSize = null;
                     // Restore beta limits for perspective mode
@@ -1280,6 +1287,9 @@ class DrawingWorld {
                         console.log("Setting orthographic mode");
                         this.camera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
                         
+                        // Create rulers for orthographic view
+                        this.createOrthoRulers();
+                        
                         // Calculate ortho size to maintain visual zoom
                         // In perspective, the FOV and distance determine visible area
                         // In ortho, we need to match that visible area
@@ -1298,6 +1308,16 @@ class DrawingWorld {
                         this.camera.orthoRight = this.currentOrthoSize * aspectRatio;
                         this.camera.orthoBottom = -this.currentOrthoSize;
                         this.camera.orthoTop = this.currentOrthoSize;
+            
+            // Update rulers when zooming in orthographic mode
+            if (this.rulerContainer && this.rulerContainer.style.display !== 'none') {
+                const topRuler = this.rulerContainer.querySelector('#ruler-top');
+                const leftRuler = this.rulerContainer.querySelector('#ruler-left');
+                if (topRuler && leftRuler) {
+                    this.drawRulerMarkings(topRuler, true);
+                    this.drawRulerMarkings(leftRuler, false);
+                }
+            }
                     }
                 }
                 
@@ -1753,6 +1773,9 @@ class DrawingWorld {
             if (this.camera.mode === BABYLON.Camera.ORTHOGRAPHIC_CAMERA) {
                 console.log('Returning to perspective mode');
                 this.camera.mode = BABYLON.Camera.PERSPECTIVE_CAMERA;
+                    
+                    // Remove rulers when returning to perspective
+                    this.removeOrthoRulers();
                 // Restore beta limits for perspective mode
                 this.camera.lowerBetaLimit = 0.01;
                 this.camera.upperBetaLimit = Math.PI / 2 - 0.1;
@@ -1839,6 +1862,16 @@ class DrawingWorld {
             this.camera.orthoRight = this.currentOrthoSize * aspectRatio;
             this.camera.orthoBottom = -this.currentOrthoSize;
             this.camera.orthoTop = this.currentOrthoSize;
+            
+            // Update rulers when zooming in orthographic mode
+            if (this.rulerContainer && this.rulerContainer.style.display !== "none") {
+                const topRuler = this.rulerContainer.querySelector("#top-ruler");
+                const leftRuler = this.rulerContainer.querySelector("#left-ruler");
+                if (topRuler && leftRuler) {
+                    this.drawRulerMarkings(topRuler, true);
+                    this.drawRulerMarkings(leftRuler, false);
+                }
+            }
         } else {
             // Normal perspective zoom
             this.camera.radius += delta;
@@ -1879,6 +1912,335 @@ class DrawingWorld {
                 }
             }
         }
+    }
+    
+    // Create orthographic mode rulers
+    createOrthoRulers() {
+        console.log('Creating orthographic rulers');
+        
+        // Remove existing rulers if any
+        this.removeOrthoRulers();
+        
+        // Create ruler container
+        this.rulerContainer = document.createElement('div');
+        this.rulerContainer.id = 'ortho-rulers';
+        this.rulerContainer.style.position = 'absolute';
+        this.rulerContainer.style.top = '0';
+        this.rulerContainer.style.left = '0';
+        this.rulerContainer.style.width = '100%';
+        this.rulerContainer.style.height = '100%';
+        this.rulerContainer.style.pointerEvents = 'none';
+        this.rulerContainer.style.zIndex = '100';
+        
+        // Create top ruler (horizontal)
+        const topRuler = document.createElement('canvas');
+        topRuler.id = 'top-ruler';
+        topRuler.style.position = 'absolute';
+        topRuler.style.top = '0';
+        topRuler.style.left = '0';
+        topRuler.style.width = '100%';
+        topRuler.style.height = '30px';
+        topRuler.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
+        topRuler.style.borderBottom = '1px solid #333';
+        topRuler.width = this.canvas.width;
+        topRuler.height = 30;
+        
+        // Create left ruler (vertical)
+        const leftRuler = document.createElement('canvas');
+        leftRuler.id = 'left-ruler';
+        leftRuler.style.position = 'absolute';
+        leftRuler.style.top = '30px';
+        leftRuler.style.left = '0';
+        leftRuler.style.width = '30px';
+        leftRuler.style.height = 'calc(100% - 30px)';
+        leftRuler.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
+        leftRuler.style.borderRight = '1px solid #333';
+        leftRuler.width = 30;
+        leftRuler.height = this.canvas.height - 30;
+        
+        // Add rulers to container
+        this.rulerContainer.appendChild(topRuler);
+        this.rulerContainer.appendChild(leftRuler);
+        
+        // Initialize ruler offsets
+        this.rulerOffsetX = this.canvas.width / 2;
+        this.rulerOffsetY = this.canvas.height / 2;
+        
+        // Make rulers draggable
+        topRuler.style.cursor = 'ew-resize';
+        leftRuler.style.cursor = 'ns-resize';
+        topRuler.style.pointerEvents = 'auto';
+        leftRuler.style.pointerEvents = 'auto';
+        
+        // Add drag handlers for horizontal ruler
+        let isDraggingHorizontal = false;
+        let dragStartX = 0;
+        let startOffsetX = 0;
+        
+        topRuler.addEventListener('mousedown', (e) => {
+            isDraggingHorizontal = true;
+            dragStartX = e.clientX;
+            startOffsetX = this.rulerOffsetX;
+            e.preventDefault();
+        });
+        
+        // Add drag handlers for vertical ruler
+        let isDraggingVertical = false;
+        let dragStartY = 0;
+        let startOffsetY = 0;
+        
+        leftRuler.addEventListener('mousedown', (e) => {
+            isDraggingVertical = true;
+            dragStartY = e.clientY;
+            startOffsetY = this.rulerOffsetY;
+            e.preventDefault();
+        });
+        
+        // Global mouse move handler
+        const handleMouseMove = (e) => {
+            if (isDraggingHorizontal) {
+                const deltaX = e.clientX - dragStartX;
+                this.rulerOffsetX = startOffsetX + deltaX;
+                this.drawRulerMarkings(topRuler, true);
+                if (this.selectedPart) {
+                    this.updateRulerHighlights();
+                }
+            }
+            if (isDraggingVertical) {
+                const deltaY = e.clientY - dragStartY;
+                this.rulerOffsetY = startOffsetY + deltaY;
+                this.drawRulerMarkings(leftRuler, false);
+                if (this.selectedPart) {
+                    this.updateRulerHighlights();
+                }
+            }
+        };
+        
+        // Global mouse up handler
+        const handleMouseUp = () => {
+            isDraggingHorizontal = false;
+            isDraggingVertical = false;
+        };
+        
+        window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('mouseup', handleMouseUp);
+        
+        // Store handlers for cleanup
+        this.rulerMouseMoveHandler = handleMouseMove;
+        this.rulerMouseUpHandler = handleMouseUp;
+        
+        // Add container to canvas parent
+        this.canvas.parentElement.appendChild(this.rulerContainer);
+        // Defer initial drawing to ensure canvases are ready
+        setTimeout(() => {
+            this.drawRulerMarkings(topRuler, true);  // horizontal
+            this.drawRulerMarkings(leftRuler, false); // vertical
+        }, 50);
+        
+        // Start updating ruler highlights for selected objects
+        if (this.selectedPart) {
+            this.updateRulerHighlights();
+        }
+    }
+    
+    drawRulerMarkings(canvas, isHorizontal) {
+        const ctx = canvas.getContext('2d');
+        
+        // Clear canvas first
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        ctx.fillStyle = '#333';
+        ctx.strokeStyle = '#666';
+        ctx.font = '10px Arial';
+        
+        // Calculate pixels per inch based on orthographic camera settings
+        let pixelsPerInch = 10; // Default fallback
+        
+        if (this.camera.mode === BABYLON.Camera.ORTHOGRAPHIC_CAMERA) {
+            // In ortho mode, calculate based on view width
+            const viewWidth = Math.abs(this.camera.orthoRight - this.camera.orthoLeft);
+            const canvasWidth = this.canvas.width;
+            
+            // viewWidth is in world units (inches), canvasWidth is in pixels
+            pixelsPerInch = canvasWidth / viewWidth;
+            
+            console.log('Ortho view width:', viewWidth, 'inches, pixels per inch:', pixelsPerInch);
+        }
+        
+        if (isHorizontal) {
+            // Draw horizontal ruler with offset
+            const startInch = Math.floor(-this.rulerOffsetX / pixelsPerInch);
+            const endInch = Math.ceil((canvas.width - this.rulerOffsetX) / pixelsPerInch);
+            
+            // Determine appropriate interval based on zoom level
+            let majorInterval = 12; // 1 foot
+            let minorInterval = 1;  // 1 inch
+            let showInches = true;
+            
+            if (pixelsPerInch < 5) {
+                // Very zoomed out - show only feet, every 5 or 10 feet
+                majorInterval = pixelsPerInch < 2 ? 120 : 60; // 10 feet or 5 feet
+                minorInterval = 12; // 1 foot
+                showInches = false;
+            } else if (pixelsPerInch > 50) {
+                // Very zoomed in - show fractions of inches
+                majorInterval = 1;
+                minorInterval = 0.25; // 1/4 inch
+                showInches = true;
+            }
+            
+            // Draw minor marks
+            for (let inch = Math.floor(startInch / minorInterval) * minorInterval; 
+                 inch <= endInch; 
+                 inch += minorInterval) {
+                const x = inch * pixelsPerInch + this.rulerOffsetX;
+                if (x < 0 || x > canvas.width) continue;
+                
+                ctx.beginPath();
+                ctx.moveTo(x, canvas.height);
+                ctx.lineTo(x, canvas.height - 5);
+                ctx.stroke();
+            }
+            
+            // Draw major marks and labels
+            for (let inch = Math.floor(startInch / majorInterval) * majorInterval; 
+                 inch <= endInch; 
+                 inch += majorInterval) {
+                const x = inch * pixelsPerInch + this.rulerOffsetX;
+                if (x < -50 || x > canvas.width + 50) continue;
+                
+                ctx.beginPath();
+                ctx.moveTo(x, canvas.height);
+                ctx.lineTo(x, canvas.height - 15);
+                ctx.stroke();
+                
+                // Draw labels
+                if (showInches && majorInterval < 12) {
+                    // Show inches
+                    const label = inch === 0 ? '0' : inch + '"';
+                    ctx.fillText(label, x + 2, canvas.height - 18);
+                } else {
+                    // Show feet
+                    const feet = inch / 12;
+                    const label = feet === 0 ? '0' : feet + '"';
+                    ctx.fillText(label, x + 2, canvas.height - 18);
+                }
+            }
+            
+            // Draw zero line if visible
+            if (this.rulerOffsetX > 0 && this.rulerOffsetX < canvas.width) {
+                ctx.strokeStyle = '#f00';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(this.rulerOffsetX, 0);
+                ctx.lineTo(this.rulerOffsetX, canvas.height);
+                ctx.stroke();
+                ctx.strokeStyle = '#666';
+                ctx.lineWidth = 1;
+            }
+        } else {
+            // Draw vertical ruler with offset
+            const startInch = Math.floor(-this.rulerOffsetY / pixelsPerInch);
+            const endInch = Math.ceil((canvas.height - this.rulerOffsetY) / pixelsPerInch);
+            
+            // Same interval logic as horizontal
+            let majorInterval = 12;
+            let minorInterval = 1;
+            let showInches = true;
+            
+            if (pixelsPerInch < 5) {
+                majorInterval = pixelsPerInch < 2 ? 120 : 60;
+                minorInterval = 12;
+                showInches = false;
+            } else if (pixelsPerInch > 50) {
+                majorInterval = 1;
+                minorInterval = 0.25;
+                showInches = true;
+            }
+            
+            // Draw minor marks
+            for (let inch = Math.floor(startInch / minorInterval) * minorInterval; 
+                 inch <= endInch; 
+                 inch += minorInterval) {
+                const y = inch * pixelsPerInch + this.rulerOffsetY;
+                if (y < 0 || y > canvas.height) continue;
+                
+                ctx.beginPath();
+                ctx.moveTo(canvas.width, y);
+                ctx.lineTo(canvas.width - 5, y);
+                ctx.stroke();
+            }
+            
+            // Draw major marks and labels
+            for (let inch = Math.floor(startInch / majorInterval) * majorInterval; 
+                 inch <= endInch; 
+                 inch += majorInterval) {
+                const y = inch * pixelsPerInch + this.rulerOffsetY;
+                if (y < -50 || y > canvas.height + 50) continue;
+                
+                ctx.beginPath();
+                ctx.moveTo(canvas.width, y);
+                ctx.lineTo(canvas.width - 15, y);
+                ctx.stroke();
+                
+                // Draw labels
+                ctx.save();
+                ctx.translate(12, y - 2);
+                ctx.rotate(-Math.PI / 2);
+                
+                if (showInches && majorInterval < 12) {
+                    const label = inch === 0 ? '0' : inch + '"';
+                    ctx.fillText(label, 0, 0);
+                } else {
+                    const feet = inch / 12;
+                    const label = feet === 0 ? '0' : feet + '"';
+                    ctx.fillText(label, 0, 0);
+                }
+                
+                ctx.restore();
+            }
+            
+            // Draw zero line if visible
+            if (this.rulerOffsetY > 0 && this.rulerOffsetY < canvas.height) {
+                ctx.strokeStyle = '#f00';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(0, this.rulerOffsetY);
+                ctx.lineTo(canvas.width, this.rulerOffsetY);
+                ctx.stroke();
+                ctx.strokeStyle = '#666';
+                ctx.lineWidth = 1;
+            }
+        }
+    }
+    
+    removeOrthoRulers() {
+        console.log('Removing orthographic rulers');
+        
+        // Remove event handlers
+        if (this.rulerMouseMoveHandler) {
+            window.removeEventListener('mousemove', this.rulerMouseMoveHandler);
+            this.rulerMouseMoveHandler = null;
+        }
+        if (this.rulerMouseUpHandler) {
+            window.removeEventListener('mouseup', this.rulerMouseUpHandler);
+            this.rulerMouseUpHandler = null;
+        }
+        
+        // Remove ruler container
+        if (this.rulerContainer) {
+            this.rulerContainer.remove();
+            this.rulerContainer = null;
+        }
+        
+        // Reset offsets
+        this.rulerOffsetX = this.canvas.width / 2;
+        this.rulerOffsetY = this.canvas.height / 2;
+    }
+    
+    updateRulerHighlights() {
+        // TODO: Highlight selected object's projection on rulers
+        console.log('Updating ruler highlights for selected object');
     }
     
     setupCustomMouseControls() {
@@ -2664,6 +3026,9 @@ class DrawingWorld {
         
         // Switch to orthographic projection
         this.camera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
+                        
+                        // Create rulers for orthographic view
+                        this.createOrthoRulers();
         
         // Set orthographic bounds based on camera distance to maintain same scale
         const cameraDistance = BABYLON.Vector3.Distance(this.camera.position, pickPoint);
@@ -4797,6 +5162,9 @@ class DrawingWorld {
         
         // Restore perspective projection
         this.camera.mode = BABYLON.Camera.PERSPECTIVE_CAMERA;
+                    
+                    // Remove rulers when returning to perspective
+                    this.removeOrthoRulers();
         
         // Re-attach normal camera controls
         // this.camera.attachControl(this.canvas, true); // Commented out to prevent conflicts with custom camera controls
@@ -9768,9 +10136,17 @@ class DrawingWorld {
             }
             
             // Create outline effect
+            // Better selection highlighting - thick black outline
             mesh.enableEdgesRendering();
-            mesh.edgesWidth = 4.0;
-            mesh.edgesColor = new BABYLON.Color4(1, 1, 0, 1); // Yellow outline
+            mesh.edgesWidth = 8.0;  // Thicker outline
+            mesh.edgesColor = new BABYLON.Color4(0, 0, 0, 1); // Black outline
+            
+            // Alternative: Add outline mesh for even better effect
+            if (!mesh.outlineMesh) {
+                mesh.renderOutline = true;
+                mesh.outlineColor = new BABYLON.Color3(0, 0, 0);
+                mesh.outlineWidth = 0.05; // Thick outline
+            }
             
         } else {
             // Restore original material

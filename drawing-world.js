@@ -10921,11 +10921,21 @@ class DrawingWorld {
                     const mesh = this.rotationGizmo.attachedMesh;
                     if (mesh) {
                         this.createGhostMesh(mesh);
+                        this.isDragging = true;
                         this.transformType = 'rotation';
                         this.currentDragAxis = 'x';
                         if (!this.transformDisplay) {
                             this.createTransformDisplay();
                         }
+                    }
+                });
+                
+                
+                this.rotationGizmo.xGizmo.dragBehavior.onDragObservable.add(() => {
+                    const mesh = this.rotationGizmo.attachedMesh;
+                    if (mesh && this.transformStartRotation) {
+                        const delta = mesh.rotation.subtract(this.transformStartRotation);
+                        this.updateTransformDisplay(delta, 'rotation');
                     }
                 });
                 
@@ -10950,11 +10960,21 @@ class DrawingWorld {
                     const mesh = this.rotationGizmo.attachedMesh;
                     if (mesh) {
                         this.createGhostMesh(mesh);
+                        this.isDragging = true;
                         this.transformType = 'rotation';
                         this.currentDragAxis = 'y';
                         if (!this.transformDisplay) {
                             this.createTransformDisplay();
                         }
+                    }
+                });
+                
+                
+                this.rotationGizmo.yGizmo.dragBehavior.onDragObservable.add(() => {
+                    const mesh = this.rotationGizmo.attachedMesh;
+                    if (mesh && this.transformStartRotation) {
+                        const delta = mesh.rotation.subtract(this.transformStartRotation);
+                        this.updateTransformDisplay(delta, 'rotation');
                     }
                 });
                 
@@ -10979,11 +10999,21 @@ class DrawingWorld {
                     const mesh = this.rotationGizmo.attachedMesh;
                     if (mesh) {
                         this.createGhostMesh(mesh);
+                        this.isDragging = true;
                         this.transformType = 'rotation';
                         this.currentDragAxis = 'z';
                         if (!this.transformDisplay) {
                             this.createTransformDisplay();
                         }
+                    }
+                });
+                
+                
+                this.rotationGizmo.zGizmo.dragBehavior.onDragObservable.add(() => {
+                    const mesh = this.rotationGizmo.attachedMesh;
+                    if (mesh && this.transformStartRotation) {
+                        const delta = mesh.rotation.subtract(this.transformStartRotation);
+                        this.updateTransformDisplay(delta, 'rotation');
                     }
                 });
                 
@@ -12030,7 +12060,7 @@ class DrawingWorld {
             this.transformDisplay.step = '15';
         }
         
-        // Position near the mesh/gizmo
+        // Position based on type
         const mesh = this.positionGizmo.attachedMesh || this.rotationGizmo.attachedMesh;
         if (mesh && this.scene && this.scene.activeCamera) {
             const coordinates = BABYLON.Vector3.Project(
@@ -12043,13 +12073,33 @@ class DrawingWorld {
                 )
             );
             
-            // Position offset from mesh center
-            this.transformDisplay.style.left = (coordinates.x + 40) + 'px';
-            this.transformDisplay.style.top = (coordinates.y - 20) + 'px';
+            // For rotation, position in the middle of the rotation arc
+            // For position, offset from the gizmo
+            if (type === 'rotation') {
+                // Position based on which axis is rotating
+                let offsetX = 0, offsetY = 0;
+                if (axis === 'x') {
+                    offsetX = 0;
+                    offsetY = -60;  // Above
+                } else if (axis === 'y') {
+                    offsetX = 60;   // To the right
+                    offsetY = 0;
+                } else if (axis === 'z') {
+                    offsetX = 45;   // Diagonal
+                    offsetY = -45;
+                }
+                this.transformDisplay.style.left = (coordinates.x + offsetX) + 'px';
+                this.transformDisplay.style.top = (coordinates.y + offsetY) + 'px';
+            } else {
+                // Position for movement - offset from mesh
+                this.transformDisplay.style.left = (coordinates.x + 40) + 'px';
+                this.transformDisplay.style.top = (coordinates.y - 20) + 'px';
+            }
         }
         
         this.transformDisplay.style.display = 'block';
     }
+
 
 
     

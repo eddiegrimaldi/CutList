@@ -12084,10 +12084,15 @@ class DrawingWorld {
             input.select();
             
             // Handle Enter key
-            input.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') {
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' || e.keyCode === 13) {
                     e.preventDefault();
-                    document.getElementById('transform-confirm').click();
+                    e.stopPropagation();
+                    console.log('Enter key pressed');
+                    const confirmBtn = document.getElementById('transform-confirm');
+                    if (confirmBtn) {
+                        confirmBtn.click();
+                    }
                 }
             });
         }
@@ -12096,38 +12101,49 @@ class DrawingWorld {
         const self = this;
         
         // Handle confirm
-        document.getElementById('transform-confirm').onclick = () => {
-            console.log('Confirm clicked, value:', document.getElementById('transform-value').value);
-            const newValue = parseFloat(document.getElementById('transform-value').value);
+        document.getElementById('transform-confirm').onclick = function() {
+            console.log('Confirm button clicked');
+            const inputValue = document.getElementById('transform-value').value;
+            const newValue = parseFloat(inputValue);
+            console.log('Parsed value:', newValue);
             
-            if (type === 'position') {
-                const newPos = self.transformStartPosition.clone();
-                newPos[axis] += newValue;
-                mesh.position = newPos;
-            } else if (type === 'rotation') {
-                const newRot = self.transformStartRotation.clone();
-                newRot[axis] += newValue * Math.PI / 180;
-                mesh.rotation = newRot;
-            }
-            
-            // Update part data
-            if (mesh.partData) {
-                mesh.partData.position = mesh.position.asArray();
-                mesh.partData.rotation = mesh.rotation.asArray();
-                self.autosave();
-            }
-            
-            // Clean up
             try {
-                if (self.removeGhostMesh) {
-                    self.removeGhostMesh();
+                if (type === 'position') {
+                    const newPos = self.transformStartPosition.clone();
+                    newPos[axis] += newValue;
+                    mesh.position = newPos;
+                } else if (type === 'rotation') {
+                    const newRot = self.transformStartRotation.clone();
+                    newRot[axis] += newValue * Math.PI / 180;
+                    mesh.rotation = newRot;
                 }
-            } catch (e) {
-                console.error('Error removing ghost mesh:', e);
+                
+                // Update part data
+                if (mesh.partData) {
+                    mesh.partData.position = mesh.position.asArray();
+                    mesh.partData.rotation = mesh.rotation.asArray();
+                    if (self.autosave) {
+                        self.autosave();
+                    }
+                }
+                
+                // Clean up
+                if (self.removeGhostMesh) {
+                    try {
+                        self.removeGhostMesh();
+                    } catch (e) {
+                        console.error('Ghost mesh error:', e);
+                    }
+                }
+                self.currentDragAxis = null;
+                
+            } catch (error) {
+                console.error('Error in confirm handler:', error);
             }
-            self.currentDragAxis = null;
-            console.log('Removing modal...');
-            modal.remove();
+            
+            // Always remove modal
+            console.log('About to remove modal');
+            modal.parentNode.removeChild(modal);
             console.log('Modal removed');
         };
         

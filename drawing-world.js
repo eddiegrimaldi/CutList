@@ -12036,7 +12036,7 @@ class DrawingWorld {
         //         // this.transformDisplay.style.left = (coordinates.x + offsetX) + 'px';
         // this.transformDisplay.style.top = (coordinates.y + offsetY) + 'px';
         // }
-        //         this.transformDisplay.style.display = 'block';
+                this.transformDisplay.style.display = 'block';
     }
 
 
@@ -12130,7 +12130,7 @@ class DrawingWorld {
             content = '<h3 style="margin-top: 0;">Confirm Movement</h3>';
             content += '<div style="margin-bottom: 10px;">';
             content += '<label>' + axisUpper + ' Axis: ';
-            content += '<input type="number" id="transform-value" value="' + value.toFixed(2) + '" step="0.25" style="min-width: 60px; width: auto; height: 60px; font-size: 24px; text-align: center; padding: 5px 10px; box-sizing: border-box;">';
+            content += '<input type="number" id="transform-value" value="' + value.toFixed(2) + '" step="0.25" style="width: 60px; height: 60px; font-size: 24px; text-align: center; padding: 5px; box-sizing: border-box;">';
             content += ' inches</label>';
             content += '</div>';
         } else if (type === 'rotation') {
@@ -12140,7 +12140,7 @@ class DrawingWorld {
             content = '<h3 style="margin-top: 0;">Confirm Rotation</h3>';
             content += '<div style="margin-bottom: 10px;">';
             content += '<label>' + axisUpper + ' Axis: ';
-            content += '<input type="number" id="transform-value" value="' + value.toFixed(1) + '" step="15" style="min-width: 60px; width: auto; height: 60px; font-size: 24px; text-align: center; padding: 5px 10px; box-sizing: border-box;">';
+            content += '<input type="number" id="transform-value" value="' + value.toFixed(1) + '" step="15" style="width: 60px; height: 60px; font-size: 24px; text-align: center; padding: 5px; box-sizing: border-box;">';
             content += ' degrees</label>';
             content += '</div>';
         }
@@ -12157,6 +12157,22 @@ class DrawingWorld {
         const input = document.getElementById('transform-value');
         if (input) {
             input.focus();
+            // Auto-resize width based on content
+            const adjustWidth = () => {
+                const len = input.value.length;
+                if (len <= 2) {
+                    input.style.width = '60px';
+                } else if (len === 3) {
+                    input.style.width = '75px';
+                } else if (len === 4) {
+                    input.style.width = '85px';
+                } else if (len >= 5) {
+                    input.style.width = '95px';
+                }
+            };
+            adjustWidth();
+            input.addEventListener('input', adjustWidth);
+            
             input.select();
             
             // Handle Enter key

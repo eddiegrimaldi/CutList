@@ -10940,7 +10940,7 @@ class DrawingWorld {
             
             // Create rotation gizmo with utility layer
             this.rotationGizmo = new BABYLON.RotationGizmo(this.gizmoUtilityLayer);
-            this.rotationGizmo.updateGizmoRotationToMatchAttachedMesh = true;
+            this.rotationGizmo.updateGizmoRotationToMatchAttachedMesh = false;
             this.rotationGizmo.updateGizmoPositionToMatchAttachedMesh = false;
             this.rotationGizmo.scaleRatio = 1.0;
             // Make rotation gizmo always visible

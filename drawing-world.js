@@ -10744,6 +10744,15 @@ class DrawingWorld {
 
         createDragHandles(mesh) {
         console.log('GIZMO DEBUG: createDragHandles FUNCTION CALLED with mesh:', mesh?.name);
+        // Initialize transform precision tracking
+        this.transformStartPosition = null;
+        this.transformStartRotation = null;
+        this.ghostMesh = null;
+        this.transformDisplay = null;
+        this.transformType = null; // 'position' or 'rotation'
+        this.gridSnapSize = 1; // 1 inch grid snap by default
+        this.rotationSnapAngle = 15; // 15 degree snap by default
+        
         
         // Check if mesh is valid
         if (!mesh) {
@@ -10787,6 +10796,36 @@ class DrawingWorld {
             this.positionGizmo.xGizmo.coloredMaterial.diffuseColor = new BABYLON.Color3(0.6, 0.2, 0.2);
             this.positionGizmo.yGizmo.coloredMaterial.diffuseColor = new BABYLON.Color3(0.2, 0.6, 0.2);
             this.positionGizmo.zGizmo.coloredMaterial.diffuseColor = new BABYLON.Color3(0.2, 0.2, 0.6);
+            
+            // Add drag observers for position gizmo
+            this.positionGizmo.onDragStartObservable.add(() => {
+                const mesh = this.positionGizmo.attachedMesh;
+                if (mesh) {
+                    this.createGhostMesh(mesh);
+                    this.transformType = 'position';
+                    if (\!this.transformDisplay) {
+                        this.createTransformDisplay();
+                    }
+                }
+            });
+            
+            this.positionGizmo.onDragObservable.add(() => {
+                const mesh = this.positionGizmo.attachedMesh;
+                if (mesh && this.transformStartPosition) {
+                    const snappedPos = this.applyGridSnap(mesh.position);
+                    mesh.position = snappedPos;
+                    const delta = snappedPos.subtract(this.transformStartPosition);
+                    this.updateTransformDisplay(delta, 'position');
+                }
+            });
+            
+            this.positionGizmo.onDragEndObservable.add(() => {
+                const mesh = this.positionGizmo.attachedMesh;
+                if (mesh) {
+                    this.hideTransformDisplay();
+                    this.showTransformConfirmationModal(mesh, mesh.position, 'position');
+                }
+            });
             // Make position gizmo always visible
             [this.positionGizmo.xGizmo, this.positionGizmo.yGizmo, this.positionGizmo.zGizmo].forEach(g => {
                 if (g && g.coloredMaterial) {
@@ -10811,21 +10850,41 @@ class DrawingWorld {
             });
             
             // Add observer to update board bounds after rotation
+            // Add drag observers for rotation gizmo
+            this.rotationGizmo.onDragStartObservable.add(() => {
+                const mesh = this.rotationGizmo.attachedMesh;
+                if (mesh) {
+                    this.createGhostMesh(mesh);
+                    this.transformType = 'rotation';
+                    if (\!this.transformDisplay) {
+                        this.createTransformDisplay();
+                    }
+                }
+            });
+            
+            this.rotationGizmo.onDragObservable.add(() => {
+                const mesh = this.rotationGizmo.attachedMesh;
+                if (mesh && this.transformStartRotation) {
+                    const snappedRot = this.applyRotationSnap(mesh.rotation);
+                    mesh.rotation = snappedRot;
+                    const delta = snappedRot.subtract(this.transformStartRotation);
+                    this.updateTransformDisplay(delta, 'rotation');
+                }
+            });
+            
             this.rotationGizmo.onDragEndObservable.add(() => {
-                if (this.rotationGizmo.attachedMesh) {
-                    const mesh = this.rotationGizmo.attachedMesh;
-                    console.log('Rotation ended - recalculating bounds for:', mesh.name);
-                    
-                    // Force bounds recalculation
+                const mesh = this.rotationGizmo.attachedMesh;
+                if (mesh) {
+                    this.hideTransformDisplay();
                     mesh.refreshBoundingInfo();
-                    
-                    // Update part data if it exists
                     if (mesh.partData) {
                         const bounds = mesh.getBoundingInfo().boundingBox;
                         console.log('New bounds after rotation:', bounds);
                     }
+                    this.showTransformConfirmationModal(mesh, mesh.rotation, 'rotation');
                 }
             });
+
             
             // Create scale gizmo with utility layer
             this.scaleGizmo = new BABYLON.ScaleGizmo(this.gizmoUtilityLayer);
@@ -11776,6 +11835,189 @@ class DrawingWorld {
         
         container.addControl(resetBtn);
     }
+    createTransformDisplay() {
+        // Remove any existing display
+        if (this.transformDisplay) {
+            this.transformDisplay.remove();
+        }
+        
+        // Create display container
+        const display = document.createElement("div");
+        display.id = "transform-display";
+        display.style.position = "fixed";
+        display.style.top = "50%";
+        display.style.left = "50%";
+        display.style.transform = "translate(-50%, -50%)";
+        display.style.background = "rgba(0, 0, 0, 0.8)";
+        display.style.color = "white";
+        display.style.padding = "10px 20px";
+        display.style.borderRadius = "5px";
+        display.style.fontSize = "24px";
+        display.style.fontWeight = "bold";
+        display.style.display = "none";
+        display.style.zIndex = "10000";
+        display.style.pointerEvents = "none";
+        document.body.appendChild(display);
+        this.transformDisplay = display;
+    }
+    
+    updateTransformDisplay(value, type) {
+        if (!this.transformDisplay) return;
+        
+        if (type === "position") {
+            const x = value.x.toFixed(2);
+            const y = value.y.toFixed(2);
+            const z = value.z.toFixed(2);
+            this.transformDisplay.textContent = ;
+        } else if (type === "rotation") {
+            const xDeg = (value.x * 180 / Math.PI).toFixed(1);
+            const yDeg = (value.y * 180 / Math.PI).toFixed(1);
+            const zDeg = (value.z * 180 / Math.PI).toFixed(1);
+            this.transformDisplay.textContent = ;
+        }
+        
+        this.transformDisplay.style.display = "block";
+    }
+    
+    hideTransformDisplay() {
+        if (this.transformDisplay) {
+            this.transformDisplay.style.display = "none";
+        }
+    }
+    
+    createGhostMesh(originalMesh) {
+        // Remove existing ghost
+        if (this.ghostMesh) {
+            this.ghostMesh.dispose();
+            this.ghostMesh = null;
+        }
+        
+        // Clone the mesh for ghost
+        this.ghostMesh = originalMesh.clone(originalMesh.name + "_ghost");
+        
+        // Create ghost material
+        const ghostMaterial = new BABYLON.StandardMaterial("ghostMaterial", this.scene);
+        ghostMaterial.diffuseColor = new BABYLON.Color3(0.5, 0.5, 0.5);
+        ghostMaterial.alpha = 0.3;
+        ghostMaterial.backFaceCulling = false;
+        
+        this.ghostMesh.material = ghostMaterial;
+        this.ghostMesh.isPickable = false;
+        
+        // Store original transform
+        this.transformStartPosition = originalMesh.position.clone();
+        this.transformStartRotation = originalMesh.rotation.clone();
+    }
+    
+    removeGhostMesh() {
+        if (this.ghostMesh) {
+            this.ghostMesh.dispose();
+            this.ghostMesh = null;
+        }
+    }
+    
+    applyGridSnap(position) {
+        if (this.gridSnapSize <= 0) return position;
+        
+        return new BABYLON.Vector3(
+            Math.round(position.x / this.gridSnapSize) * this.gridSnapSize,
+            Math.round(position.y / this.gridSnapSize) * this.gridSnapSize,
+            Math.round(position.z / this.gridSnapSize) * this.gridSnapSize
+        );
+    }
+    
+    applyRotationSnap(rotation) {
+        if (this.rotationSnapAngle <= 0) return rotation;
+        
+        const snapRad = this.rotationSnapAngle * Math.PI / 180;
+        return new BABYLON.Vector3(
+            Math.round(rotation.x / snapRad) * snapRad,
+            Math.round(rotation.y / snapRad) * snapRad,
+            Math.round(rotation.z / snapRad) * snapRad
+        );
+    }
+
+    showTransformConfirmationModal(mesh, transformData, type) {
+        const modal = document.createElement('div');
+        modal.style.position = 'fixed';
+        modal.style.top = '50%';
+        modal.style.left = '50%';
+        modal.style.transform = 'translate(-50%, -50%)';
+        modal.style.background = 'white';
+        modal.style.padding = '20px';
+        modal.style.borderRadius = '10px';
+        modal.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
+        modal.style.zIndex = '10001';
+        modal.style.minWidth = '300px';
+        
+        let content = '';
+        if (type === 'position') {
+            const delta = transformData.subtract(this.transformStartPosition);
+            content = '<h3 style="margin-top: 0;">Confirm Movement</h3>';
+            content += '<div style="margin-bottom: 10px;">';
+            content += '<label>X: <input type="number" id="transform-x" value="' + delta.x.toFixed(2) + '" step="0.25" style="width: 80px;"> inches</label><br>';
+            content += '<label>Y: <input type="number" id="transform-y" value="' + delta.y.toFixed(2) + '" step="0.25" style="width: 80px;"> inches</label><br>';
+            content += '<label>Z: <input type="number" id="transform-z" value="' + delta.z.toFixed(2) + '" step="0.25" style="width: 80px;"> inches</label>';
+            content += '</div>';
+        } else if (type === 'rotation') {
+            const delta = transformData.subtract(this.transformStartRotation);
+            content = '<h3 style="margin-top: 0;">Confirm Rotation</h3>';
+            content += '<div style="margin-bottom: 10px;">';
+            content += '<label>X: <input type="number" id="transform-x" value="' + (delta.x * 180 / Math.PI).toFixed(1) + '" step="15" style="width: 80px;"> degrees</label><br>';
+            content += '<label>Y: <input type="number" id="transform-y" value="' + (delta.y * 180 / Math.PI).toFixed(1) + '" step="15" style="width: 80px;"> degrees</label><br>';
+            content += '<label>Z: <input type="number" id="transform-z" value="' + (delta.z * 180 / Math.PI).toFixed(1) + '" step="15" style="width: 80px;"> degrees</label>';
+            content += '</div>';
+        }
+        
+        content += '<div style="text-align: right; margin-top: 15px;">';
+        content += '<button id="transform-cancel" style="margin-right: 10px; padding: 5px 15px;">Cancel</button>';
+        content += '<button id="transform-confirm" style="padding: 5px 15px; background: #4CAF50; color: white; border: none; border-radius: 3px;">Confirm</button>';
+        content += '</div>';
+        
+        modal.innerHTML = content;
+        document.body.appendChild(modal);
+        
+        // Handle confirm
+        document.getElementById('transform-confirm').onclick = () => {
+            const x = parseFloat(document.getElementById('transform-x').value);
+            const y = parseFloat(document.getElementById('transform-y').value);
+            const z = parseFloat(document.getElementById('transform-z').value);
+            
+            if (type === 'position') {
+                mesh.position = this.transformStartPosition.add(new BABYLON.Vector3(x, y, z));
+            } else if (type === 'rotation') {
+                mesh.rotation = this.transformStartRotation.add(new BABYLON.Vector3(
+                    x * Math.PI / 180,
+                    y * Math.PI / 180,
+                    z * Math.PI / 180
+                ));
+            }
+            
+            // Update part data
+            if (mesh.partData) {
+                mesh.partData.position = mesh.position.asArray();
+                mesh.partData.rotation = mesh.rotation.asArray();
+                this.autosave();
+            }
+            
+            this.removeGhostMesh();
+            modal.remove();
+        };
+        
+        // Handle cancel
+        document.getElementById('transform-cancel').onclick = () => {
+            // Restore original position/rotation
+            if (type === 'position') {
+                mesh.position = this.transformStartPosition.clone();
+            } else if (type === 'rotation') {
+                mesh.rotation = this.transformStartRotation.clone();
+            }
+            
+            this.removeGhostMesh();
+            modal.remove();
+        };
+    }
+
 }
 
 // Initialize Drawing World when page loads

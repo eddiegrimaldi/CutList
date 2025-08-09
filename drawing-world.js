@@ -12018,60 +12018,117 @@ class DrawingWorld {
         // Remove any existing display
         if (this.transformDisplay) {
             this.transformDisplay.remove();
+            this.transformDisplay = null;
         }
         
         // Create minimal inline input
         const display = document.createElement('input');
         display.id = 'transform-display';
         display.type = 'number';
-        display.style.position = 'absolute';
-        display.style.width = '70px';
-        display.style.padding = '2px 4px';
-        display.style.background = 'rgba(255, 255, 255, 0.9)';
+        display.style.position = 'fixed'; // Use fixed positioning
+        display.style.width = '60px';
+        display.style.padding = '2px';
+        display.style.background = 'white';
         display.style.border = '2px solid #4CAF50';
         display.style.borderRadius = '3px';
         display.style.fontSize = '12px';
         display.style.fontWeight = 'bold';
         display.style.textAlign = 'center';
         display.style.display = 'none';
-        display.style.zIndex = '10000';
+        display.style.zIndex = '100000'; // Very high z-index
         display.step = '0.25';
         
         document.body.appendChild(display);
         this.transformDisplay = display;
-        this.isDragging = false;
         
-        // Handle Enter key
-        display.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                const value = parseFloat(display.value);
-                const mesh = this.positionGizmo.attachedMesh || this.rotationGizmo.attachedMesh;
+        // Store reference to this
+        const self = this;
+        
+        // Handle Enter key with function (not arrow)
+        display.addEventListener('keydown', function(evt) {
+            if (evt.key === 'Enter' || evt.keyCode === 13) {
+                evt.preventDefault();
+                evt.stopPropagation();
+                
+                console.log('Enter pressed in transform display');
+                
+                const value = parseFloat(this.value);
+                const mesh = self.positionGizmo?.attachedMesh || self.rotationGizmo?.attachedMesh;
                 
                 if (mesh && !isNaN(value)) {
-                    if (this.transformType === 'position') {
-                        const newPos = this.transformStartPosition.clone();
-                        newPos[this.currentDragAxis] = this.transformStartPosition[this.currentDragAxis] + value;
+                    console.log('Applying value:', value, 'to', self.transformType, 'axis:', self.currentDragAxis);
+                    
+                    if (self.transformType === 'position') {
+                        const newPos = self.transformStartPosition.clone();
+                        newPos[self.currentDragAxis] = self.transformStartPosition[self.currentDragAxis] + value;
                         mesh.position = newPos;
-                    } else if (this.transformType === 'rotation') {
-                        const newRot = this.transformStartRotation.clone();
-                        newRot[this.currentDragAxis] = this.transformStartRotation[this.currentDragAxis] + (value * Math.PI / 180);
+                    } else if (self.transformType === 'rotation') {
+                        const newRot = self.transformStartRotation.clone();
+                        newRot[self.currentDragAxis] = self.transformStartRotation[self.currentDragAxis] + (value * Math.PI / 180);
                         mesh.rotation = newRot;
                     }
                     
+                    // Update part data
                     if (mesh.partData) {
                         mesh.partData.position = mesh.position.asArray();
                         mesh.partData.rotation = mesh.rotation.asArray();
-                        this.autosave();
+                        if (self.autosave) self.autosave();
                     }
                 }
                 
-                display.style.display = 'none';
-                this.removeGhostMesh();
-                this.currentDragAxis = null;
+                // Force cleanup
+                this.style.display = 'none';
+                this.value = '';
+                
+                // Clean up ghost
+                if (self.ghostMesh) {
+                    console.log('Disposing ghost mesh');
+                    self.ghostMesh.dispose();
+                    self.ghostMesh = null;
+                }
+                
+                // Reset state
+                self.currentDragAxis = null;
+                self.transformType = null;
+                self.isDragging = false;
+            }
+        });
+        
+        // Also handle Escape key
+        display.addEventListener('keydown', function(evt) {
+            if (evt.key === 'Escape' || evt.keyCode === 27) {
+                evt.preventDefault();
+                
+                console.log('Escape pressed - canceling');
+                
+                // Restore original position
+                const mesh = self.positionGizmo?.attachedMesh || self.rotationGizmo?.attachedMesh;
+                if (mesh) {
+                    if (self.transformType === 'position' && self.transformStartPosition) {
+                        mesh.position = self.transformStartPosition.clone();
+                    } else if (self.transformType === 'rotation' && self.transformStartRotation) {
+                        mesh.rotation = self.transformStartRotation.clone();
+                    }
+                }
+                
+                // Force cleanup
+                this.style.display = 'none';
+                this.value = '';
+                
+                // Clean up ghost
+                if (self.ghostMesh) {
+                    self.ghostMesh.dispose();
+                    self.ghostMesh = null;
+                }
+                
+                // Reset state
+                self.currentDragAxis = null;
+                self.transformType = null;
+                self.isDragging = false;
             }
         });
     }
+
 
     
     updateTransformDisplay(value, type) {
@@ -12090,8 +12147,8 @@ class DrawingWorld {
             this.transformDisplay.step = '15';
         }
         
-        // Position based on type
-        const mesh = this.positionGizmo.attachedMesh || this.rotationGizmo.attachedMesh;
+        // Position at gizmo center
+        const mesh = this.positionGizmo?.attachedMesh || this.rotationGizmo?.attachedMesh;
         if (mesh && this.scene && this.scene.activeCamera) {
             const coordinates = BABYLON.Vector3.Project(
                 mesh.position,
@@ -12103,32 +12160,14 @@ class DrawingWorld {
                 )
             );
             
-            // For rotation, position inside or very close to the arc
-            // For position, offset from the gizmo
-            if (type === 'rotation') {
-                // Position based on which axis is rotating - much closer
-                let offsetX = 0, offsetY = 0;
-                if (axis === 'x') {
-                    offsetX = 0;
-                    offsetY = -25;  // Just above, inside the arc
-                } else if (axis === 'y') {
-                    offsetX = 25;   // Close to the right side
-                    offsetY = 0;
-                } else if (axis === 'z') {
-                    offsetX = 18;   // Inside the diagonal arc
-                    offsetY = -18;
-                }
-                this.transformDisplay.style.left = (coordinates.x + offsetX) + 'px';
-                this.transformDisplay.style.top = (coordinates.y + offsetY) + 'px';
-            } else {
-                // Position for movement - offset from mesh
-                this.transformDisplay.style.left = (coordinates.x + 40) + 'px';
-                this.transformDisplay.style.top = (coordinates.y - 20) + 'px';
-            }
+            // Center the input field on the mesh
+            this.transformDisplay.style.left = (coordinates.x - 30) + 'px'; // Center horizontally
+            this.transformDisplay.style.top = (coordinates.y - 10) + 'px';  // Center vertically
         }
         
         this.transformDisplay.style.display = 'block';
     }
+
 
 
 

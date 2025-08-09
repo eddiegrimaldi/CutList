@@ -10840,11 +10840,13 @@ class DrawingWorld {
                 this.positionGizmo.xGizmo.dragBehavior.onDragEndObservable.add(() => {
                     const mesh = this.positionGizmo.attachedMesh;
                     if (mesh) {
+                        // Apply the final position from ghost BEFORE removing it
+                        if (this.ghostMesh) {
+                            mesh.position.copyFrom(this.ghostMesh.position);
+                        }
                         this.hideTransformDisplay();
                         this.removeGhostMesh();
-                        const finalPosition = this.ghostMesh ? this.ghostMesh.position.clone() : mesh.position.clone();
-                        this.removeMeasurementArrow();
-                        this.showTransformConfirmationModal(mesh, finalPosition, 'position');
+                        // Transform applied directly
                     }
                 });
             }
@@ -10880,11 +10882,13 @@ class DrawingWorld {
                 this.positionGizmo.yGizmo.dragBehavior.onDragEndObservable.add(() => {
                     const mesh = this.positionGizmo.attachedMesh;
                     if (mesh) {
+                        // Apply the final position from ghost BEFORE removing it
+                        if (this.ghostMesh) {
+                            mesh.position.copyFrom(this.ghostMesh.position);
+                        }
                         this.hideTransformDisplay();
                         this.removeGhostMesh();
-                        const finalPosition = this.ghostMesh ? this.ghostMesh.position.clone() : mesh.position.clone();
-                        this.removeMeasurementArrow();
-                        this.showTransformConfirmationModal(mesh, finalPosition, 'position');
+                        // Transform applied directly
                     }
                 });
             }
@@ -10920,11 +10924,13 @@ class DrawingWorld {
                 this.positionGizmo.zGizmo.dragBehavior.onDragEndObservable.add(() => {
                     const mesh = this.positionGizmo.attachedMesh;
                     if (mesh) {
+                        // Apply the final position from ghost BEFORE removing it
+                        if (this.ghostMesh) {
+                            mesh.position.copyFrom(this.ghostMesh.position);
+                        }
                         this.hideTransformDisplay();
                         this.removeGhostMesh();
-                        const finalPosition = this.ghostMesh ? this.ghostMesh.position.clone() : mesh.position.clone();
-                        this.removeMeasurementArrow();
-                        this.showTransformConfirmationModal(mesh, finalPosition, 'position');
+                        // Transform applied directly
                     }
                 });
             }
@@ -11211,23 +11217,9 @@ class DrawingWorld {
                         this.scene.onBeforeRenderObservable.remove(this.gizmoTrackObserver);
                     }
                     
-                    this.gizmoTrackObserver = this.scene.onBeforeRenderObservable.add(() => {
-                        // Always recalculate bounds for current orientation
-                        mesh.refreshBoundingInfo();
-                        if (this.rotationGizmo && this.rotationGizmo.attachedMesh === mesh) {
-                            const currentBounds = mesh.getBoundingInfo().boundingBox;
-                            const currentHeight = currentBounds.maximumWorld.y - currentBounds.minimumWorld.y;
-                            const currentOffset = currentHeight / 2 + 5;
-                            
-                            scene.meshes.forEach(m => {
-                                if (m.name === 'gizmoRootNode') {
-                                    m.position.x = mesh.position.x;
-                                    m.position.y = mesh.position.y + currentOffset;
-                                    m.position.z = mesh.position.z;
-                                }
-                            });
-                        }
-                    });
+                    // For rotation, we DON'T want the gizmo to track the mesh position
+                    // The gizmo should stay fixed in place while the object rotates
+                    console.log('Rotation gizmo: NOT adding position tracking observer');
                 }
             }, 50);
             
@@ -12089,7 +12081,7 @@ class DrawingWorld {
             displayText = val.toFixed(1) + '°';
         }
         
-        this.transformDisplay.textContent = displayText;
+        this.transformDisplay.value = displayText;
         
         // Position at specified location or center
         if (displayPosition) {
@@ -12126,6 +12118,38 @@ class DrawingWorld {
         if (this.transformDisplay) {
             this.transformDisplay.style.display = "none";
         }
+
+    }
+    
+    applyPrecisionTransform() {
+        if (!this.transformDisplay || !this.ghostMesh) return;
+        
+        const value = parseFloat(this.transformDisplay.value);
+        if (isNaN(value)) return;
+        
+        const mesh = this.positionGizmo.attachedMesh || this.rotationGizmo.attachedMesh;
+        if (!mesh) return;
+        
+        if (this.transformType === 'position' && this.currentDragAxis) {
+            // Apply position change
+            const newPos = this.transformStartPosition.clone();
+            newPos[this.currentDragAxis] += value;
+            mesh.position.copyFrom(newPos);
+            
+            // Update ghost to match
+            if (this.ghostMesh) {
+                this.ghostMesh.position.copyFrom(newPos);
+            }
+        } else if (this.transformType === 'rotation' && this.currentDragAxis) {
+            // Apply rotation change
+            const newRot = this.transformStartRotation.clone();
+            newRot[this.currentDragAxis] += value * Math.PI / 180; // Convert degrees to radians
+            mesh.rotation.copyFrom(newRot);
+        }
+        
+        // Hide display and clean up
+        this.hideTransformDisplay();
+        this.removeGhostMesh();
     }
     
     createGhostMesh(originalMesh) {

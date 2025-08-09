@@ -14,6 +14,25 @@
     <script src="Board.js?v=<?php echo time(); ?>"></script>
     <script src="BoardFactory.js?v=<?php echo time(); ?>"></script>
     <script>
+
+        function showLoadingSpinner(message = 'Please wait while we restore your workspace') {
+            const spinner = document.getElementById('loadingSpinner');
+            const messageEl = document.getElementById('loadingMessage');
+            if (spinner) {
+                spinner.style.display = 'block';
+                if (messageEl) {
+                    messageEl.textContent = message;
+                }
+            }
+        }
+        
+        function hideLoadingSpinner() {
+            const spinner = document.getElementById('loadingSpinner');
+            if (spinner) {
+                spinner.style.display = 'none';
+            }
+        }
+
         console.log('Babylon.js version:', BABYLON.Engine.Version);
     </script>
 </head>
@@ -411,6 +430,25 @@
     
     <script type="module" src="drawing-world.js?v=<?php echo time(); ?>&force=<?php echo rand(1000, 9999); ?>&edge=20250724001"></script>
     <script>
+
+        function showLoadingSpinner(message = 'Please wait while we restore your workspace') {
+            const spinner = document.getElementById('loadingSpinner');
+            const messageEl = document.getElementById('loadingMessage');
+            if (spinner) {
+                spinner.style.display = 'block';
+                if (messageEl) {
+                    messageEl.textContent = message;
+                }
+            }
+        }
+        
+        function hideLoadingSpinner() {
+            const spinner = document.getElementById('loadingSpinner');
+            if (spinner) {
+                spinner.style.display = 'none';
+            }
+        }
+
         // Force correct initial state after DOM loads
         window.addEventListener('DOMContentLoaded', function() {
             setTimeout(function() {
@@ -624,6 +662,8 @@
             },
             
             async loadProject(projectID) {
+            // Show loading spinner immediately
+            showLoadingSpinner('Loading project data...');
                 try {
                     // TEMPORARY: Use localStorage until server permissions are fixed
                     const savedProjects = JSON.parse(localStorage.getItem('cutlist_projects') || '[]');
@@ -638,6 +678,7 @@
                     }
                 } catch (error) {
                     console.error('Error loading project:', error);
+                hideLoadingSpinner();
                     NotificationSystem.error('Load Error', 'Unable to load project. Please try again.');
                 }
             },

@@ -10818,16 +10818,32 @@ class DrawingWorld {
                 
                 this.positionGizmo.xGizmo.dragBehavior.onDragObservable.add(() => {
                     const mesh = this.positionGizmo.attachedMesh;
-                    if (mesh && this.transformStartPosition) {
-                        const delta = mesh.position.subtract(this.transformStartPosition);
-                        this.updateTransformDisplay(delta, 'position');
+                    if (mesh && this.transformStartPosition && this.ghostMesh) {
+                        // Calculate delta but don't apply to real mesh
+                        const currentPos = mesh.position.clone();
+                        const delta = currentPos.subtract(this.transformStartPosition);
+                        
+                        // Move ghost instead of real mesh
+                        this.ghostMesh.position = currentPos.clone();
+                        
+                        // Reset real mesh to original position
+                        mesh.position = this.transformStartPosition.clone();
+                        
+                        // Update display at midpoint
+                        const midpoint = this.transformStartPosition.add(currentPos).scale(0.5);
+                        this.updateTransformDisplay(delta, 'position', midpoint);
+                        
+                        // Update measurement arrow
+                        this.updateMeasurementArrow(this.transformStartPosition, currentPos);
                     }
+                });
                 });
                 this.positionGizmo.xGizmo.dragBehavior.onDragEndObservable.add(() => {
                     const mesh = this.positionGizmo.attachedMesh;
                     if (mesh) {
                         this.hideTransformDisplay();
                         this.removeGhostMesh();
+                        this.removeMeasurementArrow();
                         this.showTransformConfirmationModal(mesh, mesh.position, 'position');
                     }
                 });
@@ -10849,9 +10865,16 @@ class DrawingWorld {
                 
                 this.positionGizmo.yGizmo.dragBehavior.onDragObservable.add(() => {
                     const mesh = this.positionGizmo.attachedMesh;
-                    if (mesh && this.transformStartPosition) {
-                        const delta = mesh.position.subtract(this.transformStartPosition);
-                        this.updateTransformDisplay(delta, 'position');
+                    if (mesh && this.transformStartPosition && this.ghostMesh) {
+                        const currentPos = mesh.position.clone();
+                        const delta = currentPos.subtract(this.transformStartPosition);
+                        
+                        this.ghostMesh.position = currentPos.clone();
+                        mesh.position = this.transformStartPosition.clone();
+                        
+                        const midpoint = this.transformStartPosition.add(currentPos).scale(0.5);
+                        this.updateTransformDisplay(delta, 'position', midpoint);
+                        this.updateMeasurementArrow(this.transformStartPosition, currentPos);
                     }
                 });
                 this.positionGizmo.yGizmo.dragBehavior.onDragEndObservable.add(() => {
@@ -10859,6 +10882,7 @@ class DrawingWorld {
                     if (mesh) {
                         this.hideTransformDisplay();
                         this.removeGhostMesh();
+                        this.removeMeasurementArrow();
                         this.showTransformConfirmationModal(mesh, mesh.position, 'position');
                     }
                 });
@@ -10880,9 +10904,16 @@ class DrawingWorld {
                 
                 this.positionGizmo.zGizmo.dragBehavior.onDragObservable.add(() => {
                     const mesh = this.positionGizmo.attachedMesh;
-                    if (mesh && this.transformStartPosition) {
-                        const delta = mesh.position.subtract(this.transformStartPosition);
-                        this.updateTransformDisplay(delta, 'position');
+                    if (mesh && this.transformStartPosition && this.ghostMesh) {
+                        const currentPos = mesh.position.clone();
+                        const delta = currentPos.subtract(this.transformStartPosition);
+                        
+                        this.ghostMesh.position = currentPos.clone();
+                        mesh.position = this.transformStartPosition.clone();
+                        
+                        const midpoint = this.transformStartPosition.add(currentPos).scale(0.5);
+                        this.updateTransformDisplay(delta, 'position', midpoint);
+                        this.updateMeasurementArrow(this.transformStartPosition, currentPos);
                     }
                 });
                 this.positionGizmo.zGizmo.dragBehavior.onDragEndObservable.add(() => {
@@ -10890,6 +10921,7 @@ class DrawingWorld {
                     if (mesh) {
                         this.hideTransformDisplay();
                         this.removeGhostMesh();
+                        this.removeMeasurementArrow();
                         this.showTransformConfirmationModal(mesh, mesh.position, 'position');
                     }
                 });
@@ -12021,7 +12053,7 @@ class DrawingWorld {
         this.transformDisplay = display;
     }
     
-    updateTransformDisplay(value, type) {
+    updateTransformDisplay(value, type, displayPosition) {
         if (!this.transformDisplay) return;
         
         // Show only the value for the current axis
@@ -12039,16 +12071,11 @@ class DrawingWorld {
         
         this.transformDisplay.textContent = displayText;
         
-        // Position at center of active gizmo
-        const activeGizmo = type === 'position' ? this.positionGizmo : this.rotationGizmo;
-        const mesh = activeGizmo?.attachedMesh;
-        
-        if (mesh && this.scene && this.scene.activeCamera) {
-            // Get gizmo position (which might be different from mesh position for rotation)
-            const gizmoPos = mesh.position;
-            
+        // Position at specified location or center
+        if (displayPosition) {
+            // Project the 3D position to screen coordinates
             const coordinates = BABYLON.Vector3.Project(
-                gizmoPos,
+                displayPosition,
                 BABYLON.Matrix.Identity(),
                 this.scene.getTransformMatrix(),
                 this.scene.activeCamera.viewport.toGlobal(
@@ -12057,10 +12084,18 @@ class DrawingWorld {
                 )
             );
             
+            this.transformDisplay.style.position = 'fixed';
             this.transformDisplay.style.left = coordinates.x + 'px';
             this.transformDisplay.style.top = coordinates.y + 'px';
             this.transformDisplay.style.transform = 'translate(-50%, -50%)';
+        } else {
+            // Default to center of screen
+            this.transformDisplay.style.position = 'fixed';
+            this.transformDisplay.style.top = '50%';
+            this.transformDisplay.style.left = '50%';
+            this.transformDisplay.style.transform = 'translate(-50%, -50%)';
         }
+        
         
                 this.transformDisplay.style.display = 'block';
     }
@@ -12086,7 +12121,7 @@ class DrawingWorld {
         // Create ghost material
         const ghostMaterial = new BABYLON.StandardMaterial("ghostMaterial", this.scene);
         ghostMaterial.diffuseColor = new BABYLON.Color3(0.5, 0.5, 0.5);
-        ghostMaterial.alpha = 0.3;
+        ghostMaterial.alpha = 0.6;  // More visible for preview
         ghostMaterial.backFaceCulling = false;
         
         this.ghostMesh.material = ghostMaterial;
@@ -12097,6 +12132,53 @@ class DrawingWorld {
         this.transformStartRotation = originalMesh.rotation.clone();
     }
     
+
+    createMeasurementArrow() {
+        if (this.measurementArrow) {
+            this.measurementArrow.dispose();
+        }
+        
+        // Create a simple arrow with dashed line
+        const arrowMesh = BABYLON.MeshBuilder.CreateLines(measurementArrow, {
+            points: [
+                new BABYLON.Vector3(0, 0, 0),
+                new BABYLON.Vector3(1, 0, 0)
+            ],
+            updatable: true
+        }, this.scene);
+        
+        arrowMesh.color = new BABYLON.Color3(0.2, 0.2, 0.2);
+        arrowMesh.alpha = 0.8;
+        
+        // Create dashed effect with multiple segments
+        const mat = new BABYLON.StandardMaterial(arrowMat, this.scene);
+        mat.emissiveColor = new BABYLON.Color3(0.2, 0.2, 0.2);
+        mat.disableLighting = true;
+        arrowMesh.material = mat;
+        arrowMesh.isPickable = false;
+        this.measurementArrow = arrowMesh;
+    }
+    
+    updateMeasurementArrow(startPos, endPos) {
+        if (\!this.measurementArrow) {
+            this.createMeasurementArrow();
+        }
+        
+        // Update arrow to point from start to end
+        const points = [startPos, endPos];
+        this.measurementArrow = BABYLON.MeshBuilder.CreateLines(null, {
+            points: points,
+            instance: this.measurementArrow
+        });
+    }
+    
+    removeMeasurementArrow() {
+        if (this.measurementArrow) {
+            this.measurementArrow.dispose();
+            this.measurementArrow = null;
+        }
+    }
+
     removeGhostMesh() {
         if (this.ghostMesh) {
             this.ghostMesh.dispose();

@@ -10942,6 +10942,24 @@ class DrawingWorld {
             this.rotationGizmo = new BABYLON.RotationGizmo(this.gizmoUtilityLayer);
             this.rotationGizmo.updateGizmoRotationToMatchAttachedMesh = false;
             this.rotationGizmo.updateGizmoPositionToMatchAttachedMesh = false;
+            
+            // Store initial position when rotation starts
+            let rotationStartPosition = null;
+            
+            // Override position updates during rotation
+            if (this.rotationGizmo.xGizmo && this.rotationGizmo.xGizmo.dragBehavior) {
+                this.rotationGizmo.xGizmo.dragBehavior.onDragStartObservable.add(() => {
+                    if (this.rotationGizmo.attachedMesh) {
+                        rotationStartPosition = this.rotationGizmo.attachedMesh.position.clone();
+                    }
+                });
+                
+                this.rotationGizmo.xGizmo.dragBehavior.onDragObservable.add(() => {
+                    if (rotationStartPosition && this.rotationGizmo._rootMesh) {
+                        this.rotationGizmo._rootMesh.position.copyFrom(rotationStartPosition);
+                    }
+                });
+            }
             this.rotationGizmo.scaleRatio = 1.0;
             // Make rotation gizmo always visible
             [this.rotationGizmo.xGizmo, this.rotationGizmo.yGizmo, this.rotationGizmo.zGizmo].forEach(g => {

@@ -10803,7 +10803,7 @@ class DrawingWorld {
                 if (mesh) {
                     this.createGhostMesh(mesh);
                     this.transformType = 'position';
-                    if (\!this.transformDisplay) {
+                    if (!this.transformDisplay) {
                         this.createTransformDisplay();
                     }
                 }
@@ -10856,7 +10856,7 @@ class DrawingWorld {
                 if (mesh) {
                     this.createGhostMesh(mesh);
                     this.transformType = 'rotation';
-                    if (\!this.transformDisplay) {
+                    if (!this.transformDisplay) {
                         this.createTransformDisplay();
                     }
                 }
@@ -11868,12 +11868,13 @@ class DrawingWorld {
             const x = value.x.toFixed(2);
             const y = value.y.toFixed(2);
             const z = value.z.toFixed(2);
-            this.transformDisplay.textContent = ;
+            this.transformDisplay.textContent = "Move: X:" + x + "\" Y:" + y + "\" Z:" + z + "\"";
+
         } else if (type === "rotation") {
             const xDeg = (value.x * 180 / Math.PI).toFixed(1);
             const yDeg = (value.y * 180 / Math.PI).toFixed(1);
             const zDeg = (value.z * 180 / Math.PI).toFixed(1);
-            this.transformDisplay.textContent = ;
+            this.transformDisplay.textContent = "Rotate: X:" + xDeg + "° Y:" + yDeg + "° Z:" + zDeg + "°";
         }
         
         this.transformDisplay.style.display = "block";

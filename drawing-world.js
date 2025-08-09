@@ -10750,6 +10750,8 @@ class DrawingWorld {
         this.ghostMesh = null;
         this.transformDisplay = null;
         this.transformType = null; // 'position' or 'rotation'
+        this.currentDragAxis = null; // Track axis
+        this.dragStartValue = 0;
         this.gridSnapSize = 1; // 1 inch grid snap by default
         this.rotationSnapAngle = 15; // 15 degree snap by default
         
@@ -10812,8 +10814,9 @@ class DrawingWorld {
             this.positionGizmo.onDragObservable.add(() => {
                 const mesh = this.positionGizmo.attachedMesh;
                 if (mesh && this.transformStartPosition) {
-                    const snappedPos = this.applyGridSnap(mesh.position);
-                    mesh.position = snappedPos;
+                    // Disabled for smooth movement:
+                    //                     const snappedPos = this.applyGridSnap(mesh.position);
+                    //                     mesh.position = snappedPos;
                     const delta = snappedPos.subtract(this.transformStartPosition);
                     this.updateTransformDisplay(delta, 'position');
                 }
@@ -10837,7 +10840,7 @@ class DrawingWorld {
             
             // Create rotation gizmo with utility layer
             this.rotationGizmo = new BABYLON.RotationGizmo(this.gizmoUtilityLayer);
-            this.rotationGizmo.updateGizmoRotationToMatchAttachedMesh = false;
+            this.rotationGizmo.updateGizmoRotationToMatchAttachedMesh = true;
             this.rotationGizmo.updateGizmoPositionToMatchAttachedMesh = true;
             this.rotationGizmo.scaleRatio = 0.7;
             // Make rotation gizmo always visible

@@ -10907,7 +10907,7 @@ class DrawingWorld {
             // Create rotation gizmo with utility layer
             this.rotationGizmo = new BABYLON.RotationGizmo(this.gizmoUtilityLayer);
             this.rotationGizmo.updateGizmoRotationToMatchAttachedMesh = true;
-            this.rotationGizmo.updateGizmoPositionToMatchAttachedMesh = true;
+            this.rotationGizmo.updateGizmoPositionToMatchAttachedMesh = false;
             this.rotationGizmo.scaleRatio = 1.0;
             // Make rotation gizmo always visible
             [this.rotationGizmo.xGizmo, this.rotationGizmo.yGizmo, this.rotationGizmo.zGizmo].forEach(g => {
@@ -10949,6 +10949,15 @@ class DrawingWorld {
                         this.hideTransformDisplay();
                         this.removeGhostMesh();
                         mesh.refreshBoundingInfo();
+
+                        // Enforce ground plane constraint - nothing below y=0
+                        mesh.computeWorldMatrix(true);
+                        const bounds = mesh.getBoundingInfo().boundingBox;
+                        const worldMatrix = mesh.getWorldMatrix();
+                        const minWorldY = BABYLON.Vector3.TransformCoordinates(bounds.minimumWorld, worldMatrix).y;
+                        if (minWorldY < 0) {
+                            mesh.position.y -= minWorldY;
+                        }
                         this.showTransformConfirmationModal(mesh, mesh.rotation, 'rotation');
                     }
                 });
@@ -10981,6 +10990,15 @@ class DrawingWorld {
                         this.hideTransformDisplay();
                         this.removeGhostMesh();
                         mesh.refreshBoundingInfo();
+
+                        // Enforce ground plane constraint - nothing below y=0
+                        mesh.computeWorldMatrix(true);
+                        const bounds = mesh.getBoundingInfo().boundingBox;
+                        const worldMatrix = mesh.getWorldMatrix();
+                        const minWorldY = BABYLON.Vector3.TransformCoordinates(bounds.minimumWorld, worldMatrix).y;
+                        if (minWorldY < 0) {
+                            mesh.position.y -= minWorldY;
+                        }
                         this.showTransformConfirmationModal(mesh, mesh.rotation, 'rotation');
                     }
                 });
@@ -11013,6 +11031,15 @@ class DrawingWorld {
                         this.hideTransformDisplay();
                         this.removeGhostMesh();
                         mesh.refreshBoundingInfo();
+
+                        // Enforce ground plane constraint - nothing below y=0
+                        mesh.computeWorldMatrix(true);
+                        const bounds = mesh.getBoundingInfo().boundingBox;
+                        const worldMatrix = mesh.getWorldMatrix();
+                        const minWorldY = BABYLON.Vector3.TransformCoordinates(bounds.minimumWorld, worldMatrix).y;
+                        if (minWorldY < 0) {
+                            mesh.position.y -= minWorldY;
+                        }
                         this.showTransformConfirmationModal(mesh, mesh.rotation, 'rotation');
                     }
                 });
@@ -11109,7 +11136,7 @@ class DrawingWorld {
             this.rotationGizmo.attachedMesh = mesh;
             this.scaleGizmo.attachedMesh = null;
             
-            this.rotationGizmo.updateGizmoPositionToMatchAttachedMesh = true;
+            this.rotationGizmo.updateGizmoPositionToMatchAttachedMesh = false;
             
             setTimeout(() => {
                 if (mesh && mesh.getBoundingInfo && this.rotationGizmo.gizmoLayer) {
@@ -11228,7 +11255,7 @@ class DrawingWorld {
             this.positionGizmo.attachedMesh = null;
         }
         if (this.rotationGizmo) {
-            this.rotationGizmo.updateGizmoPositionToMatchAttachedMesh = true;
+            this.rotationGizmo.updateGizmoPositionToMatchAttachedMesh = false;
             this.rotationGizmo.attachedMesh = null;
         }
         if (this.scaleGizmo) {

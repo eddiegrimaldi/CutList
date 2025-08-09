@@ -10792,7 +10792,7 @@ class DrawingWorld {
             // Create position gizmo with utility layer
             this.positionGizmo = new BABYLON.PositionGizmo(this.gizmoUtilityLayer);
             this.positionGizmo.updateGizmoRotationToMatchAttachedMesh = false;
-            this.positionGizmo.scaleRatio = 1.0;
+            this.positionGizmo.scaleRatio = 0.7;
             
             // Customize colors
             this.positionGizmo.xGizmo.coloredMaterial.diffuseColor = new BABYLON.Color3(0.6, 0.2, 0.2);
@@ -10800,101 +10800,35 @@ class DrawingWorld {
             this.positionGizmo.zGizmo.coloredMaterial.diffuseColor = new BABYLON.Color3(0.2, 0.2, 0.6);
             
             // Add drag observers for position gizmo
+            this.positionGizmo.onDragStartObservable.add(() => {
+                const mesh = this.positionGizmo.attachedMesh;
+                if (mesh) {
+                    this.createGhostMesh(mesh);
+                    this.transformType = 'position';
+                    if (!this.transformDisplay) {
+                        this.createTransformDisplay();
+                    }
+                }
+            });
             
-            // Add individual axis tracking for position
-            if (this.positionGizmo.xGizmo && this.positionGizmo.xGizmo.dragBehavior) {
-                this.positionGizmo.xGizmo.dragBehavior.onDragStartObservable.add(() => {
-                    const mesh = this.positionGizmo.attachedMesh;
-                    if (mesh) {
-                        this.createGhostMesh(mesh);
-                        this.transformType = 'position';
-                        this.currentDragAxis = 'x';
-                        if (!this.transformDisplay) {
-                            this.createTransformDisplay();
-                        }
-                    }
-                });
-                
-                
-                this.positionGizmo.xGizmo.dragBehavior.onDragObservable.add(() => {
-                    const mesh = this.positionGizmo.attachedMesh;
-                    if (mesh && this.transformStartPosition) {
-                        const delta = mesh.position.subtract(this.transformStartPosition);
-                        this.updateTransformDisplay(delta, 'position');
-                    }
-                });
-                this.positionGizmo.xGizmo.dragBehavior.onDragEndObservable.add(() => {
-                    const mesh = this.positionGizmo.attachedMesh;
-                    if (mesh) {
-                        this.hideTransformDisplay();
-                        this.removeGhostMesh();
-                        this.showTransformConfirmationModal(mesh, mesh.position, 'position');
-                    }
-                });
-            }
+            this.positionGizmo.onDragObservable.add(() => {
+                const mesh = this.positionGizmo.attachedMesh;
+                if (mesh && this.transformStartPosition) {
+                    // Disabled for smooth movement:
+                    //                     const snappedPos = this.applyGridSnap(mesh.position);
+                    //                     mesh.position = snappedPos;
+                    const delta = snappedPos.subtract(this.transformStartPosition);
+                    this.updateTransformDisplay(delta, 'position');
+                }
+            });
             
-            if (this.positionGizmo.yGizmo && this.positionGizmo.yGizmo.dragBehavior) {
-                this.positionGizmo.yGizmo.dragBehavior.onDragStartObservable.add(() => {
-                    const mesh = this.positionGizmo.attachedMesh;
-                    if (mesh) {
-                        this.createGhostMesh(mesh);
-                        this.transformType = 'position';
-                        this.currentDragAxis = 'y';
-                        if (!this.transformDisplay) {
-                            this.createTransformDisplay();
-                        }
-                    }
-                });
-                
-                
-                this.positionGizmo.yGizmo.dragBehavior.onDragObservable.add(() => {
-                    const mesh = this.positionGizmo.attachedMesh;
-                    if (mesh && this.transformStartPosition) {
-                        const delta = mesh.position.subtract(this.transformStartPosition);
-                        this.updateTransformDisplay(delta, 'position');
-                    }
-                });
-                this.positionGizmo.yGizmo.dragBehavior.onDragEndObservable.add(() => {
-                    const mesh = this.positionGizmo.attachedMesh;
-                    if (mesh) {
-                        this.hideTransformDisplay();
-                        this.removeGhostMesh();
-                        this.showTransformConfirmationModal(mesh, mesh.position, 'position');
-                    }
-                });
-            }
-            
-            if (this.positionGizmo.zGizmo && this.positionGizmo.zGizmo.dragBehavior) {
-                this.positionGizmo.zGizmo.dragBehavior.onDragStartObservable.add(() => {
-                    const mesh = this.positionGizmo.attachedMesh;
-                    if (mesh) {
-                        this.createGhostMesh(mesh);
-                        this.transformType = 'position';
-                        this.currentDragAxis = 'z';
-                        if (!this.transformDisplay) {
-                            this.createTransformDisplay();
-                        }
-                    }
-                });
-                
-                
-                this.positionGizmo.zGizmo.dragBehavior.onDragObservable.add(() => {
-                    const mesh = this.positionGizmo.attachedMesh;
-                    if (mesh && this.transformStartPosition) {
-                        const delta = mesh.position.subtract(this.transformStartPosition);
-                        this.updateTransformDisplay(delta, 'position');
-                    }
-                });
-                this.positionGizmo.zGizmo.dragBehavior.onDragEndObservable.add(() => {
-                    const mesh = this.positionGizmo.attachedMesh;
-                    if (mesh) {
-                        this.hideTransformDisplay();
-                        this.removeGhostMesh();
-                        this.showTransformConfirmationModal(mesh, mesh.position, 'position');
-                    }
-                });
-            }
-
+            this.positionGizmo.onDragEndObservable.add(() => {
+                const mesh = this.positionGizmo.attachedMesh;
+                if (mesh) {
+                    this.hideTransformDisplay();
+                    this.showTransformConfirmationModal(mesh, mesh.position, 'position');
+                }
+            });
             // Make position gizmo always visible
             [this.positionGizmo.xGizmo, this.positionGizmo.yGizmo, this.positionGizmo.zGizmo].forEach(g => {
                 if (g && g.coloredMaterial) {
@@ -10908,7 +10842,7 @@ class DrawingWorld {
             this.rotationGizmo = new BABYLON.RotationGizmo(this.gizmoUtilityLayer);
             this.rotationGizmo.updateGizmoRotationToMatchAttachedMesh = true;
             this.rotationGizmo.updateGizmoPositionToMatchAttachedMesh = true;
-            this.rotationGizmo.scaleRatio = 1.0;
+            this.rotationGizmo.scaleRatio = 0.7;
             // Make rotation gizmo always visible
             [this.rotationGizmo.xGizmo, this.rotationGizmo.yGizmo, this.rotationGizmo.zGizmo].forEach(g => {
                 if (g && g.coloredMaterial) {
@@ -10920,104 +10854,39 @@ class DrawingWorld {
             
             // Add observer to update board bounds after rotation
             // Add drag observers for rotation gizmo
+            this.rotationGizmo.onDragStartObservable.add(() => {
+                const mesh = this.rotationGizmo.attachedMesh;
+                if (mesh) {
+                    this.createGhostMesh(mesh);
+                    this.transformType = 'rotation';
+                    if (!this.transformDisplay) {
+                        this.createTransformDisplay();
+                    }
+                }
+            });
             
-            // Add individual axis tracking for rotation
-            if (this.rotationGizmo.xGizmo && this.rotationGizmo.xGizmo.dragBehavior) {
-                this.rotationGizmo.xGizmo.dragBehavior.onDragStartObservable.add(() => {
-                    const mesh = this.rotationGizmo.attachedMesh;
-                    if (mesh) {
-                        this.createGhostMesh(mesh);
-                        this.transformType = 'rotation';
-                        this.currentDragAxis = 'x';
-                        if (!this.transformDisplay) {
-                            this.createTransformDisplay();
-                        }
-                    }
-                });
-                
-                
-                this.rotationGizmo.xGizmo.dragBehavior.onDragObservable.add(() => {
-                    const mesh = this.rotationGizmo.attachedMesh;
-                    if (mesh && this.transformStartRotation) {
-                        const delta = mesh.rotation.subtract(this.transformStartRotation);
-                        this.updateTransformDisplay(delta, 'rotation');
-                    }
-                });
-                this.rotationGizmo.xGizmo.dragBehavior.onDragEndObservable.add(() => {
-                    const mesh = this.rotationGizmo.attachedMesh;
-                    if (mesh) {
-                        this.hideTransformDisplay();
-                        this.removeGhostMesh();
-                        mesh.refreshBoundingInfo();
-                        this.showTransformConfirmationModal(mesh, mesh.rotation, 'rotation');
-                    }
-                });
-            }
+            this.rotationGizmo.onDragObservable.add(() => {
+                const mesh = this.rotationGizmo.attachedMesh;
+                if (mesh && this.transformStartRotation) {
+                    const snappedRot = this.applyRotationSnap(mesh.rotation);
+                    mesh.rotation = snappedRot;
+                    const delta = snappedRot.subtract(this.transformStartRotation);
+                    this.updateTransformDisplay(delta, 'rotation');
+                }
+            });
             
-            if (this.rotationGizmo.yGizmo && this.rotationGizmo.yGizmo.dragBehavior) {
-                this.rotationGizmo.yGizmo.dragBehavior.onDragStartObservable.add(() => {
-                    const mesh = this.rotationGizmo.attachedMesh;
-                    if (mesh) {
-                        this.createGhostMesh(mesh);
-                        this.transformType = 'rotation';
-                        this.currentDragAxis = 'y';
-                        if (!this.transformDisplay) {
-                            this.createTransformDisplay();
-                        }
+            this.rotationGizmo.onDragEndObservable.add(() => {
+                const mesh = this.rotationGizmo.attachedMesh;
+                if (mesh) {
+                    this.hideTransformDisplay();
+                    mesh.refreshBoundingInfo();
+                    if (mesh.partData) {
+                        const bounds = mesh.getBoundingInfo().boundingBox;
+                        console.log('New bounds after rotation:', bounds);
                     }
-                });
-                
-                
-                this.rotationGizmo.yGizmo.dragBehavior.onDragObservable.add(() => {
-                    const mesh = this.rotationGizmo.attachedMesh;
-                    if (mesh && this.transformStartRotation) {
-                        const delta = mesh.rotation.subtract(this.transformStartRotation);
-                        this.updateTransformDisplay(delta, 'rotation');
-                    }
-                });
-                this.rotationGizmo.yGizmo.dragBehavior.onDragEndObservable.add(() => {
-                    const mesh = this.rotationGizmo.attachedMesh;
-                    if (mesh) {
-                        this.hideTransformDisplay();
-                        this.removeGhostMesh();
-                        mesh.refreshBoundingInfo();
-                        this.showTransformConfirmationModal(mesh, mesh.rotation, 'rotation');
-                    }
-                });
-            }
-            
-            if (this.rotationGizmo.zGizmo && this.rotationGizmo.zGizmo.dragBehavior) {
-                this.rotationGizmo.zGizmo.dragBehavior.onDragStartObservable.add(() => {
-                    const mesh = this.rotationGizmo.attachedMesh;
-                    if (mesh) {
-                        this.createGhostMesh(mesh);
-                        this.transformType = 'rotation';
-                        this.currentDragAxis = 'z';
-                        if (!this.transformDisplay) {
-                            this.createTransformDisplay();
-                        }
-                    }
-                });
-                
-                
-                this.rotationGizmo.zGizmo.dragBehavior.onDragObservable.add(() => {
-                    const mesh = this.rotationGizmo.attachedMesh;
-                    if (mesh && this.transformStartRotation) {
-                        const delta = mesh.rotation.subtract(this.transformStartRotation);
-                        this.updateTransformDisplay(delta, 'rotation');
-                    }
-                });
-                this.rotationGizmo.zGizmo.dragBehavior.onDragEndObservable.add(() => {
-                    const mesh = this.rotationGizmo.attachedMesh;
-                    if (mesh) {
-                        this.hideTransformDisplay();
-                        this.removeGhostMesh();
-                        mesh.refreshBoundingInfo();
-                        this.showTransformConfirmationModal(mesh, mesh.rotation, 'rotation');
-                    }
-                });
-            }
-
+                    this.showTransformConfirmationModal(mesh, mesh.rotation, 'rotation');
+                }
+            });
 
             
             // Create scale gizmo with utility layer
@@ -11979,11 +11848,14 @@ class DrawingWorld {
         const display = document.createElement("div");
         display.id = "transform-display";
         display.style.position = "fixed";
+        display.style.top = "50%";
+        display.style.left = "50%";
+        display.style.transform = "translate(-50%, -50%)";
         display.style.background = "rgba(0, 0, 0, 0.8)";
         display.style.color = "white";
-        display.style.padding = "4px 8px";
+        display.style.padding = "10px 20px";
         display.style.borderRadius = "5px";
-        display.style.fontSize = "18px";
+        display.style.fontSize = "24px";
         display.style.fontWeight = "bold";
         display.style.display = "none";
         display.style.zIndex = "10000";
@@ -11995,51 +11867,21 @@ class DrawingWorld {
     updateTransformDisplay(value, type) {
         if (!this.transformDisplay) return;
         
-        // Show only the value for the current axis
-        const axis = this.currentDragAxis;
-        if (!axis) return;
-        
-        let displayText = '';
         if (type === "position") {
-            const val = value[axis] || 0;
-            displayText = axis.toUpperCase() + ': ' + val.toFixed(2) + '"';
+            const x = value.x.toFixed(2);
+            const y = value.y.toFixed(2);
+            const z = value.z.toFixed(2);
+            this.transformDisplay.textContent = "Move: X:" + x + "\" Y:" + y + "\" Z:" + z + "\"";
+
         } else if (type === "rotation") {
-            const val = (value[axis] || 0) * 180 / Math.PI;
-            displayText = axis.toUpperCase() + ': ' + val.toFixed(1) + '°';
+            const xDeg = (value.x * 180 / Math.PI).toFixed(1);
+            const yDeg = (value.y * 180 / Math.PI).toFixed(1);
+            const zDeg = (value.z * 180 / Math.PI).toFixed(1);
+            this.transformDisplay.textContent = "Rotate: X:" + xDeg + "° Y:" + yDeg + "° Z:" + zDeg + "°";
         }
         
-        this.transformDisplay.textContent = displayText;
-        
-        // Position near the mesh
-        const mesh = this.positionGizmo?.attachedMesh || this.rotationGizmo?.attachedMesh;
-        if (mesh && this.scene && this.scene.activeCamera) {
-            const coordinates = BABYLON.Vector3.Project(
-                mesh.position,
-                BABYLON.Matrix.Identity(),
-                this.scene.getTransformMatrix(),
-                this.scene.activeCamera.viewport.toGlobal(
-                    this.engine.getRenderWidth(),
-                    this.engine.getRenderHeight()
-                )
-            );
-            
-            // Position offset based on type and axis
-            let offsetX = 30, offsetY = -30;
-            if (type === 'rotation') {
-                // Position in the arc area
-                if (axis === 'x') { offsetX = 0; offsetY = -40; }
-                else if (axis === 'y') { offsetX = 40; offsetY = 0; }
-                else if (axis === 'z') { offsetX = 30; offsetY = -30; }
-            }
-            
-            this.transformDisplay.style.left = (coordinates.x + offsetX) + 'px';
-            this.transformDisplay.style.top = (coordinates.y + offsetY) + 'px';
-        }
-        
-        this.transformDisplay.style.display = 'block';
+        this.transformDisplay.style.display = "block";
     }
-
-
     
     hideTransformDisplay() {
         if (this.transformDisplay) {
@@ -12100,12 +11942,6 @@ class DrawingWorld {
     }
 
     showTransformConfirmationModal(mesh, transformData, type) {
-        // Ensure we have axis tracking
-        if (!this.currentDragAxis) {
-            console.warn('No axis tracked, defaulting to x');
-            this.currentDragAxis = 'x';
-        }
-        
         const modal = document.createElement('div');
         modal.style.position = 'fixed';
         modal.style.top = '50%';
@@ -12116,32 +11952,24 @@ class DrawingWorld {
         modal.style.borderRadius = '10px';
         modal.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
         modal.style.zIndex = '10001';
-        modal.style.minWidth = '200px';
+        modal.style.minWidth = '300px';
         
-        const axis = this.currentDragAxis;
-        const axisUpper = axis.toUpperCase();
-        let value = 0;
         let content = '';
-        
         if (type === 'position') {
             const delta = transformData.subtract(this.transformStartPosition);
-            value = delta[axis];
-            
             content = '<h3 style="margin-top: 0;">Confirm Movement</h3>';
             content += '<div style="margin-bottom: 10px;">';
-            content += '<label>' + axisUpper + ' Axis: ';
-            content += '<input type="number" id="transform-value" value="' + value.toFixed(2) + '" step="0.25" style="width: 60px; height: 60px; font-size: 24px; text-align: center; padding: 5px; box-sizing: border-box;">';
-            content += ' inches</label>';
+            content += '<label>X: <input type="number" id="transform-x" value="' + delta.x.toFixed(2) + '" step="0.25" style="width: 80px;"> inches</label><br>';
+            content += '<label>Y: <input type="number" id="transform-y" value="' + delta.y.toFixed(2) + '" step="0.25" style="width: 80px;"> inches</label><br>';
+            content += '<label>Z: <input type="number" id="transform-z" value="' + delta.z.toFixed(2) + '" step="0.25" style="width: 80px;"> inches</label>';
             content += '</div>';
         } else if (type === 'rotation') {
             const delta = transformData.subtract(this.transformStartRotation);
-            value = delta[axis] * 180 / Math.PI;
-            
             content = '<h3 style="margin-top: 0;">Confirm Rotation</h3>';
             content += '<div style="margin-bottom: 10px;">';
-            content += '<label>' + axisUpper + ' Axis: ';
-            content += '<input type="number" id="transform-value" value="' + value.toFixed(1) + '" step="15" style="width: 60px; height: 60px; font-size: 24px; text-align: center; padding: 5px; box-sizing: border-box;">';
-            content += ' degrees</label>';
+            content += '<label>X: <input type="number" id="transform-x" value="' + (delta.x * 180 / Math.PI).toFixed(1) + '" step="15" style="width: 80px;"> degrees</label><br>';
+            content += '<label>Y: <input type="number" id="transform-y" value="' + (delta.y * 180 / Math.PI).toFixed(1) + '" step="15" style="width: 80px;"> degrees</label><br>';
+            content += '<label>Z: <input type="number" id="transform-z" value="' + (delta.z * 180 / Math.PI).toFixed(1) + '" step="15" style="width: 80px;"> degrees</label>';
             content += '</div>';
         }
         
@@ -12153,98 +11981,46 @@ class DrawingWorld {
         modal.innerHTML = content;
         document.body.appendChild(modal);
         
-        // Focus and select the input
-        const input = document.getElementById('transform-value');
-        if (input) {
-            input.focus();
-            input.select();
-            
-            // Handle Enter key
-            input.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter' || e.keyCode === 13) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log('Enter key pressed');
-                    const confirmBtn = document.getElementById('transform-confirm');
-                    if (confirmBtn) {
-                        confirmBtn.click();
-                    }
-                }
-            });
-        }
-        
-        // Store reference to this for use in handlers
-        const self = this;
-        
         // Handle confirm
-        document.getElementById('transform-confirm').onclick = function() {
-            console.log('Confirm button clicked');
-            const inputValue = document.getElementById('transform-value').value;
-            const newValue = parseFloat(inputValue);
-            console.log('Parsed value:', newValue);
+        document.getElementById('transform-confirm').onclick = () => {
+            const x = parseFloat(document.getElementById('transform-x').value);
+            const y = parseFloat(document.getElementById('transform-y').value);
+            const z = parseFloat(document.getElementById('transform-z').value);
             
-            try {
-                if (type === 'position') {
-                    const newPos = self.transformStartPosition.clone();
-                    newPos[axis] += newValue;
-                    mesh.position = newPos;
-                } else if (type === 'rotation') {
-                    const newRot = self.transformStartRotation.clone();
-                    newRot[axis] += newValue * Math.PI / 180;
-                    mesh.rotation = newRot;
-                }
-                
-                // Update part data
-                if (mesh.partData) {
-                    mesh.partData.position = mesh.position.asArray();
-                    mesh.partData.rotation = mesh.rotation.asArray();
-                    if (self.autosave) {
-                        self.autosave();
-                    }
-                }
-                
-                // Clean up
-                if (self.removeGhostMesh) {
-                    try {
-                        self.removeGhostMesh();
-                    } catch (e) {
-                        console.error('Ghost mesh error:', e);
-                    }
-                }
-                self.currentDragAxis = null;
-                
-            } catch (error) {
-                console.error('Error in confirm handler:', error);
+            if (type === 'position') {
+                mesh.position = this.transformStartPosition.add(new BABYLON.Vector3(x, y, z));
+            } else if (type === 'rotation') {
+                mesh.rotation = this.transformStartRotation.add(new BABYLON.Vector3(
+                    x * Math.PI / 180,
+                    y * Math.PI / 180,
+                    z * Math.PI / 180
+                ));
             }
             
-            // Always remove modal
-            console.log('About to remove modal');
-            modal.parentNode.removeChild(modal);
-            console.log('Modal removed');
+            // Update part data
+            if (mesh.partData) {
+                mesh.partData.position = mesh.position.asArray();
+                mesh.partData.rotation = mesh.rotation.asArray();
+                this.autosave();
+            }
+            
+            this.removeGhostMesh();
+            modal.remove();
         };
         
         // Handle cancel
         document.getElementById('transform-cancel').onclick = () => {
             // Restore original position/rotation
             if (type === 'position') {
-                mesh.position = self.transformStartPosition.clone();
+                mesh.position = this.transformStartPosition.clone();
             } else if (type === 'rotation') {
-                mesh.rotation = self.transformStartRotation.clone();
+                mesh.rotation = this.transformStartRotation.clone();
             }
             
-            // Clean up
-            try {
-                if (self.removeGhostMesh) {
-                    self.removeGhostMesh();
-                }
-            } catch (e) {
-                console.error('Error removing ghost mesh:', e);
-            }
-            self.currentDragAxis = null;
+            this.removeGhostMesh();
             modal.remove();
         };
     }
-
 
 }
 

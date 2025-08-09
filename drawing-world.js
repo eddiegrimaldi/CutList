@@ -8785,6 +8785,7 @@ class DrawingWorld {
         // Store reference
         box.partData = part;
         box.isProjectPart = true;
+            box.isWorkBenchPart = false; // Ensure it's not marked as both
 
         console.log(`Created 3D block for ${part.materialName}:`, box);
     }
@@ -8848,8 +8849,7 @@ class DrawingWorld {
             document.getElementById('work-bench-tools').style.display = 'none';
             document.getElementById('assembly-bench-tools').style.display = 'block';
             this.showAssemblyBenchScene();
-            // Make sure assembly parts are created and visible
-            this.createAssemblyProjectView();
+            // Assembly parts already created during project load if needed
         }
         
         // Clear any active tool selection
@@ -8875,7 +8875,11 @@ class DrawingWorld {
         const emptyMessage = document.getElementById('work-bench-empty');
         
         if (workBenchList) {
-            if (this.workBenchParts.length === 0) {
+            // Count actual work bench meshes in scene
+        const actualWorkBenchMeshes = this.scene.meshes.filter(m => m.isWorkBenchPart);
+        console.log('Project Explorer Update - Array parts:', this.workBenchParts.length, 'Scene meshes:', actualWorkBenchMeshes.length);
+        
+        if (actualWorkBenchMeshes.length === 0) {
                 if (emptyMessage) emptyMessage.style.display = 'block';
                 workBenchList.innerHTML = '<li class="empty-message">No materials on work bench</li>';
             } else {
@@ -9308,6 +9312,7 @@ class DrawingWorld {
         // Store reference
         box.partData = part;
         box.isWorkBenchPart = true;
+        box.isProjectPart = false; // Ensure it's not marked as both
 
         // PREVENT FIRST-SELECTION HOP: Force bounding info computation during creation
         // This ensures expensive computations happen now, not during first selection
@@ -10155,6 +10160,7 @@ class DrawingWorld {
             // Store reference
             box.partData = part;
             box.isProjectPart = true;
+            box.isWorkBenchPart = false; // Ensure it's not marked as both
 
             // PREVENT FIRST-SELECTION HOP: Force bounding info computation during creation
             // This ensures expensive computations happen now, not during first selection
@@ -10180,7 +10186,9 @@ class DrawingWorld {
             !essentialMeshes.includes(mesh.name) && // Keep essential meshes
             mesh.name !== '__root__' && // Keep Babylon root
             !mesh.name.includes('gridLine') && // Keep grid lines
-            !mesh.name.includes('grid') // Keep any grid-related meshes
+            !mesh.name.includes('grid') && // Keep any grid-related meshes
+            !mesh.name.includes('viewCube') && // Keep ViewCube
+            !mesh.name.includes('gizmo') // Keep any gizmos
         );
         
         console.log(`Clearing ${allMeshesToClear.length} meshes from scene (keeping essential meshes)`);
@@ -10204,8 +10212,9 @@ class DrawingWorld {
         console.log('WorkBench parts to rebuild:', this.workBenchParts);
         console.log('WorkBench parts count:', this.workBenchParts ? this.workBenchParts.length : 0);
         
-        // Clear existing work bench parts
+        // Clear ALL existing work bench parts (including any orphans)
         const workBenchMeshes = this.scene.meshes.filter(mesh => mesh.isWorkBenchPart);
+        console.log('Scene meshes before clearing:', this.scene.meshes.map(m => m.name));
         console.log('Clearing', workBenchMeshes.length, 'existing work bench meshes');
         workBenchMeshes.forEach(mesh => mesh.dispose());
         
@@ -10213,9 +10222,31 @@ class DrawingWorld {
         this.workBenchParts.forEach((part, index) => {
             console.log(`Creating work bench part ${index + 1}:`, part.id, part.materialName);
             this.createWorkBenchMaterial(part, true); // Pass isRestoring = true
+            console.log('Created mesh for part:', part.id);
+            console.log('Total scene meshes now:', this.scene.meshes.filter(m => m.isWorkBenchPart).length);
+            console.log('Created mesh for part:', part.id);
+            console.log('Total scene meshes now:', this.scene.meshes.filter(m => m.isWorkBenchPart).length);
         });
         
         console.log('Rebuilt', this.workBenchParts.length, 'work bench parts');
+        console.log('Final workBenchParts array length:', this.workBenchParts.length);
+        console.log('Final scene workBench meshes:', this.scene.meshes.filter(m => m.isWorkBenchPart).length);
+        console.log('Mesh names:', this.scene.meshes.filter(m => m.isWorkBenchPart).map(m => m.name));
+        
+        // Update project explorer to match actual scene meshes
+        this.updateWorkBenchDisplay();
+        console.log('Final workBenchParts array length:', this.workBenchParts.length);
+        console.log('Final scene workBench meshes:', this.scene.meshes.filter(m => m.isWorkBenchPart).length);
+        console.log('Mesh names:', this.scene.meshes.filter(m => m.isWorkBenchPart).map(m => m.name));
+        
+        // Update project explorer to match actual scene meshes
+        this.updateWorkBenchDisplay();
+        
+        // Wait for scene to be ready with all textures loaded
+        this.scene.executeWhenReady(() => {
+            console.log('Scene ready with all textures - hiding spinner');
+            // Spinner hiding moved to rebuild functions
+        });
     }
 
     /**
@@ -10230,6 +10261,12 @@ class DrawingWorld {
         this.createAssemblyProjectView();
         
         console.log('Rebuilt', this.projectParts.length, 'assembly parts');
+        
+        // Wait for scene to be ready with all assembly parts
+        this.scene.executeWhenReady(() => {
+            console.log('Assembly scene ready - hiding spinner');
+            // Spinner hiding moved to rebuild functions
+        });
     }
 
     // === 3D PART MANIPULATION SYSTEM ===

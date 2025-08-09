@@ -1,0 +1,66 @@
+<\!DOCTYPE html>
+<html>
+<head>
+    <title>Transform Test</title>
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+</head>
+<body>
+    <canvas id="renderCanvas" style="width: 100%; height: 600px;"></canvas>
+    <div id="console" style="background: black; color: lime; padding: 10px; height: 200px; overflow-y: auto; font-family: monospace;"></div>
+    
+    <script>
+        // Override console.log to show in our div
+        const consoleDiv = document.getElementById('console');
+        const originalLog = console.log;
+        const originalError = console.error;
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            consoleDiv.innerHTML += '<div>' + args.join(' ') + '</div>';
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        };
+        
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            consoleDiv.innerHTML += '<div style="color: red;">' + args.join(' ') + '</div>';
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        };
+        
+        // Load the drawing-world.js
+        const script = document.createElement('script');
+        script.src = 'drawing-world.js';
+        script.onerror = () => console.error('Failed to load drawing-world.js');
+        script.onload = () => console.log('drawing-world.js loaded successfully');
+        document.head.appendChild(script);
+        
+        // Check for syntax errors
+        setTimeout(() => {
+            if (typeof DrawingWorld === 'undefined') {
+                console.error('DrawingWorld class not found\!');
+            } else {
+                console.log('DrawingWorld class found');
+                
+                // Check if our new methods exist
+                const testMethods = [
+                    'createTransformDisplay',
+                    'updateTransformDisplay', 
+                    'hideTransformDisplay',
+                    'createGhostMesh',
+                    'removeGhostMesh',
+                    'applyGridSnap',
+                    'applyRotationSnap',
+                    'showTransformConfirmationModal'
+                ];
+                
+                testMethods.forEach(method => {
+                    if (typeof DrawingWorld.prototype[method] === 'function') {
+                        console.log('✓ Method exists: ' + method);
+                    } else {
+                        console.error('✗ Method missing: ' + method);
+                    }
+                });
+            }
+        }, 1000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+<\!DOCTYPE html>
+<html>
+<head>
+    <title>Syntax Test</title>
+</head>
+<body>
+    <h1>Testing for Syntax Errors</h1>
+    <script>
+        var testErrors = [];
+        window.onerror = function(msg, url, line, col, error) {
+            testErrors.push({msg: msg, line: line, col: col});
+            document.getElementById('errors').innerHTML += '<div style="color:red">ERROR at line ' + line + ':' + col + ' - ' + msg + '</div>';
+            return true;
+        };
+    </script>
+    <div id="errors"></div>
+    <script src="http://localhost/babylon.js"></script>
+    <script type="module" src="http://localhost/drawing-world.js?t=test123"></script>
+    <script>
+        setTimeout(function() {
+            if (testErrors.length === 0) {
+                document.getElementById('errors').innerHTML = '<div style="color:green">✅ No syntax errors detected\!</div>';
+            }
+        }, 2000);
+    </script>
+</body>
+</html>

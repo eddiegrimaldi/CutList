@@ -2239,8 +2239,112 @@ class DrawingWorld {
     }
     
     updateRulerHighlights() {
-        // TODO: Highlight selected object's projection on rulers
-        console.log('Updating ruler highlights for selected object');
+        if (!this.selectedPart || !this.rulerContainer) return;
+        
+        // Get the selected mesh's bounding box
+        const mesh = this.scene.meshes.find(m => m.partData === this.selectedPart);
+        if (!mesh || !mesh.getBoundingInfo) return;
+        const bounds = mesh.getBoundingInfo().boundingBox;
+        const min = bounds.minimumWorld;
+        const max = bounds.maximumWorld;
+        
+        // Calculate pixels per inch from ortho camera
+        let pixelsPerInch = 10;
+        if (this.camera.mode === BABYLON.Camera.ORTHOGRAPHIC_CAMERA) {
+            const viewWidth = Math.abs(this.camera.orthoRight - this.camera.orthoLeft);
+            const canvasWidth = this.canvas.width;
+            pixelsPerInch = canvasWidth / viewWidth;
+        }
+        
+        // Get ruler canvases
+        const topRuler = this.rulerContainer.querySelector('#top-ruler');
+        const leftRuler = this.rulerContainer.querySelector('#left-ruler');
+        
+        if (topRuler) {
+            // Redraw top ruler with highlight
+            this.drawRulerMarkings(topRuler, true);
+            
+            // Draw horizontal projection highlight
+            const ctx = topRuler.getContext('2d');
+            const startX = min.x * pixelsPerInch + this.rulerOffsetX;
+            const endX = max.x * pixelsPerInch + this.rulerOffsetX;
+            const width = endX - startX;
+            
+            // Draw highlight
+            ctx.fillStyle = 'rgba(255, 200, 0, 0.3)';
+            ctx.fillRect(startX, 0, width, topRuler.height);
+            
+            // Draw dimension text
+            const dimensionInches = max.x - min.x;
+            let dimensionText;
+            if (dimensionInches >= 12) {
+                const feet = Math.floor(dimensionInches / 12);
+                const inches = Math.round(dimensionInches % 12);
+                dimensionText = inches > 0 ? `${feet}' ${inches}"` : `${feet}'`;
+            } else {
+                dimensionText = `${Math.round(dimensionInches * 10) / 10}"`;
+            }
+            
+            ctx.fillStyle = '#000';
+            ctx.font = 'bold 12px Arial';
+            const textWidth = ctx.measureText(dimensionText).width;
+            ctx.fillText(dimensionText, startX + (width - textWidth) / 2, 15);
+            
+            // Draw edges
+            ctx.strokeStyle = '#FF8800';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(startX, 0);
+            ctx.lineTo(startX, topRuler.height);
+            ctx.moveTo(endX, 0);
+            ctx.lineTo(endX, topRuler.height);
+            ctx.stroke();
+        }
+        
+        if (leftRuler) {
+            // Redraw left ruler with highlight
+            this.drawRulerMarkings(leftRuler, false);
+            
+            // Draw vertical projection highlight
+            const ctx = leftRuler.getContext('2d');
+            const startY = -max.z * pixelsPerInch + this.rulerOffsetY;  // Note: Z is inverted
+            const endY = -min.z * pixelsPerInch + this.rulerOffsetY;
+            const height = endY - startY;
+            
+            // Draw highlight
+            ctx.fillStyle = 'rgba(255, 200, 0, 0.3)';
+            ctx.fillRect(0, startY, leftRuler.width, height);
+            
+            // Draw dimension text
+            const dimensionInches = max.z - min.z;
+            let dimensionText;
+            if (dimensionInches >= 12) {
+                const feet = Math.floor(dimensionInches / 12);
+                const inches = Math.round(dimensionInches % 12);
+                dimensionText = inches > 0 ? `${feet}' ${inches}"` : `${feet}'`;
+            } else {
+                dimensionText = `${Math.round(dimensionInches * 10) / 10}"`;
+            }
+            
+            ctx.save();
+            ctx.fillStyle = '#000';
+            ctx.font = 'bold 12px Arial';
+            ctx.translate(15, startY + height / 2);
+            ctx.rotate(-Math.PI / 2);
+            const textWidth = ctx.measureText(dimensionText).width;
+            ctx.fillText(dimensionText, -textWidth / 2, 0);
+            ctx.restore();
+            
+            // Draw edges
+            ctx.strokeStyle = '#FF8800';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(0, startY);
+            ctx.lineTo(leftRuler.width, startY);
+            ctx.moveTo(0, endY);
+            ctx.lineTo(leftRuler.width, endY);
+            ctx.stroke();
+        }
     }
     
     setupCustomMouseControls() {
@@ -2853,6 +2957,11 @@ class DrawingWorld {
         // Update UI
         this.setMode('sketch');
         
+        
+        // Update ruler highlights if in orthographic mode
+        if (this.camera.mode === BABYLON.Camera.ORTHOGRAPHIC_CAMERA && this.rulerContainer) {
+            this.updateRulerHighlights();
+        }
         // STEP 1: Create coordinate system for the surface
         this.createSketchCoordinateSystem(surfaceNormal);
         
@@ -5676,6 +5785,11 @@ class DrawingWorld {
         // Update UI
         const modeIndicator = document.getElementById('mode-indicator');
         if (modeIndicator) {
+        
+        // Update ruler highlights if in orthographic mode
+        if (this.camera.mode === BABYLON.Camera.ORTHOGRAPHIC_CAMERA && this.rulerContainer) {
+            this.updateRulerHighlights();
+        }
             modeIndicator.textContent = mode === 'sketch' ? 'Sketch Mode' : '3D Modeling';
         }
         
@@ -6323,6 +6437,11 @@ class DrawingWorld {
         this.updateSelectionUI();
         this.updateToolGroups();
         
+        // Update ruler highlights if in orthographic mode
+        if (this.camera.mode === BABYLON.Camera.ORTHOGRAPHIC_CAMERA && this.rulerContainer) {
+            this.updateRulerHighlights();
+        }
+        
         // Check if extrude tool is active and auto-start extrusion
         if (this.activeTool === 'extrude') {
             console.log('Extrude tool is active, starting extrusion for selected face:', this.selectedFace?.name);
@@ -6372,6 +6491,11 @@ class DrawingWorld {
         // Update UI to show part selection state
         this.updatePartSelectionUI();
         
+        
+        // Update ruler highlights if in orthographic mode
+        if (this.camera.mode === BABYLON.Camera.ORTHOGRAPHIC_CAMERA && this.rulerContainer) {
+            this.updateRulerHighlights();
+        }
         console.log('Part selection complete, selectedPart:', this.selectedPart?.name);
     }
     
@@ -6998,6 +7122,11 @@ class DrawingWorld {
         // Update UI
         document.getElementById('selection-info').textContent = 
             `Extruding: ${this.extrusionDistance.toFixed(2)} units`;
+        
+        // Update ruler highlights if in orthographic mode
+        if (this.camera.mode === BABYLON.Camera.ORTHOGRAPHIC_CAMERA && this.rulerContainer) {
+            this.updateRulerHighlights();
+        }
     }
     
     finishExtrusion(event) {
@@ -7337,6 +7466,11 @@ class DrawingWorld {
         // Update UI
         const selectionInfo = document.getElementById('selection-info');
         if (selectionInfo) {
+        
+        // Update ruler highlights if in orthographic mode
+        if (this.camera.mode === BABYLON.Camera.ORTHOGRAPHIC_CAMERA && this.rulerContainer) {
+            this.updateRulerHighlights();
+        }
             selectionInfo.textContent = 'Drag gizmo: Pull out to add material, Push in to cut. Rotate camera away from gizmo/surface to navigate.';
         }
         
@@ -7696,6 +7830,11 @@ class DrawingWorld {
                     // Update UI
                     const selectionInfo = document.getElementById('selection-info');
                     if (selectionInfo) {
+        
+        // Update ruler highlights if in orthographic mode
+        if (this.camera.mode === BABYLON.Camera.ORTHOGRAPHIC_CAMERA && this.rulerContainer) {
+            this.updateRulerHighlights();
+        }
                         const isPositive = this.extrusionDistance > 0;
                         const mode = isPositive ? 'Adding' : 'Cutting';
                         const distance = Math.abs(this.extrusionDistance).toFixed(2);
@@ -7805,6 +7944,11 @@ class DrawingWorld {
                     // Update UI with dynamic mode based on distance
                     const selectionInfo = document.getElementById('selection-info');
                     if (selectionInfo) {
+        
+        // Update ruler highlights if in orthographic mode
+        if (this.camera.mode === BABYLON.Camera.ORTHOGRAPHIC_CAMERA && this.rulerContainer) {
+            this.updateRulerHighlights();
+        }
                         const isPositive = this.extrusionDistance > 0;
                         const mode = isPositive ? 'Adding' : 'Cutting';
                         const distance = Math.abs(this.extrusionDistance).toFixed(2);
@@ -7941,6 +8085,11 @@ class DrawingWorld {
                     // Update UI with dynamic mode based on distance
                     const selectionInfo = document.getElementById('selection-info');
                     if (selectionInfo) {
+        
+        // Update ruler highlights if in orthographic mode
+        if (this.camera.mode === BABYLON.Camera.ORTHOGRAPHIC_CAMERA && this.rulerContainer) {
+            this.updateRulerHighlights();
+        }
                         const isPositive = this.extrusionDistance > 0;
                         const mode = isPositive ? 'Adding' : 'Cutting';
                         const distance = Math.abs(this.extrusionDistance).toFixed(2);
@@ -8111,6 +8260,11 @@ class DrawingWorld {
         // Update UI
         const selectionInfo = document.getElementById('selection-info');
         if (selectionInfo) {
+        
+        // Update ruler highlights if in orthographic mode
+        if (this.camera.mode === BABYLON.Camera.ORTHOGRAPHIC_CAMERA && this.rulerContainer) {
+            this.updateRulerHighlights();
+        }
             selectionInfo.textContent = 'Face selected - Choose extrude operation';
         }
     }
@@ -8571,6 +8725,11 @@ class DrawingWorld {
             // Update UI
             this.updateWorkBenchDisplay();
             
+        
+        // Update ruler highlights if in orthographic mode
+        if (this.camera.mode === BABYLON.Camera.ORTHOGRAPHIC_CAMERA && this.rulerContainer) {
+            this.updateRulerHighlights();
+        }
             // The mesh is already created by BoardFactory
             // Position it appropriately
             const spawnPosition = this.findOptimalSpawnPosition(
@@ -8795,6 +8954,11 @@ class DrawingWorld {
         // Update UI to show selection (skip if function doesn't exist)
         if (this.updateSelection) {
             this.updateSelection();
+        
+        // Update ruler highlights if in orthographic mode
+        if (this.camera.mode === BABYLON.Camera.ORTHOGRAPHIC_CAMERA && this.rulerContainer) {
+            this.updateRulerHighlights();
+        }
         }
         
         console.log(`DrawingWorld: Focused on part: ${targetMesh.partData.materialName}`);
@@ -9793,7 +9957,21 @@ class DrawingWorld {
 
         // Update UI displays
         this.updateWorkBenchDisplay();
+        
+        // Clear ruler highlights if in orthographic mode
+        if (this.camera.mode === BABYLON.Camera.ORTHOGRAPHIC_CAMERA && this.rulerContainer) {
+            // Redraw rulers without highlights
+            const topRuler = this.rulerContainer.querySelector("#top-ruler");
+            const leftRuler = this.rulerContainer.querySelector("#left-ruler");
+            if (topRuler) this.drawRulerMarkings(topRuler, true);
+            if (leftRuler) this.drawRulerMarkings(leftRuler, false);
+        }
         this.updateProjectPartsDisplay();
+        
+        // Update ruler highlights if in orthographic mode
+        if (this.camera.mode === BABYLON.Camera.ORTHOGRAPHIC_CAMERA && this.rulerContainer) {
+            this.updateRulerHighlights();
+        }
         this.hideIncludeInProjectButton();
 
         // Note: Part has been moved to assembly but user stays on current bench
@@ -9856,7 +10034,21 @@ class DrawingWorld {
 
         // Update UI displays
         this.updateWorkBenchDisplay();
+        
+        // Clear ruler highlights if in orthographic mode
+        if (this.camera.mode === BABYLON.Camera.ORTHOGRAPHIC_CAMERA && this.rulerContainer) {
+            // Redraw rulers without highlights
+            const topRuler = this.rulerContainer.querySelector("#top-ruler");
+            const leftRuler = this.rulerContainer.querySelector("#left-ruler");
+            if (topRuler) this.drawRulerMarkings(topRuler, true);
+            if (leftRuler) this.drawRulerMarkings(leftRuler, false);
+        }
         this.updateProjectPartsDisplay();
+        
+        // Update ruler highlights if in orthographic mode
+        if (this.camera.mode === BABYLON.Camera.ORTHOGRAPHIC_CAMERA && this.rulerContainer) {
+            this.updateRulerHighlights();
+        }
         this.hideBackToWorkBenchButton();
 
         // Note: Part has been moved to work bench but user stays on current bench
@@ -10089,8 +10281,18 @@ class DrawingWorld {
         // Update UI
         this.updatePartSelectionUI();
         
+        
+        // Update ruler highlights if in orthographic mode
+        if (this.camera.mode === BABYLON.Camera.ORTHOGRAPHIC_CAMERA && this.rulerContainer) {
+            this.updateRulerHighlights();
+        }
         // Deselect any face selection
         if (this.selectedFace) {
+        
+        // Update ruler highlights if in orthographic mode
+        if (this.camera.mode === BABYLON.Camera.ORTHOGRAPHIC_CAMERA && this.rulerContainer) {
+            this.updateRulerHighlights();
+        }
             this.deselectFace();
         }
     }
@@ -10115,6 +10317,15 @@ class DrawingWorld {
         
         // Update UI
         this.updatePartSelectionUI();
+        
+        // Clear ruler highlights if in orthographic mode
+        if (this.camera.mode === BABYLON.Camera.ORTHOGRAPHIC_CAMERA && this.rulerContainer) {
+            // Redraw rulers without highlights
+            const topRuler = this.rulerContainer.querySelector("#top-ruler");
+            const leftRuler = this.rulerContainer.querySelector("#left-ruler");
+            if (topRuler) this.drawRulerMarkings(topRuler, true);
+            if (leftRuler) this.drawRulerMarkings(leftRuler, false);
+        }
     }
 
     setPartSelection(mesh, isSelected) {

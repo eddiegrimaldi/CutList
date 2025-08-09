@@ -103,6 +103,14 @@
                         <span class="tool-icon">✋</span>
                         <span class="tool-label">Move</span>
                     </button>
+                    <button data-tool="rotate" class="tool-btn" title="Rotate Tool (E)">
+                        <span class="tool-icon">🔄</span>
+                        <span class="tool-label">Rotate</span>
+                    </button>
+                    <button data-tool="scale" class="tool-btn" title="Scale Tool (R)">
+                        <span class="tool-icon">⚖️</span>
+                        <span class="tool-label">Scale</span>
+                    </button>
                     <button data-tool="rip-cut" class="tool-btn" title="Rip Cut (along grain)">
                         <span class="tool-icon">🪚</span>
                         <span class="tool-label">Rip Cut</span>

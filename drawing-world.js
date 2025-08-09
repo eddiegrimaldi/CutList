@@ -33,7 +33,11 @@ class ModernGizmoSystem {
             showPositionGizmo: (mesh) => {
                 console.log('Showing position gizmo for mesh:', mesh.name);
                 if (this.selectedPart) {
-                    this.createDragHandles(mesh);
+                    console.log('GIZMO DEBUG: About to call createDragHandles');
+                console.log('GIZMO DEBUG: activeTool is:', this.activeTool);
+                console.log('GIZMO DEBUG: mesh is:', mesh);
+                this.createDragHandles(mesh);
+                console.log('GIZMO DEBUG: createDragHandles called');
                 }
             }
         };
@@ -627,6 +631,44 @@ class ModernGizmoSystem {
         // Re-enable camera control
         this.camera.attachControl(this.canvas, true);
         
+        // Return to perspective mode on right mouse activity
+        this.scene.onPointerObservable.add((pointerInfo) => {
+            // Check for right mouse button events
+            if (pointerInfo.event.button === 2) {
+                console.log('Right-click detected, camera mode:', this.camera.mode);
+                if (this.camera.mode === BABYLON.Camera.ORTHOGRAPHIC_CAMERA) {
+                    console.log('Switching back to perspective mode');
+                    this.camera.mode = BABYLON.Camera.PERSPECTIVE_CAMERA;
+                    // Clear ortho size
+                    this.currentOrthoSize = null;
+                    // Restore beta limits for perspective mode
+                    this.camera.lowerBetaLimit = 0.01;
+                    this.camera.upperBetaLimit = Math.PI / 2 - 0.1;
+                }
+            }
+        }, BABYLON.PointerEventTypes.POINTERDOWN);
+        
+        // Also handle right-click drag (mouse move with right button held)
+        this.scene.onPointerObservable.add((pointerInfo) => {
+            if (pointerInfo.event.buttons === 2) { // Right button is held
+                console.log('Right-drag detected, camera mode:', this.camera.mode);
+                if (this.camera.mode === BABYLON.Camera.ORTHOGRAPHIC_CAMERA) {
+                    console.log('Switching back to perspective mode from drag');
+                    this.camera.mode = BABYLON.Camera.PERSPECTIVE_CAMERA;
+                    // Clear ortho size
+                    this.currentOrthoSize = null;
+                    // Restore beta limits for perspective mode
+                    this.camera.lowerBetaLimit = 0.01;
+                    this.camera.upperBetaLimit = Math.PI / 2 - 0.1;
+                }
+            }
+        }, BABYLON.PointerEventTypes.POINTERMOVE);
+        
+        // Prevent context menu
+        this.canvas.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+        });
+        
         // Reset appearance
         if (this.activeHandle) {
             this.resetHandleAppearance(this.activeHandle);
@@ -1021,20 +1063,68 @@ class DrawingWorld {
             
             // Correct colors - Face 4 is the top
             const faceColors = [
-                new BABYLON.Color3(1, 0, 0),       // Face 0: RED (side)
-                new BABYLON.Color3(0, 0.7, 0),     // Face 1: GREEN (side)
-                new BABYLON.Color3(0, 0.4, 1),     // Face 2: BLUE (side)
-                new BABYLON.Color3(0.3, 0.3, 0.3), // Face 3: Dark (bottom - not visible)
-                new BABYLON.Color3(0.6, 0.6, 0.6), // Face 4: GREY (TOP!)
-                new BABYLON.Color3(0.1, 0.1, 0.1)  // Face 5: BLACK (side)
+                new BABYLON.Color3(0.9, 0.9, 0.9),       // Face 0: RED (side)
+                new BABYLON.Color3(0.9, 0.9, 0.9),     // Face 1: GREEN (side)
+                new BABYLON.Color3(0.9, 0.9, 0.9),     // Face 2: BLUE (side)
+                new BABYLON.Color3(0.85, 0.85, 0.85), // Face 3: Dark (bottom - not visible)
+                new BABYLON.Color3(0.95, 0.95, 0.95), // Face 4: GREY (TOP!)
+                new BABYLON.Color3(0.85, 0.85, 0.85)  // Face 5: BLACK (side)
             ];
             
             // Labels for faces
             const faceLabels = ["R", "L", "T", "B", "F", "Bk"];
             
+            // Create labels matching the actual view each face shows
+            const actualLabels = ["LEFT", "RIGHT", "FRONT", "BACK", "TOP", ""];
+            
             for (let i = 0; i < 6; i++) {
                 const mat = new BABYLON.StandardMaterial("mat" + i, viewCubeScene);
-                mat.diffuseColor = faceColors[i];
+                
+                // Create dynamic texture with label
+                if (actualLabels[i]) {
+                    const dynamicTexture = new BABYLON.DynamicTexture("texture" + i, 256, viewCubeScene);
+                    const ctx = dynamicTexture.getContext();
+                    
+                    // Fill with face color
+                    const color = faceColors[i];
+                    const r = Math.floor(color.r * 255);
+                    const g = Math.floor(color.g * 255);
+                    const b = Math.floor(color.b * 255);
+                    ctx.fillStyle = "rgb(" + r + "," + g + "," + b + ")";
+                    ctx.fillRect(0, 0, 256, 256);
+                    
+                    // Add text with rotation fixes
+                    ctx.save();
+                    ctx.translate(128, 128);
+                    
+                    // Fix orientation for each face
+                    if (i === 0) { // LEFT - upside down, needs 180°
+                        ctx.rotate(Math.PI);
+                    } else if (i === 1) { // RIGHT - correct, no rotation
+                        // No rotation needed
+                    } else if (i === 2) { // FRONT - needs 90° instead
+                        ctx.rotate(Math.PI / 2);
+                    } else if (i === 3) { // BACK - vertical bottom-up, needs 90°
+                        ctx.rotate(Math.PI / 2);
+                    } else if (i === 4) { // TOP - needs 90° instead
+                        ctx.rotate(Math.PI / 2);
+                    }
+                    
+                    ctx.font = "65px Arial";
+                    ctx.fillStyle = "#111111";
+                    ctx.strokeStyle = "#000000";
+                    ctx.lineWidth = 1;
+                    ctx.textAlign = "center";
+                    ctx.textBaseline = "middle";
+                    ctx.strokeText(actualLabels[i], 0, 0);
+                    ctx.fillText(actualLabels[i], 0, 0);
+                    ctx.restore();
+                    
+                    dynamicTexture.update();
+                    mat.diffuseTexture = dynamicTexture;
+                } else {
+                    mat.diffuseColor = faceColors[i];
+                }
                 mat.specularColor = new BABYLON.Color3(0, 0, 0);
                 multiMat.subMaterials.push(mat);
             }
@@ -1091,9 +1181,11 @@ class DrawingWorld {
                     this.camera.alpha -= deltaX * 0.01;
                     this.camera.beta -= deltaY * 0.01;
                     
-                    // Clamp beta
-                    if (this.camera.beta < 0.01) this.camera.beta = 0.01;
-                    if (this.camera.beta > Math.PI - 0.01) this.camera.beta = Math.PI - 0.01;
+                    // Clamp beta only in perspective mode
+                    if (this.camera.mode  !==  BABYLON.Camera.ORTHOGRAPHIC_CAMERA) {
+                        if (this.camera.beta < 0.01) this.camera.beta = 0.01;
+                        if (this.camera.beta > Math.PI - 0.01) this.camera.beta = Math.PI - 0.01;
+                    }
                 }
                 
                 lastX = e.clientX;
@@ -1138,15 +1230,20 @@ class DrawingWorld {
                                 targetAlpha = Math.PI;  // Back view (180 degrees)
                                 targetBeta = Math.PI / 2;
                                 break;
-                            case 4: // GREY top
+                            case 4: // GREY top  
                                 targetAlpha = -Math.PI / 2;  // Align with grid (look along X axis)
-                                targetBeta = 0.1;  // Top-down view
+                                targetBeta = 0.001;  // TRUE top-down view (almost 0)
                                 break;
                             case 5: // Bottom (not visible)
                                 isDragging = false;
                                 hasDragged = false;
                                 return;
                         }
+                        
+                        // Remove beta limits for ViewCube navigation
+                        this.camera.lowerBetaLimit = null;
+                        this.camera.upperBetaLimit = null;
+                        console.log('Removed beta limits for ViewCube click');
                         
                         // Shortest path
                         let deltaAlpha = targetAlpha - this.camera.alpha;
@@ -1157,18 +1254,50 @@ class DrawingWorld {
                         console.log('Animating from alpha:', this.camera.alpha, 'to:', finalAlpha);
                         console.log('Beta from:', this.camera.beta, 'to:', targetBeta);
                         
-                        // Animate
+                        // Animate rotation and switch to orthographic
                         BABYLON.Animation.CreateAndStartAnimation(
                             'cameraAlpha', this.camera, 'alpha',
                             60, 30, this.camera.alpha, finalAlpha,
                             BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
                         );
                         
-                        BABYLON.Animation.CreateAndStartAnimation(
+                        const betaAnim = BABYLON.Animation.CreateAndStartAnimation(
                             'cameraBeta', this.camera, 'beta',
                             60, 30, this.camera.beta, targetBeta,
                             BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
                         );
+                        
+                        // Force exact angle after animation for perfect orthographic views
+                        betaAnim.onAnimationEnd = () => {
+                            // For side views, ensure perfectly horizontal (no tilt)
+                            if (faceIndex  !==  4 && faceIndex  !==  5) {
+                                this.camera.beta = Math.PI / 2; // Exactly 90 degrees
+                                console.log("Forced beta to exactly PI/2 for side view");
+                            }
+                        };
+                        
+                        // Switch to orthographic mode
+                        console.log("Setting orthographic mode");
+                        this.camera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
+                        
+                        // Calculate ortho size to maintain visual zoom
+                        // In perspective, the FOV and distance determine visible area
+                        // In ortho, we need to match that visible area
+                        const fov = this.camera.fov; // Field of view in radians
+                        const distance = this.camera.radius;
+                        
+                        // Calculate visible height at current distance in perspective mode
+                        // tan(fov/2) * distance gives half the visible height
+                        const visibleHeight = 2 * Math.tan(fov / 2) * distance;
+                        
+                        // Use half the visible height as ortho size (since orthoTop is half the total height)
+                        this.currentOrthoSize = visibleHeight / 2;
+                        
+                        const aspectRatio = this.canvas.width / this.canvas.height;
+                        this.camera.orthoLeft = -this.currentOrthoSize * aspectRatio;
+                        this.camera.orthoRight = this.currentOrthoSize * aspectRatio;
+                        this.camera.orthoBottom = -this.currentOrthoSize;
+                        this.camera.orthoTop = this.currentOrthoSize;
                     }
                 }
                 
@@ -1619,6 +1748,16 @@ class DrawingWorld {
             console.log('Started panning');
         } else if (evt.button === 2) {
             // RIGHT MOUSE: Spin the world (orbit around target) - Shapr3D style
+            
+            // Return to perspective mode if in orthographic
+            if (this.camera.mode === BABYLON.Camera.ORTHOGRAPHIC_CAMERA) {
+                console.log('Returning to perspective mode');
+                this.camera.mode = BABYLON.Camera.PERSPECTIVE_CAMERA;
+                // Restore beta limits for perspective mode
+                this.camera.lowerBetaLimit = 0.01;
+                this.camera.upperBetaLimit = Math.PI / 2 - 0.1;
+            }
+            
             this.cameraState.isOrbiting = true;
             console.log('Started spinning world');
         }
@@ -1639,9 +1778,11 @@ class DrawingWorld {
             this.camera.alpha += deltaX * sensitivity;
             this.camera.beta += deltaY * sensitivity;
             
-            // Enforce limits
-            this.camera.beta = Math.max(this.camera.lowerBetaLimit, 
-                                      Math.min(this.camera.upperBetaLimit, this.camera.beta));
+            // Enforce limits only in perspective mode
+            if (this.camera.mode  !==  BABYLON.Camera.ORTHOGRAPHIC_CAMERA && this.camera.lowerBetaLimit  !==  null) {
+                this.camera.beta = Math.max(this.camera.lowerBetaLimit, 
+                                          Math.min(this.camera.upperBetaLimit, this.camera.beta));
+            }
             
         } else if (this.cameraState.isPanning) {
             // TRUE PAN: Move camera position only, keep looking in same direction
@@ -1676,18 +1817,44 @@ class DrawingWorld {
     onCameraWheel(evt) {
         if (this.isDragging) return;
 
-        // ZOOM: Move camera toward/away from target
         const zoomSensitivity = this.preferences ? this.preferences.zoomSpeed : 12;
         const delta = evt.deltaY > 0 ? zoomSensitivity : -zoomSensitivity;
         
-        this.camera.radius += delta;
-        this.camera.radius = Math.max(this.camera.lowerRadiusLimit, 
-                                    Math.min(this.camera.upperRadiusLimit, this.camera.radius));
+        if (this.camera.mode === BABYLON.Camera.ORTHOGRAPHIC_CAMERA) {
+            // In orthographic mode, adjust the ortho bounds
+            const zoomFactor = evt.deltaY > 0 ? 1.1 : 0.9;
+            
+            // Initialize currentOrthoSize if not set
+            if (!this.currentOrthoSize) {
+                this.currentOrthoSize = this.camera.orthoTop || 50; // Use current ortho size or default
+            }
+            
+            // Apply zoom
+            const newSize = this.currentOrthoSize * zoomFactor;
+            // Clamp ortho size
+            this.currentOrthoSize = Math.max(5, Math.min(500, newSize));
+            
+            const aspectRatio = this.canvas.width / this.canvas.height;
+            this.camera.orthoLeft = -this.currentOrthoSize * aspectRatio;
+            this.camera.orthoRight = this.currentOrthoSize * aspectRatio;
+            this.camera.orthoBottom = -this.currentOrthoSize;
+            this.camera.orthoTop = this.currentOrthoSize;
+        } else {
+            // Normal perspective zoom
+            this.camera.radius += delta;
+            this.camera.radius = Math.max(this.camera.lowerRadiusLimit, 
+                                        Math.min(this.camera.upperRadiusLimit, this.camera.radius));
+        }
         
         evt.preventDefault();
     }
 
     enforceMinimumCameraHeight() {
+        // Don't enforce height in orthographic mode
+        if (this.camera.mode === BABYLON.Camera.ORTHOGRAPHIC_CAMERA) {
+            return;
+        }
+        
         // Calculate camera world position
         const cameraPosition = this.camera.globalPosition;
         
@@ -2033,8 +2200,10 @@ class DrawingWorld {
             this.camera.alpha += deltaX * 0.01;
             this.camera.beta += deltaY * 0.01;
             
-            // Clamp beta
-            this.camera.beta = Math.max(0.1, Math.min(Math.PI - 0.1, this.camera.beta));
+            // Clamp beta only in perspective mode
+            if (this.camera.mode  !==  BABYLON.Camera.ORTHOGRAPHIC_CAMERA) {
+                this.camera.beta = Math.max(0.1, Math.min(Math.PI - 0.1, this.camera.beta));
+            }
             
         } else if (this.mouseState.button === 1) {
             // Middle mouse = pan
@@ -2580,7 +2749,10 @@ class DrawingWorld {
     }
 
     selectSketchTool(toolName) {
+        console.log('=============================================');
         console.log('selectSketchTool called with toolName:', toolName);
+        console.log('Current activeTool:', this.activeTool);
+        console.log('=============================================');
         
         if (toolName === 'sketch') {
             // Sketch tool selected - enter surface selection mode
@@ -8353,7 +8525,7 @@ class DrawingWorld {
                     thumbnailCamera.dispose(); // Clean up the temporary camera
                 }
             );
-        }, 200); // Brief delay to ensure proper render
+        }, 50); // Brief delay to ensure proper render
     }
 
     updateProjectPartsDisplay() {
@@ -9521,6 +9693,7 @@ class DrawingWorld {
         
         // Select new part
         this.selectedPart = part;
+
         
         // Find the mesh for this part
         const mesh = this.scene.meshes.find(m => m.partData === part);
@@ -9982,8 +10155,9 @@ class DrawingWorld {
         }
     }
 
-    createDragHandles(mesh) {
-
+        createDragHandles(mesh) {
+        console.log('GIZMO DEBUG: createDragHandles FUNCTION CALLED with mesh:', mesh?.name);
+        
         // Check if mesh is valid
         if (!mesh) {
             console.warn('createDragHandles called with invalid mesh');
@@ -9993,109 +10167,297 @@ class DrawingWorld {
         // Clear any existing handles
         this.clearDragHandles();
         
-        // Create new modern gizmo
-        if (!this.gizmoManager) {
-            // Disabled broken ModernGizmoSystem
-            // this.modernGizmo = new ModernGizmoSystem(this.scene, this.camera, this.canvas);
+        // Create utility layer if needed
+        if (!this.gizmoUtilityLayer) {
+            console.log('Creating utility layer for gizmos');
+            this.gizmoUtilityLayer = new BABYLON.UtilityLayerRenderer(this.scene);
             
-            // Use Babylon's built-in GizmoManager instead
-            this.gizmoManager = new BABYLON.GizmoManager(this.scene);
-            console.log('Created new Babylon GizmoManager');
+            // Critical: Clear depth buffer to render on top
+            this.gizmoUtilityLayer.utilityLayerScene.autoClearDepthAndStencil = true;
             
-            // Initialize ALL gizmos by enabling them briefly
-            this.gizmoManager.positionGizmoEnabled = true;
-            this.gizmoManager.rotationGizmoEnabled = true;
-            this.gizmoManager.scaleGizmoEnabled = true;
+            // Ensure utility layer renders after main scene
+            this.gizmoUtilityLayer.utilityLayerScene.renderingGroupId = 3;
             
-            // Now configure them with custom colors
-            if (this.gizmoManager.gizmos.positionGizmo) {
-                this.gizmoManager.gizmos.positionGizmo.updateGizmoRotationToMatchAttachedMesh = false;
-                // Customize position gizmo colors - more subtle
-                const posGizmo = this.gizmoManager.gizmos.positionGizmo;
-                posGizmo.xGizmo.coloredMaterial.diffuseColor = new BABYLON.Color3(0.8, 0.2, 0.2); // Softer red
-                posGizmo.yGizmo.coloredMaterial.diffuseColor = new BABYLON.Color3(0.2, 0.8, 0.2); // Softer green  
-                posGizmo.zGizmo.coloredMaterial.diffuseColor = new BABYLON.Color3(0.2, 0.2, 0.8); // Softer blue
-            }
-            if (this.gizmoManager.gizmos.rotationGizmo) {
-                this.gizmoManager.gizmos.rotationGizmo.updateGizmoRotationToMatchAttachedMesh = false;
-                // Customize rotation gizmo colors
-                const rotGizmo = this.gizmoManager.gizmos.rotationGizmo;
-                rotGizmo.xGizmo.coloredMaterial.diffuseColor = new BABYLON.Color3(0.9, 0.3, 0.3); // Light red
-                rotGizmo.yGizmo.coloredMaterial.diffuseColor = new BABYLON.Color3(0.3, 0.9, 0.3); // Light green
-                rotGizmo.zGizmo.coloredMaterial.diffuseColor = new BABYLON.Color3(0.3, 0.3, 0.9); // Light blue
-            }
-            if (this.gizmoManager.gizmos.scaleGizmo) {
-                this.gizmoManager.gizmos.scaleGizmo.updateGizmoRotationToMatchAttachedMesh = false;
-                // Customize scale gizmo colors
-                const scaleGizmo = this.gizmoManager.gizmos.scaleGizmo;
-                scaleGizmo.xGizmo.coloredMaterial.diffuseColor = new BABYLON.Color3(0.7, 0.1, 0.1); // Dark red
-                scaleGizmo.yGizmo.coloredMaterial.diffuseColor = new BABYLON.Color3(0.1, 0.7, 0.1); // Dark green
-                scaleGizmo.zGizmo.coloredMaterial.diffuseColor = new BABYLON.Color3(0.1, 0.1, 0.7); // Dark blue
-                // Make scale gizmo uniform scaling yellow
-                if (scaleGizmo.uniformScaleGizmo) {
-                    scaleGizmo.uniformScaleGizmo.coloredMaterial.diffuseColor = new BABYLON.Color3(0.8, 0.8, 0.2); // Yellow
+            // Make sure utility layer uses main camera
+            this.gizmoUtilityLayer.setRenderCamera(this.camera);
+            
+            // Enable depth pre-pass to render on top
+            this.gizmoUtilityLayer.utilityLayerScene.useOrderIndependentTransparency = false;
+            
+            
+        }
+        
+        // Create gizmos directly without GizmoManager
+        if (!this.positionGizmo) {
+            console.log('Creating gizmos with utility layer');
+            
+            // Create position gizmo with utility layer
+            this.positionGizmo = new BABYLON.PositionGizmo(this.gizmoUtilityLayer);
+            this.positionGizmo.updateGizmoRotationToMatchAttachedMesh = false;
+            this.positionGizmo.scaleRatio = 0.7;
+            
+            // Customize colors
+            this.positionGizmo.xGizmo.coloredMaterial.diffuseColor = new BABYLON.Color3(0.6, 0.2, 0.2);
+            this.positionGizmo.yGizmo.coloredMaterial.diffuseColor = new BABYLON.Color3(0.2, 0.6, 0.2);
+            this.positionGizmo.zGizmo.coloredMaterial.diffuseColor = new BABYLON.Color3(0.2, 0.2, 0.6);
+            // Make position gizmo always visible
+            [this.positionGizmo.xGizmo, this.positionGizmo.yGizmo, this.positionGizmo.zGizmo].forEach(g => {
+                if (g && g.coloredMaterial) {
+                    g.coloredMaterial.disableDepthWrite = false;
+                    g.coloredMaterial.alphaMode = BABYLON.Constants.ALPHA_DISABLE;
+                    g.coloredMaterial.backFaceCulling = false;
                 }
+            });
+            
+            // Create rotation gizmo with utility layer
+            this.rotationGizmo = new BABYLON.RotationGizmo(this.gizmoUtilityLayer);
+            this.rotationGizmo.updateGizmoRotationToMatchAttachedMesh = false;
+            this.rotationGizmo.updateGizmoPositionToMatchAttachedMesh = true;
+            this.rotationGizmo.scaleRatio = 0.7;
+            // Make rotation gizmo always visible
+            [this.rotationGizmo.xGizmo, this.rotationGizmo.yGizmo, this.rotationGizmo.zGizmo].forEach(g => {
+                if (g && g.coloredMaterial) {
+                    g.coloredMaterial.disableDepthWrite = false;
+                    g.coloredMaterial.alphaMode = BABYLON.Constants.ALPHA_DISABLE;
+                    g.coloredMaterial.backFaceCulling = false;
+                }
+            });
+            
+            // Add observer to update board bounds after rotation
+            this.rotationGizmo.onDragEndObservable.add(() => {
+                if (this.rotationGizmo.attachedMesh) {
+                    const mesh = this.rotationGizmo.attachedMesh;
+                    console.log('Rotation ended - recalculating bounds for:', mesh.name);
+                    
+                    // Force bounds recalculation
+                    mesh.refreshBoundingInfo();
+                    
+                    // Update part data if it exists
+                    if (mesh.partData) {
+                        const bounds = mesh.getBoundingInfo().boundingBox;
+                        console.log('New bounds after rotation:', bounds);
+                    }
+                }
+            });
+            
+            // Create scale gizmo with utility layer
+            this.scaleGizmo = new BABYLON.ScaleGizmo(this.gizmoUtilityLayer);
+            this.scaleGizmo.scaleRatio = 0.7;
+            // Make scale gizmo always visible
+            [this.scaleGizmo.xGizmo, this.scaleGizmo.yGizmo, this.scaleGizmo.zGizmo].forEach(g => {
+                if (g && g.coloredMaterial) {
+                    g.coloredMaterial.disableDepthWrite = false;
+                    g.coloredMaterial.alphaMode = BABYLON.Constants.ALPHA_DISABLE;
+                    g.coloredMaterial.backFaceCulling = false;
+                }
+            });
+            if (this.scaleGizmo.uniformScaleGizmo) {
+                this.scaleGizmo.uniformScaleGizmo.coloredMaterial.disableDepthWrite = false;
+                this.scaleGizmo.uniformScaleGizmo.coloredMaterial.alphaMode = BABYLON.Constants.ALPHA_DISABLE;
+                this.scaleGizmo.uniformScaleGizmo.coloredMaterial.backFaceCulling = false;
             }
             
-            // Disable them all until needed
-            this.gizmoManager.positionGizmoEnabled = false;
-            this.gizmoManager.rotationGizmoEnabled = false;
-            this.gizmoManager.scaleGizmoEnabled = false;
-            this.gizmoManager.boundingBoxGizmoEnabled = false;
+            console.log('Gizmos created with utility layer');
         }
         
-        // Use Babylon's native gizmo based on active tool
-        if (this.gizmoManager) {
-            // First, disable ALL gizmos to ensure clean state
-            this.gizmoManager.positionGizmoEnabled = false;
-            this.gizmoManager.rotationGizmoEnabled = false;
-            this.gizmoManager.scaleGizmoEnabled = false;
-            this.gizmoManager.boundingBoxGizmoEnabled = false;
+        // Attach to mesh based on active tool
+        if (this.activeTool === 'move' && this.positionGizmo) {
+            this.positionGizmo.attachedMesh = mesh;
+            this.rotationGizmo.attachedMesh = null;
+            this.scaleGizmo.attachedMesh = null;
             
-            // Attach to the new mesh
-            this.gizmoManager.attachToMesh(mesh);
+            // Let Babylon position it initially
+            this.positionGizmo.updateGizmoPositionToMatchAttachedMesh = true;
             
-            // Now enable ONLY the gizmo for the active tool
-            if (this.activeTool === 'move') {
-                this.gizmoManager.positionGizmoEnabled = true;
-                console.log('Enabled position gizmo for move tool');
-            } else if (this.activeTool === 'rotate') {
-                this.gizmoManager.rotationGizmoEnabled = true;
-                console.log('Enabled rotation gizmo for rotate tool');
-            } else if (this.activeTool === 'scale') {
-                this.gizmoManager.scaleGizmoEnabled = true;
-                console.log('Enabled scale gizmo for scale tool');
+            // Move gizmo above board after a delay, then disable auto-updates
+            setTimeout(() => {
+                if (mesh && mesh.getBoundingInfo && this.positionGizmo.gizmoLayer) {
+                    const bounds = mesh.getBoundingInfo().boundingBox;
+                    const height = bounds.maximumWorld.y - bounds.minimumWorld.y;
+                    const yOffset = height / 2 + 5;
+                    
+                    // Disable auto-updates FIRST
+                    this.positionGizmo.updateGizmoPositionToMatchAttachedMesh = false;
+                    
+                    const scene = this.positionGizmo.gizmoLayer.utilityLayerScene;
+                    
+                    // Now move all gizmoRootNode meshes
+                    scene.meshes.forEach(m => {
+                        if (m.name === 'gizmoRootNode') {
+                            console.log('Setting gizmo node Y to:', mesh.position.y + yOffset);
+                            m.position.x = mesh.position.x;
+                            m.position.y = mesh.position.y + yOffset;
+                            m.position.z = mesh.position.z;
+                        }
+                    });
+                    
+                    // Track mesh movement to update gizmo position manually
+                    if (this.gizmoTrackObserver) {
+                        this.scene.onBeforeRenderObservable.remove(this.gizmoTrackObserver);
+                    }
+                    
+                    this.gizmoTrackObserver = this.scene.onBeforeRenderObservable.add(() => {
+                        // Always recalculate bounds for current orientation
+                        mesh.refreshBoundingInfo();
+                        if (this.positionGizmo && this.positionGizmo.attachedMesh === mesh) {
+                            const currentBounds = mesh.getBoundingInfo().boundingBox;
+                            const currentHeight = currentBounds.maximumWorld.y - currentBounds.minimumWorld.y;
+                            const currentOffset = currentHeight / 2 + 5;
+                            
+                            // Update gizmo position manually
+                            scene.meshes.forEach(m => {
+                                if (m.name === 'gizmoRootNode') {
+                                    m.position.x = mesh.position.x;
+                                    m.position.y = mesh.position.y + currentOffset;
+                                    m.position.z = mesh.position.z;
+                                }
+                            });
+                        }
+                    });
+                }
+            }, 50); // Quick delay
+            
+            console.log('Attached position gizmo to mesh');
+        } else if (this.activeTool === 'rotate' && this.rotationGizmo) {
+            // Clear tracking observer
+            if (this.gizmoTrackObserver) {
+                this.scene.onBeforeRenderObservable.remove(this.gizmoTrackObserver);
+                this.gizmoTrackObserver = null;
             }
+            
+            this.positionGizmo.attachedMesh = null;
+            this.rotationGizmo.attachedMesh = mesh;
+            this.scaleGizmo.attachedMesh = null;
+            
+            this.rotationGizmo.updateGizmoPositionToMatchAttachedMesh = true;
+            
+            setTimeout(() => {
+                if (mesh && mesh.getBoundingInfo && this.rotationGizmo.gizmoLayer) {
+                    const bounds = mesh.getBoundingInfo().boundingBox;
+                    const height = bounds.maximumWorld.y - bounds.minimumWorld.y;
+                    const yOffset = height / 2 + 5;
+                    
+                    this.rotationGizmo.updateGizmoPositionToMatchAttachedMesh = false;
+                    
+                    const scene = this.rotationGizmo.gizmoLayer.utilityLayerScene;
+                    scene.meshes.forEach(m => {
+                        if (m.name === 'gizmoRootNode') {
+                            m.position.x = mesh.position.x;
+                            m.position.y = mesh.position.y + yOffset;
+                            m.position.z = mesh.position.z;
+                        }
+                    });
+                    
+                    if (this.gizmoTrackObserver) {
+                        this.scene.onBeforeRenderObservable.remove(this.gizmoTrackObserver);
+                    }
+                    
+                    this.gizmoTrackObserver = this.scene.onBeforeRenderObservable.add(() => {
+                        // Always recalculate bounds for current orientation
+                        mesh.refreshBoundingInfo();
+                        if (this.rotationGizmo && this.rotationGizmo.attachedMesh === mesh) {
+                            const currentBounds = mesh.getBoundingInfo().boundingBox;
+                            const currentHeight = currentBounds.maximumWorld.y - currentBounds.minimumWorld.y;
+                            const currentOffset = currentHeight / 2 + 5;
+                            
+                            scene.meshes.forEach(m => {
+                                if (m.name === 'gizmoRootNode') {
+                                    m.position.x = mesh.position.x;
+                                    m.position.y = mesh.position.y + currentOffset;
+                                    m.position.z = mesh.position.z;
+                                }
+                            });
+                        }
+                    });
+                }
+            }, 50);
+            
+            console.log('Attached rotation gizmo to mesh');
+        } else if (this.activeTool === 'scale' && this.scaleGizmo) {
+            // Clear tracking observer
+            if (this.gizmoTrackObserver) {
+                this.scene.onBeforeRenderObservable.remove(this.gizmoTrackObserver);
+                this.gizmoTrackObserver = null;
+            }
+            
+            this.positionGizmo.attachedMesh = null;
+            this.rotationGizmo.attachedMesh = null;
+            this.scaleGizmo.attachedMesh = mesh;
+            
+            this.scaleGizmo.updateGizmoPositionToMatchAttachedMesh = true;
+            
+            // Force refresh bounds in case mesh was rotated
+            mesh.refreshBoundingInfo();
+            
+            setTimeout(() => {
+                if (mesh && mesh.getBoundingInfo && this.scaleGizmo.gizmoLayer) {
+                    const bounds = mesh.getBoundingInfo().boundingBox;
+                    const height = bounds.maximumWorld.y - bounds.minimumWorld.y;
+                    const yOffset = height / 2 + 5;
+                    
+                    this.scaleGizmo.updateGizmoPositionToMatchAttachedMesh = false;
+                    
+                    const scene = this.scaleGizmo.gizmoLayer.utilityLayerScene;
+                    scene.meshes.forEach(m => {
+                        if (m.name === 'gizmoRootNode') {
+                            m.position.x = mesh.position.x;
+                            m.position.y = mesh.position.y + yOffset;
+                            m.position.z = mesh.position.z;
+                        }
+                    });
+                    
+                    if (this.gizmoTrackObserver) {
+                        this.scene.onBeforeRenderObservable.remove(this.gizmoTrackObserver);
+                    }
+                    
+                    this.gizmoTrackObserver = this.scene.onBeforeRenderObservable.add(() => {
+                        // Always recalculate bounds for current orientation
+                        mesh.refreshBoundingInfo();
+                        if (this.scaleGizmo && this.scaleGizmo.attachedMesh === mesh) {
+                            const currentBounds = mesh.getBoundingInfo().boundingBox;
+                            const currentHeight = currentBounds.maximumWorld.y - currentBounds.minimumWorld.y;
+                            const currentOffset = currentHeight / 2 + 5;
+                            
+                            scene.meshes.forEach(m => {
+                                if (m.name === 'gizmoRootNode') {
+                                    m.position.x = mesh.position.x;
+                                    m.position.y = mesh.position.y + currentOffset;
+                                    m.position.z = mesh.position.z;
+                                }
+                            });
+                        }
+                    });
+                }
+            }, 50);
+            
+            console.log('Attached scale gizmo to mesh');
         }
         
-        console.log('Created modern gizmo for mesh:', mesh.name);
+        console.log('Gizmo setup complete for tool:', this.activeTool);
     }
-
-    clearDragHandles() {
-        // Detach and properly disable Babylon gizmos
-        if (this.gizmoManager) {
-            this.gizmoManager.attachToMesh(null);
-            // Ensure all gizmos are disabled
-            this.gizmoManager.positionGizmoEnabled = false;
-            this.gizmoManager.rotationGizmoEnabled = false;
-            this.gizmoManager.scaleGizmoEnabled = false;
-            this.gizmoManager.boundingBoxGizmoEnabled = false;
+        clearDragHandles() {
+        // Clear tracking observer
+        if (this.gizmoTrackObserver) {
+            this.scene.onBeforeRenderObservable.remove(this.gizmoTrackObserver);
+            this.gizmoTrackObserver = null;
         }
         
-        // Dispose modern gizmo if it exists
-        if (this.modernGizmo) {
-            this.modernGizmo.dispose();
+        // Re-enable auto updates before clearing
+        if (this.positionGizmo) {
+            this.positionGizmo.updateGizmoPositionToMatchAttachedMesh = true;
+            this.positionGizmo.attachedMesh = null;
         }
-        
-        // Clear old drag handles if any remain
-        if (this.dragHandles) {
-            this.dragHandles.forEach(handle => handle.dispose());
-            this.dragHandles = [];
+        if (this.rotationGizmo) {
+            this.rotationGizmo.updateGizmoPositionToMatchAttachedMesh = true;
+            this.rotationGizmo.attachedMesh = null;
+        }
+        if (this.scaleGizmo) {
+            this.scaleGizmo.updateGizmoPositionToMatchAttachedMesh = true;
+            this.scaleGizmo.attachedMesh = null;
         }
         
         console.log('Cleared all drag handles and gizmos');
     }
-
     rotatePart(degrees, axis) {
         if (!this.selectedPart) return;
         
@@ -10853,6 +11215,407 @@ document.addEventListener('DOMContentLoaded', () => {
     const drawingWorld = new DrawingWorld();
     window.drawingWorld = drawingWorld;
     
+    // Expose debug functions to console
+    window.world = drawingWorld;  // Expose world object
+    
+    window.debugGizmos = () => {
+        console.log('=== GIZMO DEBUG ===');
+        console.log('gizmoManager exists?', !!drawingWorld.gizmoManager);
+        if (drawingWorld.gizmoManager) {
+            console.log('attachedMesh:', drawingWorld.gizmoManager.attachedMesh?.name);
+            console.log('positionGizmoEnabled:', drawingWorld.gizmoManager.positionGizmoEnabled);
+            console.log('rotationGizmoEnabled:', drawingWorld.gizmoManager.rotationGizmoEnabled);
+            console.log('scaleGizmoEnabled:', drawingWorld.gizmoManager.scaleGizmoEnabled);
+            console.log('gizmos object:', drawingWorld.gizmoManager.gizmos);
+            console.log('utilityLayer:', drawingWorld.gizmoManager.utilityLayer);
+            if (drawingWorld.gizmoManager.gizmos.positionGizmo) {
+                const pg = drawingWorld.gizmoManager.gizmos.positionGizmo;
+                console.log('Position gizmo root:', pg._rootMesh);
+                console.log('Position gizmo visible?', pg._rootMesh?.isVisible);
+                console.log('X arrow:', pg.xGizmo);
+                console.log('X arrow enabled?', pg.xGizmo.isEnabled);
+            }
+        }
+        return drawingWorld.gizmoManager;
+    };
+    
+    window.createTestGizmo = () => {
+        console.log('Creating test gizmo...');
+        if (!drawingWorld.testGizmoManager) {
+            drawingWorld.testGizmoManager = new BABYLON.GizmoManager(drawingWorld.scene);
+        }
+        // Create a test box
+        const testBox = BABYLON.MeshBuilder.CreateBox('testBox', {size: 5}, drawingWorld.scene);
+        testBox.position = new BABYLON.Vector3(0, 10, 0);
+        
+        drawingWorld.testGizmoManager.attachToMesh(testBox);
+        drawingWorld.testGizmoManager.positionGizmoEnabled = true;
+        
+        console.log('Test gizmo created on testBox at (0, 10, 0)');
+        return drawingWorld.testGizmoManager;
+    };
+    
+    window.showGizmo = () => {
+        if (drawingWorld.gizmoManager) {
+            drawingWorld.gizmoManager.positionGizmoEnabled = true;
+            drawingWorld.gizmoManager.rotationGizmoEnabled = false;
+            drawingWorld.gizmoManager.scaleGizmoEnabled = false;
+            console.log('Forced position gizmo ON');
+        }
+    };
+    
+    window.getSelectedMesh = () => {
+        const mesh = drawingWorld.scene.meshes.find(m => m.partData === drawingWorld.selectedPart);
+        console.log('Selected mesh:', mesh);
+        return mesh;
+    };
+    
+    console.log('🔧 GIZMO DEBUG FUNCTIONS LOADED:');
+    console.log('   debugGizmos() - Show gizmo state');
+    console.log('   createTestGizmo() - Create test box with gizmo');
+    console.log('   showGizmo() - Force position gizmo on');
+    console.log('   getSelectedMesh() - Get selected mesh');
+    console.log('   world - Access DrawingWorld instance');
+    window.inspectDirectGizmo = () => {
+        console.log('=== GIZMO INSPECTION ===');
+        
+        if (this.gizmoUtilityLayer) {
+            console.log('Utility Layer exists:', this.gizmoUtilityLayer);
+            console.log('Utility Layer Scene:', this.gizmoUtilityLayer.utilityLayerScene);
+            console.log('Utility Layer Camera:', this.gizmoUtilityLayer.utilityLayerScene.activeCamera);
+        } else {
+            console.log('No utility layer found!');
+        }
+        
+        if (this.positionGizmo) {
+            console.log('Position Gizmo:', this.positionGizmo);
+            console.log('- Attached Mesh:', this.positionGizmo.attachedMesh?.name);
+            console.log('- Scale Ratio:', this.positionGizmo.scaleRatio);
+            console.log('- Gizmo Layer:', this.positionGizmo.gizmoLayer);
+            
+            if (this.positionGizmo.attachedMesh) {
+                const mesh = this.positionGizmo.attachedMesh;
+                console.log('- Mesh Position:', mesh.position);
+                console.log('- Mesh Bounding Box:', mesh.getBoundingInfo().boundingBox);
+            }
+        } else {
+            console.log('No position gizmo found!');
+        }
+        
+        if (this.rotationGizmo) {
+            console.log('Rotation Gizmo:', this.rotationGizmo);
+            console.log('- Attached Mesh:', this.rotationGizmo.attachedMesh?.name);
+        }
+        
+        if (this.scaleGizmo) {
+            console.log('Scale Gizmo:', this.scaleGizmo);
+            console.log('- Attached Mesh:', this.scaleGizmo.attachedMesh?.name);
+        }
+        
+        console.log('Active Tool:', this.activeTool);
+        console.log('Selected Part:', this.selectedPart?.name);
+    };
+
+    window.syncUtilityCamera = () => {
+        if (!drawingWorld.gizmoManager || !drawingWorld.gizmoManager.utilityLayer) {
+            console.log('No utility layer');
+            return;
+        }
+        
+        const utilityLayer = drawingWorld.gizmoManager.utilityLayer;
+        const utilCamera = utilityLayer.utilityLayerScene.activeCamera;
+        const mainCamera = drawingWorld.camera;
+        
+        console.log('Syncing utility camera with main camera...');
+        
+        // Copy main camera properties to utility camera
+        utilCamera.position = mainCamera.position.clone();
+        utilCamera.target = mainCamera.target.clone();
+        
+        // If it's an ArcRotateCamera, copy those properties too
+        if (utilCamera.alpha !== undefined) {
+            utilCamera.alpha = mainCamera.alpha;
+            utilCamera.beta = mainCamera.beta;
+            utilCamera.radius = mainCamera.radius;
+        }
+        
+        console.log('Utility camera synced!');
+        console.log('New utility camera position:', utilCamera.position);
+        console.log('New utility camera target:', utilCamera.target);
+        
+        return utilCamera;
+    };
+    
+    // Also add auto-sync on render
+    window.enableCameraAutoSync = () => {
+        if (!drawingWorld.scene._utilCameraSyncObserver) {
+            drawingWorld.scene._utilCameraSyncObserver = drawingWorld.scene.onBeforeRenderObservable.add(() => {
+                if (drawingWorld.gizmoManager && drawingWorld.gizmoManager.utilityLayer) {
+                    const utilCamera = drawingWorld.gizmoManager.utilityLayer.utilityLayerScene.activeCamera;
+                    const mainCamera = drawingWorld.camera;
+                    
+                    utilCamera.position.copyFrom(mainCamera.position);
+                    utilCamera.target.copyFrom(mainCamera.target);
+                    
+                    if (utilCamera.alpha !== undefined) {
+                        utilCamera.alpha = mainCamera.alpha;
+                        utilCamera.beta = mainCamera.beta;
+                        utilCamera.radius = mainCamera.radius;
+                    }
+                }
+            });
+            console.log('Auto-sync enabled! Utility camera will follow main camera.');
+        }
+    };
+
+    window.checkUtilityLayer = () => {
+        if (!drawingWorld.gizmoManager) {
+            console.log('No gizmo manager');
+            return;
+        }
+        
+        const utilityLayer = drawingWorld.gizmoManager.utilityLayer;
+        console.log('=== UTILITY LAYER CHECK ===');
+        console.log('Utility layer exists:', !!utilityLayer);
+        
+        if (utilityLayer) {
+            const utilScene = utilityLayer.utilityLayerScene;
+            console.log('Utility scene:', utilScene);
+            console.log('Utility camera:', utilScene.activeCamera);
+            console.log('Main camera:', drawingWorld.camera);
+            console.log('Are cameras same?', utilScene.activeCamera === drawingWorld.camera);
+            
+            // Check camera positions
+            if (utilScene.activeCamera) {
+                console.log('Utility camera position:', utilScene.activeCamera.position);
+                console.log('Utility camera target:', utilScene.activeCamera.target);
+            }
+            console.log('Main camera position:', drawingWorld.camera.position);
+            console.log('Main camera target:', drawingWorld.camera.target);
+            
+            // List all meshes in utility layer
+            console.log('Meshes in utility layer:', utilScene.meshes.length);
+            utilScene.meshes.forEach((m, i) => {
+                if (i < 10) { // Just first 10
+                    console.log('  -', m.name, 'visible:', m.isVisible, 'position:', m.position);
+                }
+            });
+        }
+        
+        return utilityLayer;
+    };
+
+    window.diagnosePartMesh = () => {
+        const mesh = drawingWorld.scene.meshes.find(m => m.partData === drawingWorld.selectedPart);
+        if (!mesh) {
+            console.log('No selected part');
+            return;
+        }
+        
+        console.log('=== MESH DIAGNOSIS ===');
+        console.log('Mesh name:', mesh.name);
+        console.log('Is pickable:', mesh.isPickable);
+        console.log('Is visible:', mesh.isVisible);
+        console.log('Visibility:', mesh.visibility);
+        console.log('Rendering group:', mesh.renderingGroupId);
+        console.log('Layer mask:', mesh.layerMask);
+        console.log('Material:', mesh.material?.name);
+        console.log('Has vertex data:', mesh.getTotalVertices() > 0);
+        console.log('Bounding box:', mesh.getBoundingInfo());
+        console.log('World matrix:', mesh.getWorldMatrix());
+        console.log('Absolute position:', mesh.getAbsolutePosition());
+        console.log('Is mesh enabled:', mesh.isEnabled());
+        console.log('Parent:', mesh.parent);
+        console.log('Children:', mesh.getChildren());
+        
+        // Try attaching gizmo directly
+        console.log('=== ATTEMPTING DIRECT GIZMO ATTACHMENT ===');
+        if (drawingWorld.directTestGizmo) {
+            drawingWorld.directTestGizmo.dispose();
+        }
+        drawingWorld.directTestGizmo = new BABYLON.GizmoManager(drawingWorld.scene);
+        drawingWorld.directTestGizmo.attachToMesh(mesh);
+        drawingWorld.directTestGizmo.positionGizmoEnabled = true;
+        drawingWorld.directTestGizmo.gizmos.positionGizmo.scaleRatio = 5; // Make it big
+        
+        console.log('Direct gizmo attached');
+        console.log('Gizmo attached to:', drawingWorld.directTestGizmo.attachedMesh?.name);
+        console.log('Position gizmo enabled:', drawingWorld.directTestGizmo.positionGizmoEnabled);
+        
+        return mesh;
+    };
+
+    window.testGizmoAtPartPosition = () => {
+        // Get selected part position
+        const mesh = drawingWorld.scene.meshes.find(m => m.partData === drawingWorld.selectedPart);
+        if (!mesh) {
+            console.log('No selected part');
+            return;
+        }
+        
+        console.log('Creating test box at same position as part:', mesh.position);
+        
+        // Create test box at exact same position
+        const testBox2 = BABYLON.MeshBuilder.CreateBox('testBox2', {size: 5}, drawingWorld.scene);
+        testBox2.position = mesh.position.clone();
+        testBox2.position.y += 10; // Move it up a bit so we can see it
+        
+        // Create new gizmo manager for test
+        if (!drawingWorld.testGizmo2) {
+            drawingWorld.testGizmo2 = new BABYLON.GizmoManager(drawingWorld.scene);
+        }
+        
+        drawingWorld.testGizmo2.attachToMesh(testBox2);
+        drawingWorld.testGizmo2.positionGizmoEnabled = true;
+        
+        console.log('Test box created at:', testBox2.position);
+        console.log('Can you see this gizmo?');
+        
+        return testBox2;
+    };
+
+    window.recreateGizmo = () => {
+        console.log('Recreating gizmo from scratch...');
+        
+        // Get the selected mesh
+        const mesh = drawingWorld.scene.meshes.find(m => m.partData === drawingWorld.selectedPart);
+        if (!mesh) {
+            console.log('No selected mesh found');
+            return;
+        }
+        
+        console.log('Found mesh:', mesh.name, 'at position:', mesh.position);
+        
+        // Kill any existing gizmo manager
+        if (drawingWorld.gizmoManager) {
+            drawingWorld.gizmoManager.dispose();
+            drawingWorld.gizmoManager = null;
+        }
+        
+        // Create brand new gizmo manager
+        drawingWorld.gizmoManager = new BABYLON.GizmoManager(drawingWorld.scene);
+        
+        // Attach to mesh
+        drawingWorld.gizmoManager.attachToMesh(mesh);
+        
+        // Enable position gizmo
+        drawingWorld.gizmoManager.positionGizmoEnabled = true;
+        
+        // Force scale
+        if (drawingWorld.gizmoManager.gizmos.positionGizmo) {
+            drawingWorld.gizmoManager.gizmos.positionGizmo.scaleRatio = 3;
+        }
+        
+        console.log('New gizmo created and attached to:', mesh.name);
+        console.log('Gizmo manager:', drawingWorld.gizmoManager);
+        console.log('Position gizmo:', drawingWorld.gizmoManager.gizmos.positionGizmo);
+        
+        return drawingWorld.gizmoManager;
+    };
+    
+    window.makeGizmoHuge = () => {
+        if (drawingWorld.gizmoManager && drawingWorld.gizmoManager.gizmos.positionGizmo) {
+            const pg = drawingWorld.gizmoManager.gizmos.positionGizmo;
+            
+            // Make each arrow huge
+            if (pg.xGizmo && pg.xGizmo.attachedMesh) {
+                pg.xGizmo.attachedMesh.scaling = new BABYLON.Vector3(10, 10, 10);
+                console.log('X arrow scaled to 10x');
+            }
+            if (pg.yGizmo && pg.yGizmo.attachedMesh) {
+                pg.yGizmo.attachedMesh.scaling = new BABYLON.Vector3(10, 10, 10);
+                console.log('Y arrow scaled to 10x');
+            }
+            if (pg.zGizmo && pg.zGizmo.attachedMesh) {
+                pg.zGizmo.attachedMesh.scaling = new BABYLON.Vector3(10, 10, 10);
+                console.log('Z arrow scaled to 10x');
+            }
+            
+            // Make root huge
+            if (pg._rootMesh) {
+                pg._rootMesh.scaling = new BABYLON.Vector3(10, 10, 10);
+                console.log('Root scaled to 10x');
+            }
+        }
+    };
+
+    window.fixGizmoNow = () => {
+        if (drawingWorld.gizmoManager && drawingWorld.gizmoManager.gizmos.positionGizmo) {
+            const pg = drawingWorld.gizmoManager.gizmos.positionGizmo;
+            pg.scaleRatio = 5; // Make it 5x bigger
+            pg.updateGizmoPositionToMatchAttachedMesh = true;
+            
+            // Force update all arrows
+            if (pg.xGizmo) pg.xGizmo.scaleRatio = 1;
+            if (pg.yGizmo) pg.yGizmo.scaleRatio = 1;
+            if (pg.zGizmo) pg.zGizmo.scaleRatio = 1;
+            
+            // Force root mesh scale
+            if (pg._rootMesh) {
+                pg._rootMesh.scaling = new BABYLON.Vector3(1, 1, 1);
+            }
+            
+            console.log('Forced gizmo to normal size');
+            return pg;
+        }
+        
+        if (drawingWorld.gizmoManager && drawingWorld.gizmoManager.gizmos.rotationGizmo) {
+            const rg = drawingWorld.gizmoManager.gizmos.rotationGizmo;
+            rg.scaleRatio = 5;
+            if (rg._rootMesh) {
+                rg._rootMesh.scaling = new BABYLON.Vector3(1, 1, 1);
+            }
+            console.log('Forced rotation gizmo to normal size');
+            return rg;
+        }
+    };
+
+    window.inspectGizmo = () => {
+        if (!drawingWorld.gizmoManager || !drawingWorld.gizmoManager.gizmos.positionGizmo) {
+            console.log('No position gizmo found');
+            return;
+        }
+        
+        const pg = drawingWorld.gizmoManager.gizmos.positionGizmo;
+        const root = pg._rootMesh;
+        
+        console.log('=== GIZMO INSPECTION ===');
+        console.log('Root mesh position:', root.position);
+        console.log('Root mesh scaling:', root.scaling);
+        console.log('Root mesh visibility:', root.visibility);
+        console.log('Root mesh isVisible:', root.isVisible);
+        console.log('Root mesh isEnabled:', root.isEnabled());
+        console.log('Root mesh parent:', root.parent);
+        
+        // Check arrow positions
+        console.log('X arrow position:', pg.xGizmo.attachedMesh?.position);
+        console.log('Y arrow position:', pg.yGizmo.attachedMesh?.position);
+        console.log('Z arrow position:', pg.zGizmo.attachedMesh?.position);
+        
+        // Check utility layer
+        const utilityScene = drawingWorld.gizmoManager.utilityLayer.utilityLayerScene;
+        console.log('Utility layer scene meshes:', utilityScene.meshes.length);
+        console.log('Utility layer camera:', utilityScene.activeCamera);
+        
+        // Try to make it REALLY visible
+        root.visibility = 1;
+        root.scaling = new BABYLON.Vector3(1, 1, 1);
+        console.log('Forced visibility and scale to 1');
+        
+        return pg;
+    };
+    
+    window.fixGizmoScale = () => {
+        if (drawingWorld.gizmoManager && drawingWorld.gizmoManager.gizmos.positionGizmo) {
+            // Force scale ratio
+            drawingWorld.gizmoManager.gizmos.positionGizmo.scaleRatio = 1;
+            drawingWorld.gizmoManager.gizmos.rotationGizmo.scaleRatio = 1;
+            drawingWorld.gizmoManager.gizmos.scaleGizmo.scaleRatio = 1;
+            console.log('Reset all gizmo scale ratios to 1');
+        }
+    };
+
+    
     // Removed auto-spawning chamfered primitive
 // DEBUG FUNCTIONS FOR LOADED VS FRESH BOARD INVESTIGATION
 window.debugBoardComparison = function() {
@@ -10860,7 +11623,8 @@ window.debugBoardComparison = function() {
     console.log('📊 Total workbench parts:', drawingWorld.workBenchParts.length);
     
     drawingWorld.workBenchParts.forEach((part, index) => {
-        console.log(`\n📋 BOARD ${index}:`, part);
+        console.log(`
+📋 BOARD ${index}:`, part);
         console.log(`   🆔 ID: ${part.id}`);
         console.log(`   📦 Material: ${part.materialId} (${part.materialName})`);
         console.log(`   📏 Dimensions: ${part.dimensions.length}x${part.dimensions.width}x${part.dimensions.thickness}`);
@@ -10871,9 +11635,11 @@ window.debugBoardComparison = function() {
     });
     
     const workbenchMeshes = drawingWorld.scene.meshes.filter(m => m.isWorkBenchPart);
-    console.log(`\n🎭 MESH OBJECTS (${workbenchMeshes.length}):`);
+    console.log(`
+🎭 MESH OBJECTS (${workbenchMeshes.length}):`);
     workbenchMeshes.forEach((mesh, index) => {
-        console.log(`\n🎭 MESH ${index}:`, mesh);
+        console.log(`
+🎭 MESH ${index}:`, mesh);
         console.log(`   🆔 ID: ${mesh.id}`);
         console.log(`   🎨 Material: `, mesh.material);
         console.log(`   📍 Position: `, mesh.position);
@@ -10892,7 +11658,8 @@ window.testLoadedBoardCutting = function() {
     
     console.log(`🎯 Found ${workbenchMeshes.length} workbench part(s) for cutting test`);
     workbenchMeshes.forEach((mesh, index) => {
-        console.log(`\n🎯 TESTING MESH ${index} (ID: ${mesh.id})`);
+        console.log(`
+🎯 TESTING MESH ${index} (ID: ${mesh.id})`);
         console.log('   📋 Part Data:', mesh.partData);
         console.log('   🎨 Material:', mesh.material);
         console.log('   📊 Properties:', {
@@ -10929,7 +11696,7 @@ window.identifyBoardDifferences = function() {
         }
     });
     
-    console.log('\n🎭 COMPARING MESH OBJECTS:');
+    console.log('🎭 COMPARING MESH OBJECTS:');
     const meshes = drawingWorld.scene.meshes.filter(m => m.isWorkBenchPart);
     if (meshes.length >= 2) {
         const mesh1 = meshes[0];

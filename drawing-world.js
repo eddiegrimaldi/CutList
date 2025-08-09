@@ -12159,7 +12159,7 @@ class DrawingWorld {
     }
     
     updateMeasurementArrow(startPos, endPos) {
-        if (\!this.measurementArrow) {
+        if (!this.measurementArrow) {
             this.createMeasurementArrow();
         }
         

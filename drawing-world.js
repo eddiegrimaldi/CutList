@@ -12086,21 +12086,26 @@ class DrawingWorld {
             // Handle Enter key
             input.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') {
+                    e.preventDefault();
                     document.getElementById('transform-confirm').click();
                 }
             });
         }
         
+        // Store reference to this for use in handlers
+        const self = this;
+        
         // Handle confirm
         document.getElementById('transform-confirm').onclick = () => {
+            console.log('Confirm clicked, value:', document.getElementById('transform-value').value);
             const newValue = parseFloat(document.getElementById('transform-value').value);
             
             if (type === 'position') {
-                const newPos = this.transformStartPosition.clone();
+                const newPos = self.transformStartPosition.clone();
                 newPos[axis] += newValue;
                 mesh.position = newPos;
             } else if (type === 'rotation') {
-                const newRot = this.transformStartRotation.clone();
+                const newRot = self.transformStartRotation.clone();
                 newRot[axis] += newValue * Math.PI / 180;
                 mesh.rotation = newRot;
             }
@@ -12109,27 +12114,41 @@ class DrawingWorld {
             if (mesh.partData) {
                 mesh.partData.position = mesh.position.asArray();
                 mesh.partData.rotation = mesh.rotation.asArray();
-                this.autosave();
+                self.autosave();
             }
             
             // Clean up
-            this.removeGhostMesh();
-            this.currentDragAxis = null;
+            try {
+                if (self.removeGhostMesh) {
+                    self.removeGhostMesh();
+                }
+            } catch (e) {
+                console.error('Error removing ghost mesh:', e);
+            }
+            self.currentDragAxis = null;
+            console.log('Removing modal...');
             modal.remove();
+            console.log('Modal removed');
         };
         
         // Handle cancel
         document.getElementById('transform-cancel').onclick = () => {
             // Restore original position/rotation
             if (type === 'position') {
-                mesh.position = this.transformStartPosition.clone();
+                mesh.position = self.transformStartPosition.clone();
             } else if (type === 'rotation') {
-                mesh.rotation = this.transformStartRotation.clone();
+                mesh.rotation = self.transformStartRotation.clone();
             }
             
             // Clean up
-            this.removeGhostMesh();
-            this.currentDragAxis = null;
+            try {
+                if (self.removeGhostMesh) {
+                    self.removeGhostMesh();
+                }
+            } catch (e) {
+                console.error('Error removing ghost mesh:', e);
+            }
+            self.currentDragAxis = null;
             modal.remove();
         };
     }

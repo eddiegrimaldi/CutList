@@ -12011,8 +12011,8 @@ class DrawingWorld {
         // No padding needed
         // No border radius needed
         display.style.fontSize = "24px";
-        display.style.textShadow = "0 0 3px white, 0 0 3px white, 0 0 3px white, 0 0 3px white";
-        display.style.webkitTextStroke = "2px white";
+        display.style.textShadow = "1px 1px 2px white, -1px -1px 2px white, 1px -1px 2px white, -1px 1px 2px white";
+        display.style.webkitTextStroke = "0.5px white";
         display.style.fontWeight = "bold";
         display.style.display = "none";
         display.style.zIndex = "10000";
@@ -12045,7 +12045,7 @@ class DrawingWorld {
         
         if (mesh && this.scene && this.scene.activeCamera) {
             // Get gizmo position (which might be different from mesh position for rotation)
-            const gizmoPos = activeGizmo._rootMesh ? activeGizmo._rootMesh.position : mesh.position;
+            const gizmoPos = mesh.position;
             
             const coordinates = BABYLON.Vector3.Project(
                 gizmoPos,

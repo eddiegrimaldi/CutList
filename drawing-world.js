@@ -10837,7 +10837,6 @@ class DrawingWorld {
                         this.updateMeasurementArrow(this.transformStartPosition, currentPos);
                     }
                 });
-                });
                 this.positionGizmo.xGizmo.dragBehavior.onDragEndObservable.add(() => {
                     const mesh = this.positionGizmo.attachedMesh;
                     if (mesh) {

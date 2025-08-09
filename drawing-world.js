@@ -10842,8 +10842,9 @@ class DrawingWorld {
                     if (mesh) {
                         this.hideTransformDisplay();
                         this.removeGhostMesh();
+                        const finalPosition = this.ghostMesh ? this.ghostMesh.position.clone() : mesh.position.clone();
                         this.removeMeasurementArrow();
-                        this.showTransformConfirmationModal(mesh, mesh.position, 'position');
+                        this.showTransformConfirmationModal(mesh, finalPosition, 'position');
                     }
                 });
             }
@@ -10881,8 +10882,9 @@ class DrawingWorld {
                     if (mesh) {
                         this.hideTransformDisplay();
                         this.removeGhostMesh();
+                        const finalPosition = this.ghostMesh ? this.ghostMesh.position.clone() : mesh.position.clone();
                         this.removeMeasurementArrow();
-                        this.showTransformConfirmationModal(mesh, mesh.position, 'position');
+                        this.showTransformConfirmationModal(mesh, finalPosition, 'position');
                     }
                 });
             }
@@ -10920,8 +10922,9 @@ class DrawingWorld {
                     if (mesh) {
                         this.hideTransformDisplay();
                         this.removeGhostMesh();
+                        const finalPosition = this.ghostMesh ? this.ghostMesh.position.clone() : mesh.position.clone();
                         this.removeMeasurementArrow();
-                        this.showTransformConfirmationModal(mesh, mesh.position, 'position');
+                        this.showTransformConfirmationModal(mesh, finalPosition, 'position');
                     }
                 });
             }

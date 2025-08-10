@@ -1,0 +1,18 @@
+            // Add scale tool observers for modal only
+            if (this.scaleGizmo.uniformScaleGizmo && this.scaleGizmo.uniformScaleGizmo.dragBehavior) {
+                this.scaleGizmo.uniformScaleGizmo.dragBehavior.onDragStartObservable.add(() => {
+                    const mesh = this.scaleGizmo.attachedMesh;
+                    if (mesh) {
+                        this.transformType = 'scale';
+                        this.transformStartScale = mesh.scaling.clone();
+                    }
+                });
+                
+                this.scaleGizmo.uniformScaleGizmo.dragBehavior.onDragEndObservable.add(() => {
+                    const mesh = this.scaleGizmo.attachedMesh;
+                    if (mesh) {
+                        this.showTransformConfirmationModal(mesh, mesh.scaling, 'scale');
+                    }
+                });
+            }
+            

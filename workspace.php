@@ -37,6 +37,23 @@
     </script>
 </head>
 <body>
+
+    <\!-- Loading Spinner -->
+    <div id="loadingSpinner" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10000; background: rgba(0,0,0,0.8); padding: 30px; border-radius: 10px;">
+        <div style="color: white; text-align: center;">
+            <div style="width: 60px; height: 60px; border: 5px solid #f3f3f3; border-top: 5px solid #3498db; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px;"></div>
+            <div style="font-size: 18px; font-weight: bold;">Loading Project...</div>
+            <div id="loadingMessage" style="font-size: 14px; margin-top: 10px; color: #aaa;">Please wait while we restore your workspace</div>
+        </div>
+    </div>
+    
+    <style>
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+
     <div id="app">
         <header class="workspace-header">
             <div class="header-left">
@@ -860,6 +877,12 @@
                 
                 // Clear loading flag to re-enable camera animations
                 drawingWorld.isLoadingProject = false;
+                
+                // Hide loading spinner after everything is loaded
+                setTimeout(() => {
+                    hideLoadingSpinner();
+                    console.log('Project fully loaded - spinner hidden');
+                }, 500);
             }
         };
         

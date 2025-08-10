@@ -1,0 +1,56 @@
+<\!DOCTYPE html>
+<html>
+<head>
+    <title>Loading Spinner Test</title>
+    <style>
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body style="background: #333; margin: 0; padding: 20px;">
+    <h1 style="color: white;">Loading Spinner Test</h1>
+    
+    <div id="loadingSpinner" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10000; background: rgba(0,0,0,0.8); padding: 30px; border-radius: 10px;">
+        <div style="color: white; text-align: center;">
+            <div style="width: 60px; height: 60px; border: 5px solid #f3f3f3; border-top: 5px solid #3498db; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px;"></div>
+            <div style="font-size: 18px; font-weight: bold;">Loading Project...</div>
+            <div id="loadingMessage" style="font-size: 14px; margin-top: 10px; color: #aaa;">Please wait while we restore your workspace</div>
+        </div>
+    </div>
+    
+    <button onclick="testSpinner()" style="padding: 10px 20px; font-size: 16px;">Test Loading Spinner</button>
+    
+    <script>
+        function showLoadingSpinner(message = 'Loading...') {
+            const spinner = document.getElementById('loadingSpinner');
+            const messageEl = document.getElementById('loadingMessage');
+            if (spinner) {
+                spinner.style.display = 'block';
+                if (messageEl) {
+                    messageEl.textContent = message;
+                }
+            }
+        }
+        
+        function hideLoadingSpinner() {
+            const spinner = document.getElementById('loadingSpinner');
+            if (spinner) {
+                spinner.style.display = 'none';
+            }
+        }
+        
+        function testSpinner() {
+            console.log('Showing spinner...');
+            showLoadingSpinner('Simulating project load...');
+            
+            // Simulate project loading completion after 3 seconds
+            setTimeout(() => {
+                console.log('Project loading complete - hiding spinner');
+                hideLoadingSpinner();
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

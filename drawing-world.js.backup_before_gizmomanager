@@ -8744,13 +8744,6 @@ class DrawingWorld {
             };
             this.boardFactory.updateMeshTransform(board);
             
-            // CRITICAL FIX: Set partData on the mesh so selection works!
-            const mesh = this.scene.getMeshById(board.id);
-            if (mesh) {
-                mesh.partData = part;  // Now the mesh can be selected and manipulated
-                console.log('✅ Set partData on mesh:', mesh.name, 'part:', part);
-            }
-            
             // Close modal
             this.closeMaterialModal();
             
@@ -10342,10 +10335,7 @@ class DrawingWorld {
     }
 
     deselectPart() {
-        if (!this.selectedPart) {
-            console.error("❌ No selectedPart!");
-            return;
-        }
+        if (!this.selectedPart) return;
         
         console.log('Deselecting part:', this.selectedPart);
         
@@ -10790,8 +10780,6 @@ class DrawingWorld {
     }
 
         createDragHandles(mesh) {
-        console.log("🎯 createDragHandles called with mesh:", mesh?.name, "Tool:", this.activeTool);
-        console.log("GizmoManager exists?", !!this.gizmoManager);
         console.log('GIZMO DEBUG: createDragHandles FUNCTION CALLED with mesh:', mesh?.name);
         // Initialize transform precision tracking
         this.transformStartPosition = null;
@@ -10814,69 +10802,564 @@ class DrawingWorld {
         // Clear any existing handles
         this.clearDragHandles();
         
-        
-        // Use GizmoManager - it handles everything!
-        // Create utility layer first so GizmoManager can use it
+        // Create utility layer if needed
         if (!this.gizmoUtilityLayer) {
             console.log('Creating utility layer for gizmos');
             this.gizmoUtilityLayer = new BABYLON.UtilityLayerRenderer(this.scene);
+            
+            // Critical: Clear depth buffer to render on top
             this.gizmoUtilityLayer.utilityLayerScene.autoClearDepthAndStencil = true;
-            this.gizmoUtilityLayer.shouldRender = true;
+            
+            // Ensure utility layer renders after main scene
+            this.gizmoUtilityLayer.utilityLayerScene.renderingGroupId = 3;
+            
+            // Make sure utility layer uses main camera
+            this.gizmoUtilityLayer.setRenderCamera(this.camera);
+            
+            // Enable depth pre-pass to render on top
+            this.gizmoUtilityLayer.utilityLayerScene.useOrderIndependentTransparency = false;
+            
+            
         }
         
-        if (!this.gizmoManager) {
-            this.gizmoManager = new BABYLON.GizmoManager(this.scene, 1, this.gizmoUtilityLayer);
-            this.gizmoManager.positionGizmoEnabled = false;
-            this.gizmoManager.rotationGizmoEnabled = false;
-            this.gizmoManager.scaleGizmoEnabled = false;
-            this.gizmoManager.boundingBoxGizmoEnabled = false;
-            console.log('Created GizmoManager');
+        // Create gizmos directly without GizmoManager
+        if (!this.positionGizmo) {
+            console.log('Creating gizmos with utility layer');
             
-            // Configure gizmo visibility and size
-            this.gizmoManager.scaleRatio = 5.0; // Make gizmos larger
-            this.gizmoManager.usePointerToAttachGizmos = false; // Don't auto-attach on click
-        }
-        
-        // Attach to mesh and enable the right gizmo based on active tool
-        
-        // Enable the appropriate gizmo BEFORE attaching to mesh
-        if (this.activeTool === 'move') {
-            this.gizmoManager.positionGizmoEnabled = true;
-            this.gizmoManager.rotationGizmoEnabled = false;
-            this.gizmoManager.scaleGizmoEnabled = false;
-        } else if (this.activeTool === 'rotate') {
-            this.gizmoManager.positionGizmoEnabled = false;
-            this.gizmoManager.rotationGizmoEnabled = true;
-            this.gizmoManager.scaleGizmoEnabled = false;
+            // Create position gizmo with utility layer
+            this.positionGizmo = new BABYLON.PositionGizmo(this.gizmoUtilityLayer);
+            this.positionGizmo.updateGizmoRotationToMatchAttachedMesh = false;
+            this.positionGizmo.scaleRatio = 0.7; // Visual size
             
-            // Configure rotation gizmo after enabling
-            if (this.gizmoManager.gizmos.rotationGizmo) {
-                this.gizmoManager.gizmos.rotationGizmo.updateGizmoRotationToMatchAttachedMesh = false;
-                this.gizmoManager.gizmos.rotationGizmo.scaleRatio = 2;
-                console.log('Configured rotation gizmo');
+            // CRITICAL: Reduce drag sensitivity after behaviors are created
+            setTimeout(() => {
+                if (this.positionGizmo.xGizmo && this.positionGizmo.xGizmo.dragBehavior) {
+                    const originalMoveX = this.positionGizmo.xGizmo.dragBehavior.onDragObservable.observers[0].callback;
+                    this.positionGizmo.xGizmo.dragBehavior.moveAttached = false; // Don't auto-move
+                }
+                if (this.positionGizmo.yGizmo && this.positionGizmo.yGizmo.dragBehavior) {
+                    this.positionGizmo.yGizmo.dragBehavior.moveAttached = false;
+                }
+                if (this.positionGizmo.zGizmo && this.positionGizmo.zGizmo.dragBehavior) {
+                    this.positionGizmo.zGizmo.dragBehavior.moveAttached = false;
+                }
+            }, 100);
+            
+            // Reduce drag sensitivity
+            if (this.positionGizmo.xGizmo && this.positionGizmo.xGizmo.dragBehavior) {
             }
-        } else if (this.activeTool === 'scale') {
-            this.gizmoManager.positionGizmoEnabled = false;
-            this.gizmoManager.rotationGizmoEnabled = false;
-            this.gizmoManager.scaleGizmoEnabled = true;
+            if (this.positionGizmo.yGizmo && this.positionGizmo.yGizmo.dragBehavior) {
+            }
+            if (this.positionGizmo.zGizmo && this.positionGizmo.zGizmo.dragBehavior) {
+            }
+            
+            // Customize colors
+            this.positionGizmo.xGizmo.coloredMaterial.diffuseColor = new BABYLON.Color3(0.6, 0.2, 0.2);
+            this.positionGizmo.yGizmo.coloredMaterial.diffuseColor = new BABYLON.Color3(0.2, 0.6, 0.2);
+            this.positionGizmo.zGizmo.coloredMaterial.diffuseColor = new BABYLON.Color3(0.2, 0.2, 0.6);
+            
+            // Add drag observers for position gizmo
+            
+            // Add individual axis tracking for position
+            if (this.positionGizmo.xGizmo && this.positionGizmo.xGizmo.dragBehavior) {
+                this.positionGizmo.xGizmo.dragBehavior.onDragStartObservable.add(() => {
+                    const mesh = this.positionGizmo.attachedMesh;
+                    if (mesh) {
+                        this.createGhostMesh(mesh);
+                        this.transformType = 'position';
+                        this.currentDragAxis = 'x';
+                        if (!this.transformDisplay) {
+                            this.createTransformDisplay();
+                        }
+                    }
+                });
+                
+                
+                this.positionGizmo.xGizmo.dragBehavior.onDragObservable.add(() => {
+                    const mesh = this.positionGizmo.attachedMesh;
+                    if (mesh && this.transformStartPosition && this.ghostMesh) {
+                        // Calculate delta but don't apply to real mesh
+                        // Dampen movement significantly
+                        const rawPos = mesh.position.clone();
+                        const dampFactor = 0.1; // Only apply 10% of movement
+                        const currentPos = this.transformStartPosition.add(
+                            rawPos.subtract(this.transformStartPosition).scale(dampFactor)
+                        );
+                        mesh.position.copyFrom(currentPos); // Apply dampened position back
+                        const delta = currentPos.subtract(this.transformStartPosition);
+                        
+                        // Move ghost instead of real mesh
+                        // REMOVED: Ghost stays at start position
+                        
+                        // Reset real mesh to original position
+                        // REMOVED: Let mesh move naturally
+                        
+                        // Update display at midpoint
+                        const midpoint = this.transformStartPosition.add(currentPos).scale(0.5);
+                        this.updateTransformDisplay(delta, 'position', midpoint);
+                        
+                        // Update measurement arrow
+                        this.updateMeasurementArrow(this.transformStartPosition, currentPos);
+                    }
+                });
+                this.positionGizmo.xGizmo.dragBehavior.onDragEndObservable.add(() => {
+                    const mesh = this.positionGizmo.attachedMesh;
+                    if (mesh) {
+                        // Apply the final position from ghost BEFORE removing it
+                        if (this.ghostMesh) {
+                            // Mesh already moved during drag
+                        }
+                        this.hideTransformDisplay();
+                        this.removeGhostMesh();
+this.lastDragPosition = null; // Reset for next drag
+                        // Transform applied directly
+                    }
+                });
+            }
+            
+            if (this.positionGizmo.yGizmo && this.positionGizmo.yGizmo.dragBehavior) {
+                this.positionGizmo.yGizmo.dragBehavior.onDragStartObservable.add(() => {
+                    const mesh = this.positionGizmo.attachedMesh;
+                    if (mesh) {
+                        this.createGhostMesh(mesh);
+                        this.transformType = 'position';
+                        this.currentDragAxis = 'y';
+                        if (!this.transformDisplay) {
+                            this.createTransformDisplay();
+                        }
+                    }
+                });
+                
+                
+                this.positionGizmo.yGizmo.dragBehavior.onDragObservable.add(() => {
+                    const mesh = this.positionGizmo.attachedMesh;
+                    if (mesh && this.transformStartPosition && this.ghostMesh) {
+                        const currentPos = mesh.position.clone();
+                        const delta = currentPos.subtract(this.transformStartPosition);
+                        
+                        // REMOVED: Ghost stays at start position
+                        // REMOVED: Let mesh move naturally
+                        
+                        const midpoint = this.transformStartPosition.add(currentPos).scale(0.5);
+                        this.updateTransformDisplay(delta, 'position', midpoint);
+                        this.updateMeasurementArrow(this.transformStartPosition, currentPos);
+                    }
+                });
+                this.positionGizmo.yGizmo.dragBehavior.onDragEndObservable.add(() => {
+                    const mesh = this.positionGizmo.attachedMesh;
+                    if (mesh) {
+                        // Apply the final position from ghost BEFORE removing it
+                        if (this.ghostMesh) {
+                            // Mesh already moved during drag
+                        }
+                        this.hideTransformDisplay();
+                        this.removeGhostMesh();
+                        // Transform applied directly
+                    }
+                });
+            }
+            
+            if (this.positionGizmo.zGizmo && this.positionGizmo.zGizmo.dragBehavior) {
+                this.positionGizmo.zGizmo.dragBehavior.onDragStartObservable.add(() => {
+                    const mesh = this.positionGizmo.attachedMesh;
+                    if (mesh) {
+                        this.createGhostMesh(mesh);
+                        this.transformType = 'position';
+                        this.currentDragAxis = 'z';
+                        if (!this.transformDisplay) {
+                            this.createTransformDisplay();
+                        }
+                    }
+                });
+                
+                
+                this.positionGizmo.zGizmo.dragBehavior.onDragObservable.add(() => {
+                    const mesh = this.positionGizmo.attachedMesh;
+                    if (mesh && this.transformStartPosition && this.ghostMesh) {
+                        const currentPos = mesh.position.clone();
+                        const delta = currentPos.subtract(this.transformStartPosition);
+                        
+                        // REMOVED: Ghost stays at start position
+                        // REMOVED: Let mesh move naturally
+                        
+                        const midpoint = this.transformStartPosition.add(currentPos).scale(0.5);
+                        this.updateTransformDisplay(delta, 'position', midpoint);
+                        this.updateMeasurementArrow(this.transformStartPosition, currentPos);
+                    }
+                });
+                this.positionGizmo.zGizmo.dragBehavior.onDragEndObservable.add(() => {
+                    const mesh = this.positionGizmo.attachedMesh;
+                    if (mesh) {
+                        // Apply the final position from ghost BEFORE removing it
+                        if (this.ghostMesh) {
+                            // Mesh already moved during drag
+                        }
+                        this.hideTransformDisplay();
+                        this.removeGhostMesh();
+                        // Transform applied directly
+                    }
+                });
+            }
+
+            // Make position gizmo always visible
+            [this.positionGizmo.xGizmo, this.positionGizmo.yGizmo, this.positionGizmo.zGizmo].forEach(g => {
+                if (g && g.coloredMaterial) {
+                    g.coloredMaterial.disableDepthWrite = false;
+                    g.coloredMaterial.alphaMode = BABYLON.Constants.ALPHA_DISABLE;
+                    g.coloredMaterial.backFaceCulling = false;
+                }
+            });
+            
+            // Create rotation gizmo with utility layer
+            this.rotationGizmo = new BABYLON.RotationGizmo(this.gizmoUtilityLayer);
+            this.rotationGizmo.updateGizmoRotationToMatchAttachedMesh = false;
+            this.rotationGizmo.updateGizmoPositionToMatchAttachedMesh = false;
+            
+            // Store initial position when rotation starts
+            let rotationStartPosition = null;
+            
+            // Override position updates during rotation
+            if (this.rotationGizmo.xGizmo && this.rotationGizmo.xGizmo.dragBehavior) {
+                this.rotationGizmo.xGizmo.dragBehavior.onDragStartObservable.add(() => {
+                    if (this.rotationGizmo.attachedMesh) {
+                        rotationStartPosition = this.rotationGizmo.attachedMesh.position.clone();
+                    }
+                });
+                
+                this.rotationGizmo.xGizmo.dragBehavior.onDragObservable.add(() => {
+                    if (rotationStartPosition && this.rotationGizmo._rootMesh) {
+                        this.rotationGizmo._rootMesh.position.copyFrom(rotationStartPosition);
+                    }
+                });
+            }
+            this.rotationGizmo.scaleRatio = 1.0;
+            // Make rotation gizmo always visible
+            [this.rotationGizmo.xGizmo, this.rotationGizmo.yGizmo, this.rotationGizmo.zGizmo].forEach(g => {
+                if (g && g.coloredMaterial) {
+                    g.coloredMaterial.disableDepthWrite = false;
+                    g.coloredMaterial.alphaMode = BABYLON.Constants.ALPHA_DISABLE;
+                    g.coloredMaterial.backFaceCulling = false;
+                }
+            });
+            
+            // Add observer to update board bounds after rotation
+            // Add drag observers for rotation gizmo
+            
+            // Add individual axis tracking for rotation
+            if (this.rotationGizmo.xGizmo && this.rotationGizmo.xGizmo.dragBehavior) {
+                this.rotationGizmo.xGizmo.dragBehavior.onDragStartObservable.add(() => {
+                    const mesh = this.rotationGizmo.attachedMesh;
+                    if (mesh) {
+                        this.createGhostMesh(mesh);
+                        this.transformType = 'rotation';
+                        this.currentDragAxis = 'x';
+                        if (!this.transformDisplay) {
+                            this.createTransformDisplay();
+                        }
+                    }
+                });
+                
+                
+                this.rotationGizmo.xGizmo.dragBehavior.onDragObservable.add(() => {
+                    const mesh = this.rotationGizmo.attachedMesh;
+                    if (mesh && this.transformStartRotation) {
+                        const delta = mesh.rotation.subtract(this.transformStartRotation);
+                        this.updateTransformDisplay(delta, 'rotation');
+                    }
+                });
+                this.rotationGizmo.xGizmo.dragBehavior.onDragEndObservable.add(() => {
+                    const mesh = this.rotationGizmo.attachedMesh;
+                    if (mesh) {
+                        this.hideTransformDisplay();
+                        this.removeGhostMesh();
+                        mesh.refreshBoundingInfo();
+
+                        // Enforce ground plane constraint - nothing below y=0
+                        mesh.computeWorldMatrix(true);
+                        const bounds = mesh.getBoundingInfo().boundingBox;
+                        const worldMatrix = mesh.getWorldMatrix();
+                        const minWorldY = BABYLON.Vector3.TransformCoordinates(bounds.minimumWorld, worldMatrix).y;
+                        if (minWorldY < 0) {
+                            mesh.position.y -= minWorldY;
+                        }
+                        this.showTransformConfirmationModal(mesh, mesh.rotation, 'rotation');
+                    }
+                });
+            }
+            
+            if (this.rotationGizmo.yGizmo && this.rotationGizmo.yGizmo.dragBehavior) {
+                this.rotationGizmo.yGizmo.dragBehavior.onDragStartObservable.add(() => {
+                    const mesh = this.rotationGizmo.attachedMesh;
+                    if (mesh) {
+                        this.createGhostMesh(mesh);
+                        this.transformType = 'rotation';
+                        this.currentDragAxis = 'y';
+                        if (!this.transformDisplay) {
+                            this.createTransformDisplay();
+                        }
+                    }
+                });
+                
+                
+                this.rotationGizmo.yGizmo.dragBehavior.onDragObservable.add(() => {
+                    const mesh = this.rotationGizmo.attachedMesh;
+                    if (mesh && this.transformStartRotation) {
+                        const delta = mesh.rotation.subtract(this.transformStartRotation);
+                        this.updateTransformDisplay(delta, 'rotation');
+                    }
+                });
+                this.rotationGizmo.yGizmo.dragBehavior.onDragEndObservable.add(() => {
+                    const mesh = this.rotationGizmo.attachedMesh;
+                    if (mesh) {
+                        this.hideTransformDisplay();
+                        this.removeGhostMesh();
+                        mesh.refreshBoundingInfo();
+
+                        // Enforce ground plane constraint - nothing below y=0
+                        mesh.computeWorldMatrix(true);
+                        const bounds = mesh.getBoundingInfo().boundingBox;
+                        const worldMatrix = mesh.getWorldMatrix();
+                        const minWorldY = BABYLON.Vector3.TransformCoordinates(bounds.minimumWorld, worldMatrix).y;
+                        if (minWorldY < 0) {
+                            mesh.position.y -= minWorldY;
+                        }
+                        this.showTransformConfirmationModal(mesh, mesh.rotation, 'rotation');
+                    }
+                });
+            }
+            
+            if (this.rotationGizmo.zGizmo && this.rotationGizmo.zGizmo.dragBehavior) {
+                this.rotationGizmo.zGizmo.dragBehavior.onDragStartObservable.add(() => {
+                    const mesh = this.rotationGizmo.attachedMesh;
+                    if (mesh) {
+                        this.createGhostMesh(mesh);
+                        this.transformType = 'rotation';
+                        this.currentDragAxis = 'z';
+                        if (!this.transformDisplay) {
+                            this.createTransformDisplay();
+                        }
+                    }
+                });
+                
+                
+                this.rotationGizmo.zGizmo.dragBehavior.onDragObservable.add(() => {
+                    const mesh = this.rotationGizmo.attachedMesh;
+                    if (mesh && this.transformStartRotation) {
+                        const delta = mesh.rotation.subtract(this.transformStartRotation);
+                        this.updateTransformDisplay(delta, 'rotation');
+                    }
+                });
+                this.rotationGizmo.zGizmo.dragBehavior.onDragEndObservable.add(() => {
+                    const mesh = this.rotationGizmo.attachedMesh;
+                    if (mesh) {
+                        this.hideTransformDisplay();
+                        this.removeGhostMesh();
+                        mesh.refreshBoundingInfo();
+
+                        // Enforce ground plane constraint - nothing below y=0
+                        mesh.computeWorldMatrix(true);
+                        const bounds = mesh.getBoundingInfo().boundingBox;
+                        const worldMatrix = mesh.getWorldMatrix();
+                        const minWorldY = BABYLON.Vector3.TransformCoordinates(bounds.minimumWorld, worldMatrix).y;
+                        if (minWorldY < 0) {
+                            mesh.position.y -= minWorldY;
+                        }
+                        this.showTransformConfirmationModal(mesh, mesh.rotation, 'rotation');
+                    }
+                });
+            }
+
+
+            
+            // Create scale gizmo with utility layer
+            this.scaleGizmo = new BABYLON.ScaleGizmo(this.gizmoUtilityLayer);
+            this.scaleGizmo.scaleRatio = 0.7;
+            // Make scale gizmo always visible
+            [this.scaleGizmo.xGizmo, this.scaleGizmo.yGizmo, this.scaleGizmo.zGizmo].forEach(g => {
+                if (g && g.coloredMaterial) {
+                    g.coloredMaterial.disableDepthWrite = false;
+                    g.coloredMaterial.alphaMode = BABYLON.Constants.ALPHA_DISABLE;
+                    g.coloredMaterial.backFaceCulling = false;
+                }
+            });
+            if (this.scaleGizmo.uniformScaleGizmo) {
+                this.scaleGizmo.uniformScaleGizmo.coloredMaterial.disableDepthWrite = false;
+                this.scaleGizmo.uniformScaleGizmo.coloredMaterial.alphaMode = BABYLON.Constants.ALPHA_DISABLE;
+                this.scaleGizmo.uniformScaleGizmo.coloredMaterial.backFaceCulling = false;
+            }
+            
+            // Add scale tool modal
+            if (this.scaleGizmo.uniformScaleGizmo && this.scaleGizmo.uniformScaleGizmo.dragBehavior) {
+                this.scaleGizmo.uniformScaleGizmo.dragBehavior.onDragEndObservable.add(() => {
+                    const mesh = this.scaleGizmo.attachedMesh;
+                    if (mesh) {
+                        this.showTransformConfirmationModal(mesh, mesh.scaling, 'scale');
+                    }
+                });
+            
+            }
+            
+            console.log('Gizmos created with utility layer');
         }
         
-        // NOW attach to mesh
-        this.gizmoManager.attachToMesh(mesh);
-        
-        // Debug: Check if gizmos exist
-        console.log('🔍 GIZMO DEBUG:');
-        console.log('  - GizmoManager exists:', !!this.gizmoManager);
-        console.log('  - Attached mesh:', this.gizmoManager.attachedMesh?.name);
-        console.log('  - Position gizmo exists:', !!this.gizmoManager.gizmos.positionGizmo);
-        console.log('  - Rotation gizmo exists:', !!this.gizmoManager.gizmos.rotationGizmo);
-        console.log('  - Scale gizmo exists:', !!this.gizmoManager.gizmos.scaleGizmo);
-        console.log("📎 Attached to mesh:", this.gizmoManager.attachedMesh?.name);
-        console.log("Position enabled:", this.gizmoManager.positionGizmoEnabled);
-        console.log("Rotation enabled:", this.gizmoManager.rotationGizmoEnabled);
-        console.log("Scale enabled:", this.gizmoManager.scaleGizmoEnabled);
-        
-        // Gizmo already enabled before attach
+        // Attach to mesh based on active tool
+        if (this.activeTool === 'move' && this.positionGizmo) {
+            this.positionGizmo.attachedMesh = mesh;
+            this.rotationGizmo.attachedMesh = null;
+            this.scaleGizmo.attachedMesh = null;
+            
+            // Let Babylon position it initially
+            this.positionGizmo.updateGizmoPositionToMatchAttachedMesh = true;
+            
+            // Move gizmo above board after a delay, then disable auto-updates
+            setTimeout(() => {
+                if (mesh && mesh.getBoundingInfo && this.positionGizmo.gizmoLayer) {
+                    const bounds = mesh.getBoundingInfo().boundingBox;
+                    const height = bounds.maximumWorld.y - bounds.minimumWorld.y;
+                    const yOffset = height / 2 + 5;
+                    
+                    // Disable auto-updates FIRST
+                    this.positionGizmo.updateGizmoPositionToMatchAttachedMesh = false;
+                    
+                    const scene = this.positionGizmo.gizmoLayer.utilityLayerScene;
+                    
+                    // Now move all gizmoRootNode meshes
+                    scene.meshes.forEach(m => {
+                        if (m.name === 'gizmoRootNode') {
+                            console.log('Setting gizmo node Y to:', mesh.position.y + yOffset);
+                            m.position.x = mesh.position.x;
+                            m.position.y = mesh.position.y + yOffset;
+                            m.position.z = mesh.position.z;
+                        }
+                    });
+                    
+                    // Track mesh movement to update gizmo position manually
+                    if (this.gizmoTrackObserver) {
+                        this.scene.onBeforeRenderObservable.remove(this.gizmoTrackObserver);
+                    }
+                    
+                    this.gizmoTrackObserver = this.scene.onBeforeRenderObservable.add(() => {
+                        // Always recalculate bounds for current orientation
+                        mesh.refreshBoundingInfo();
+                        if (this.positionGizmo && this.positionGizmo.attachedMesh === mesh) {
+                            const currentBounds = mesh.getBoundingInfo().boundingBox;
+                            const currentHeight = currentBounds.maximumWorld.y - currentBounds.minimumWorld.y;
+                            const currentOffset = currentHeight / 2 + 5;
+                            
+                            // Update gizmo position manually
+                            scene.meshes.forEach(m => {
+                                if (m.name === 'gizmoRootNode') {
+                                    m.position.x = mesh.position.x;
+                                    m.position.y = mesh.position.y + currentOffset;
+                                    m.position.z = mesh.position.z;
+                                }
+                            });
+                        }
+                    });
+                }
+            }, 50); // Quick delay
+            
+            console.log('Attached position gizmo to mesh');
+        } else if (this.activeTool === 'rotate' && this.rotationGizmo) {
+            // Clear tracking observer
+            if (this.gizmoTrackObserver) {
+                this.scene.onBeforeRenderObservable.remove(this.gizmoTrackObserver);
+                this.gizmoTrackObserver = null;
+            }
+            
+            this.positionGizmo.attachedMesh = null;
+            this.rotationGizmo.attachedMesh = mesh;
+            this.scaleGizmo.attachedMesh = null;
+            
+            this.rotationGizmo.updateGizmoPositionToMatchAttachedMesh = false;
+            
+            setTimeout(() => {
+                if (mesh && mesh.getBoundingInfo && this.rotationGizmo.gizmoLayer) {
+                    const bounds = mesh.getBoundingInfo().boundingBox;
+                    const height = bounds.maximumWorld.y - bounds.minimumWorld.y;
+                    const yOffset = height / 2 + 5;
+                    
+                    this.rotationGizmo.updateGizmoPositionToMatchAttachedMesh = false;
+                    
+                    const scene = this.rotationGizmo.gizmoLayer.utilityLayerScene;
+                    scene.meshes.forEach(m => {
+                        if (m.name === 'gizmoRootNode') {
+                            m.position.x = mesh.position.x;
+                            m.position.y = mesh.position.y + yOffset;
+                            m.position.z = mesh.position.z;
+                        }
+                    });
+                    
+                    if (this.gizmoTrackObserver) {
+                        this.scene.onBeforeRenderObservable.remove(this.gizmoTrackObserver);
+                    }
+                    
+                    // For rotation, we DON'T want the gizmo to track the mesh position
+                    // The gizmo should stay fixed in place while the object rotates
+                    console.log('Rotation gizmo: NOT adding position tracking observer');
+                }
+            }, 50);
+            
+            console.log('Attached rotation gizmo to mesh');
+        } else if (this.activeTool === 'scale' && this.scaleGizmo) {
+            // Clear tracking observer
+            if (this.gizmoTrackObserver) {
+                this.scene.onBeforeRenderObservable.remove(this.gizmoTrackObserver);
+                this.gizmoTrackObserver = null;
+            }
+            
+            this.positionGizmo.attachedMesh = null;
+            this.rotationGizmo.attachedMesh = null;
+            this.scaleGizmo.attachedMesh = mesh;
+            
+            this.scaleGizmo.updateGizmoPositionToMatchAttachedMesh = true;
+            
+            // Force refresh bounds in case mesh was rotated
+            mesh.refreshBoundingInfo();
+            
+            setTimeout(() => {
+                if (mesh && mesh.getBoundingInfo && this.scaleGizmo.gizmoLayer) {
+                    const bounds = mesh.getBoundingInfo().boundingBox;
+                    const height = bounds.maximumWorld.y - bounds.minimumWorld.y;
+                    const yOffset = height / 2 + 5;
+                    
+                    this.scaleGizmo.updateGizmoPositionToMatchAttachedMesh = false;
+                    
+                    const scene = this.scaleGizmo.gizmoLayer.utilityLayerScene;
+                    scene.meshes.forEach(m => {
+                        if (m.name === 'gizmoRootNode') {
+                            m.position.x = mesh.position.x;
+                            m.position.y = mesh.position.y + yOffset;
+                            m.position.z = mesh.position.z;
+                        }
+                    });
+                    
+                    if (this.gizmoTrackObserver) {
+                        this.scene.onBeforeRenderObservable.remove(this.gizmoTrackObserver);
+                    }
+                    
+                    this.gizmoTrackObserver = this.scene.onBeforeRenderObservable.add(() => {
+                        // Always recalculate bounds for current orientation
+                        mesh.refreshBoundingInfo();
+                        if (this.scaleGizmo && this.scaleGizmo.attachedMesh === mesh) {
+                            const currentBounds = mesh.getBoundingInfo().boundingBox;
+                            const currentHeight = currentBounds.maximumWorld.y - currentBounds.minimumWorld.y;
+                            const currentOffset = currentHeight / 2 + 5;
+                            
+                            scene.meshes.forEach(m => {
+                                if (m.name === 'gizmoRootNode') {
+                                    m.position.x = mesh.position.x;
+                                    m.position.y = mesh.position.y + currentOffset;
+                                    m.position.z = mesh.position.z;
+                                }
+                            });
+                        }
+                    });
+                }
+            }, 50);
+            
+            console.log('Attached scale gizmo to mesh');
+        }
         
         console.log('Gizmo setup complete for tool:', this.activeTool);
     }
@@ -10888,20 +11371,23 @@ class DrawingWorld {
         }
         
         // Re-enable auto updates before clearing
-        // Clean up GizmoManager
-        if (this.gizmoManager) {
-            this.gizmoManager.attachToMesh(null);
+        if (this.positionGizmo) {
+            this.positionGizmo.updateGizmoPositionToMatchAttachedMesh = true;
+            this.positionGizmo.attachedMesh = null;
+        }
+        if (this.rotationGizmo) {
+            this.rotationGizmo.updateGizmoPositionToMatchAttachedMesh = false;
+            this.rotationGizmo.attachedMesh = null;
+        }
+        if (this.scaleGizmo) {
+            this.scaleGizmo.updateGizmoPositionToMatchAttachedMesh = true;
+            this.scaleGizmo.attachedMesh = null;
         }
         
         console.log('Cleared all drag handles and gizmos');
     }
     rotatePart(degrees, axis) {
-        console.log("🔧 rotatePart called:", degrees, axis);
-        console.log("selectedPart:", this.selectedPart);
-        if (!this.selectedPart) {
-            console.error("❌ No selectedPart!");
-            return;
-        }
+        if (!this.selectedPart) return;
         
         const mesh = this.scene.meshes.find(m => m.partData === this.selectedPart);
         if (!mesh) return;
@@ -10978,10 +11464,7 @@ class DrawingWorld {
     }
 
     flipPart(axis) {
-        if (!this.selectedPart) {
-            console.error("❌ No selectedPart!");
-            return;
-        }
+        if (!this.selectedPart) return;
         
         const mesh = this.scene.meshes.find(m => m.partData === this.selectedPart);
         if (!mesh) return;
@@ -11020,10 +11503,7 @@ class DrawingWorld {
     }
 
     flattenBoard() {
-        if (!this.selectedPart) {
-            console.error("❌ No selectedPart!");
-            return;
-        }
+        if (!this.selectedPart) return;
         
         const mesh = this.scene.meshes.find(m => m.partData === this.selectedPart);
         if (!mesh) return;
@@ -11045,10 +11525,7 @@ class DrawingWorld {
     }
 
     dropPart() {
-        if (!this.selectedPart) {
-            console.error("❌ No selectedPart!");
-            return;
-        }
+        if (!this.selectedPart) return;
         
         const mesh = this.scene.meshes.find(m => m.partData === this.selectedPart);
         if (!mesh) return;
@@ -11072,10 +11549,7 @@ class DrawingWorld {
     }
 
     standOnEndEdge() {
-        if (!this.selectedPart) {
-            console.error("❌ No selectedPart!");
-            return;
-        }
+        if (!this.selectedPart) return;
         
         const mesh = this.scene.meshes.find(m => m.partData === this.selectedPart);
         if (!mesh) return;
@@ -11096,10 +11570,7 @@ class DrawingWorld {
     }
 
     standOnSideEdge() {
-        if (!this.selectedPart) {
-            console.error("❌ No selectedPart!");
-            return;
-        }
+        if (!this.selectedPart) return;
         
         const mesh = this.scene.meshes.find(m => m.partData === this.selectedPart);
         if (!mesh) return;
@@ -12552,217 +13023,3 @@ console.log('   debugBoardComparison() - Compare all boards');
 console.log('   testLoadedBoardCutting() - Test cutting loaded boards');
 console.log('   identifyBoardDifferences() - Find differences between boards');
 });
-// DIRECT GIZMO TEST
-window.testGizmoDirectly = () => {
-    console.log('===== DIRECT GIZMO TEST =====');
-    
-    // Get the first workbench part mesh
-    const mesh = drawingWorld.scene.meshes.find(m => m.isWorkBenchPart);
-    if (!mesh) {
-        console.log('No workbench part found to test with');
-        return;
-    }
-    
-    console.log('Testing with mesh:', mesh.name);
-    
-    // Create a brand new GizmoManager
-    if (drawingWorld.testGM) {
-        drawingWorld.testGM.dispose();
-    }
-    
-    drawingWorld.testGM = new BABYLON.GizmoManager(drawingWorld.scene);
-    drawingWorld.testGM.usePointerToAttachGizmos = false;
-    
-    // Enable position gizmo FIRST
-    drawingWorld.testGM.positionGizmoEnabled = true;
-    
-    // THEN attach to mesh
-    drawingWorld.testGM.attachToMesh(mesh);
-    
-    console.log('GizmoManager created and attached');
-    console.log('Position gizmo enabled:', drawingWorld.testGM.positionGizmoEnabled);
-    console.log('Attached mesh:', drawingWorld.testGM.attachedMesh?.name);
-    console.log('Position gizmo object:', drawingWorld.testGM.gizmos.positionGizmo);
-    
-    return drawingWorld.testGM;
-};
-
-// TEST WITH MANUAL GIZMO CREATION
-window.testManualGizmo = () => {
-    console.log('===== MANUAL GIZMO TEST =====');
-    
-    // Get the first workbench part mesh
-    const mesh = drawingWorld.scene.meshes.find(m => m.isWorkBenchPart);
-    if (!mesh) {
-        console.log('No workbench part found to test with');
-        return;
-    }
-    
-    console.log('Testing with mesh:', mesh.name);
-    
-    // Dispose old gizmo if exists
-    if (drawingWorld.manualGizmo) {
-        drawingWorld.manualGizmo.dispose();
-    }
-    
-    // Create position gizmo directly
-    drawingWorld.manualGizmo = new BABYLON.PositionGizmo();
-    drawingWorld.manualGizmo.attachedMesh = mesh;
-    drawingWorld.manualGizmo.scaleRatio = 2;
-    
-    // Update gizmo to show  
-    drawingWorld.manualGizmo.updateGizmoRotationToMatchAttachedMesh = true;
-    drawingWorld.manualGizmo.updateGizmoPositionToMatchAttachedMesh = true;
-    
-    console.log('Manual PositionGizmo created and attached');
-    console.log('Gizmo:', drawingWorld.manualGizmo);
-    console.log('Attached to:', mesh.name);
-    
-    return drawingWorld.manualGizmo;
-};
-
-// TEST GIZMO WITH UTILITY LAYER
-window.testGizmoWithLayer = () => {
-    console.log('===== GIZMO WITH UTILITY LAYER TEST =====');
-    
-    // Get the first workbench part mesh
-    const mesh = drawingWorld.scene.meshes.find(m => m.isWorkBenchPart);
-    if (!mesh) {
-        console.log('No workbench part found to test with');
-        return;
-    }
-    
-    console.log('Testing with mesh:', mesh.name);
-    
-    // Create utility layer if it doesn't exist
-    if (!drawingWorld.utilityLayer) {
-        drawingWorld.utilityLayer = new BABYLON.UtilityLayerRenderer(drawingWorld.scene);
-        console.log('Created utility layer');
-    }
-    
-    // Dispose old gizmo if exists
-    if (drawingWorld.testGizmoWL) {
-        drawingWorld.testGizmoWL.dispose();
-    }
-    
-    // Create position gizmo with utility layer
-    drawingWorld.testGizmoWL = new BABYLON.PositionGizmo(drawingWorld.utilityLayer);
-    drawingWorld.testGizmoWL.attachedMesh = mesh;
-    drawingWorld.testGizmoWL.scaleRatio = 2;
-    
-    // Force update
-    drawingWorld.testGizmoWL.updateGizmoRotationToMatchAttachedMesh = true;
-    drawingWorld.testGizmoWL.updateGizmoPositionToMatchAttachedMesh = true;
-    
-    console.log('PositionGizmo with utility layer created');
-    console.log('Gizmo:', drawingWorld.testGizmoWL);
-    console.log('Utility layer:', drawingWorld.utilityLayer);
-    console.log('Attached to:', mesh.name);
-    
-    // Also check visibility
-    console.log('Gizmo root mesh:', drawingWorld.testGizmoWL._rootMesh);
-    if (drawingWorld.testGizmoWL._rootMesh) {
-        console.log('Root mesh visible:', drawingWorld.testGizmoWL._rootMesh.isVisible);
-        console.log('Root mesh enabled:', drawingWorld.testGizmoWL._rootMesh.isEnabled());
-    }
-    
-    return drawingWorld.testGizmoWL;
-};
-
-// WORKING GIZMO IMPLEMENTATION
-window.createWorkingGizmo = () => {
-    console.log('===== CREATING WORKING GIZMO =====');
-    
-    const mesh = drawingWorld.scene.meshes.find(m => m.isWorkBenchPart);
-    if (!mesh) {
-        console.log('No workbench part found');
-        return;
-    }
-    
-    // Dispose any existing test gizmos
-    if (drawingWorld.workingGizmo) {
-        drawingWorld.workingGizmo.dispose();
-    }
-    
-    // Create a new utility layer
-    const utilityLayer = new BABYLON.UtilityLayerRenderer(drawingWorld.scene);
-    
-    // Create position gizmo with the utility layer
-    drawingWorld.workingGizmo = new BABYLON.PositionGizmo(utilityLayer);
-    
-    // IMPORTANT: Set scale BEFORE attaching
-    drawingWorld.workingGizmo.scaleRatio = 3;
-    
-    // Attach to mesh
-    drawingWorld.workingGizmo.attachedMesh = mesh;
-    
-    // Make sure it updates position
-    drawingWorld.workingGizmo.updateGizmoRotationToMatchAttachedMesh = true;
-    drawingWorld.workingGizmo.updateGizmoPositionToMatchAttachedMesh = true;
-    
-    console.log('Created working gizmo');
-    console.log('Attached to:', mesh.name);
-    console.log('Position:', mesh.position);
-    
-    // Force visibility
-    const gizmoMeshes = utilityLayer.utilityLayerScene.meshes;
-    gizmoMeshes.forEach(m => {
-        m.isVisible = true;
-        console.log('Gizmo mesh:', m.name, 'visible:', m.isVisible);
-    });
-    
-    return drawingWorld.workingGizmo;
-};
-
-// DEBUG ROTATION GIZMO
-window.debugRotationGizmo = () => {
-    console.log('===== ROTATION GIZMO DEBUG =====');
-    
-    if (!drawingWorld.gizmoManager) {
-        console.log('No gizmoManager exists');
-        return;
-    }
-    
-    console.log('GizmoManager:', drawingWorld.gizmoManager);
-    console.log('Rotation enabled:', drawingWorld.gizmoManager.rotationGizmoEnabled);
-    console.log('Position enabled:', drawingWorld.gizmoManager.positionGizmoEnabled);
-    console.log('Scale enabled:', drawingWorld.gizmoManager.scaleGizmoEnabled);
-    console.log('Attached mesh:', drawingWorld.gizmoManager.attachedMesh?.name);
-    
-    console.log('Gizmos object:', drawingWorld.gizmoManager.gizmos);
-    console.log('Rotation gizmo:', drawingWorld.gizmoManager.gizmos.rotationGizmo);
-    
-    if (drawingWorld.gizmoManager.gizmos.rotationGizmo) {
-        const rg = drawingWorld.gizmoManager.gizmos.rotationGizmo;
-        console.log('Rotation gizmo exists!');
-        console.log('Attached mesh:', rg.attachedMesh?.name);
-        console.log('Attached node:', rg.attachedNode?.name);
-        console.log('Scale ratio:', rg.scaleRatio);
-        
-        // Check individual axis gizmos
-        console.log('X gizmo:', rg.xGizmo);
-        console.log('Y gizmo:', rg.yGizmo);
-        console.log('Z gizmo:', rg.zGizmo);
-        
-        if (rg.xGizmo) {
-            console.log('X gizmo isEnabled:', rg.xGizmo.isEnabled);
-            console.log('X gizmo attachedMesh:', rg.xGizmo.attachedMesh?.name);
-        }
-    } else {
-        console.log('No rotation gizmo created!');
-    }
-    
-    // Try to manually create one
-    console.log('\nAttempting manual rotation gizmo creation...');
-    const mesh = drawingWorld.scene.meshes.find(m => m.isWorkBenchPart);
-    if (mesh) {
-        drawingWorld.gizmoManager.attachToMesh(null); // Detach first
-        drawingWorld.gizmoManager.positionGizmoEnabled = false;
-        drawingWorld.gizmoManager.scaleGizmoEnabled = false;
-        drawingWorld.gizmoManager.rotationGizmoEnabled = true;
-        drawingWorld.gizmoManager.attachToMesh(mesh);
-        
-        console.log('After manual attempt:');
-        console.log('Rotation gizmo:', drawingWorld.gizmoManager.gizmos.rotationGizmo);
-    }
-};

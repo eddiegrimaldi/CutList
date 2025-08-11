@@ -666,9 +666,13 @@ export class CutToolSystem {
         // Clear existing preview pieces
         this.clearColoredPreviewPieces();
         
+        // CRITICAL: Update world matrix to ensure current transform is used
+        mesh.computeWorldMatrix(true);
+        
         const meshBounds = mesh.getBoundingInfo();
         const meshSize = meshBounds.maximum.subtract(meshBounds.minimum);
-        const meshCenter = mesh.position;
+        const meshCenter = mesh.getAbsolutePosition();
+        const meshRotation = mesh.rotation.clone();
         
         // Calculate cut position
         const cutAxis = cutLine.cutAxis;
@@ -755,6 +759,9 @@ export class CutToolSystem {
         this.leftPreviewPiece.material = leftMaterial;
         this.leftPreviewPiece.isPickable = false;
         
+        // CRITICAL FIX: Apply the board's rotation to the preview piece
+        this.leftPreviewPiece.rotation = meshRotation;
+        
         // Create right preview piece (blue) - slightly larger to avoid z-fighting
         this.rightPreviewPiece = BABYLON.MeshBuilder.CreateBox("rightPreview", {
             width: rightSize.x * 1.001,
@@ -770,6 +777,9 @@ export class CutToolSystem {
         rightMaterial.wireframe = false;
         this.rightPreviewPiece.material = rightMaterial;
         this.rightPreviewPiece.isPickable = false;
+        
+        // CRITICAL FIX: Apply the board's rotation to the preview piece
+        this.rightPreviewPiece.rotation = meshRotation;
         
     }
     
@@ -946,10 +956,15 @@ export class CutToolSystem {
      * Calculate cut line geometry based on cut direction and mouse position
      */
     calculateCutLine(mesh, dimensions, pickInfo) {
+        // CRITICAL: Force world matrix update to get current transform
+        mesh.computeWorldMatrix(true);
+        
         // FRESH calculation every time - no cached values
         const meshBounds = mesh.getBoundingInfo();
         const meshSize = meshBounds.maximum.subtract(meshBounds.minimum);
-        const meshCenter = mesh.position;
+        
+        // Use absolute position for rotated meshes
+        const meshCenter = mesh.getAbsolutePosition();
         
         // Project mouse onto the mesh to get cut position
         const hitPoint = pickInfo.pickedPoint;
@@ -1021,7 +1036,8 @@ export class CutToolSystem {
             cutLine.depth = meshSize.z + 1;
             
             // Position blade at hit point but constrain to mesh bounds
-            const xPos = Math.max(meshCenter.x - meshSize.x/2, Math.min(meshCenter.x + meshSize.x/2, hitPoint.x));
+            // Use local hit point for proper rotation handling
+            const xPos = Math.max(meshCenter.x - meshSize.x/2, Math.min(meshCenter.x + meshSize.x/2, meshCenter.x + localHitPoint.x));
             cutLine.position = new BABYLON.Vector3(xPos, meshCenter.y, meshCenter.z);
             cutLine.normalizedPosition = (xPos - (meshCenter.x - meshSize.x/2)) / meshSize.x;
             
@@ -1031,7 +1047,8 @@ export class CutToolSystem {
             cutLine.depth = meshSize.z + 1;
             
             // Position blade at hit point but constrain to mesh bounds
-            const yPos = Math.max(meshCenter.y - meshSize.y/2, Math.min(meshCenter.y + meshSize.y/2, hitPoint.y));
+            // Use local hit point for proper rotation handling
+            const yPos = Math.max(meshCenter.y - meshSize.y/2, Math.min(meshCenter.y + meshSize.y/2, meshCenter.y + localHitPoint.y));
             cutLine.position = new BABYLON.Vector3(meshCenter.x, yPos, meshCenter.z);
             cutLine.normalizedPosition = (yPos - (meshCenter.y - meshSize.y/2)) / meshSize.y;
             
@@ -1041,7 +1058,8 @@ export class CutToolSystem {
             cutLine.depth = 0.3;
             
             // Position blade at hit point but constrain to mesh bounds
-            const zPos = Math.max(meshCenter.z - meshSize.z/2, Math.min(meshCenter.z + meshSize.z/2, hitPoint.z));
+            // Use local hit point for proper rotation handling
+            const zPos = Math.max(meshCenter.z - meshSize.z/2, Math.min(meshCenter.z + meshSize.z/2, meshCenter.z + localHitPoint.z));
             cutLine.position = new BABYLON.Vector3(meshCenter.x, meshCenter.y, zPos);
             cutLine.normalizedPosition = (zPos - (meshCenter.z - meshSize.z/2)) / meshSize.z;
         }

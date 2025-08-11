@@ -892,6 +892,7 @@ class DrawingWorld {
         
         // Materials system
         this.materialsLibrary = null;
+        this.textureCache = new Map(); // Cache for loaded textures
         this.boardFactory = null;
         this.projectParts = [];
         this.workBenchParts = [];
@@ -8799,7 +8800,7 @@ class DrawingWorld {
 
     getMaterialColor(materialId) {
         const uniqueId = Date.now() + "_" + Math.random().toString(36).substr(2, 9);
-        console.log("🎨 Creating unique material for:", materialId, "ID:", uniqueId);
+        // Creating unique material instance
         const material = new BABYLON.StandardMaterial(materialId + "_material_" + uniqueId, this.scene);
         
         
@@ -8808,16 +8809,16 @@ class DrawingWorld {
         if (this.materialsLibrary) {
             const materialData = this.materialsLibrary.getMaterial(materialId);
             if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                console.log("🖼️ Loading texture:", materialData.visual_assets.texture_diffuse);
+                // Loading texture from materials database
                 
                 try {
                     const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
                     material.diffuseTexture = texture;
                     material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine for wood
-                    console.log("✅ Texture loaded successfully");
+                    // Texture loaded successfully
                     return material;
                 } catch (error) {
-                    console.warn("⚠️ Failed to load texture, falling back to color:", error);
+                    console.warn("Failed to load texture for " + materialId + ", using fallback color");
                 }
             }
         }
@@ -8834,7 +8835,7 @@ class DrawingWorld {
         };
         
         material.diffuseColor = colorMap[materialId] || new BABYLON.Color3(0.8, 0.8, 0.8);
-        console.log("🎨 Using solid color fallback");
+        // Using solid color fallback
         return material;
     }
 
@@ -9226,18 +9227,41 @@ class DrawingWorld {
                 }
                 // CRITICAL FIX: Load texture from materials library for restored boards
                 const materialName = meshData.material.name;
+                console.log("🔍 Restoring texture for material:", materialName);
                 if (materialName && this.materialsLibrary) {
                     const materialId = materialName.split("_material_")[0];
+                    console.log("🔍 Extracted material ID:", materialId);
                     const materialData = this.materialsLibrary.getMaterial(materialId);
                     if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
-                        try {
-                            const texture = new BABYLON.Texture(materialData.visual_assets.texture_diffuse, this.scene);
+                        const texturePath = materialData.visual_assets.texture_diffuse;
+                        console.log("🔍 Found texture path:", texturePath);
+                        
+                        // Check texture cache first
+                        let texture = this.textureCache ? this.textureCache.get(texturePath) : null;
+                        if (!texture) {
+                            try {
+                                texture = new BABYLON.Texture(texturePath, this.scene);
+                                if (this.textureCache) {
+                                    this.textureCache.set(texturePath, texture);
+                                    console.log("📦 Cached texture for restored board:", materialId);
+                                }
+                            } catch (error) {
+                                console.warn("Failed to load texture for restored mesh:", error);
+                            }
+                        } else {
+                            console.log("♻️ Using cached texture for restored board:", materialId);
+                        }
+                        
+                        if (texture) {
                             material.diffuseTexture = texture;
                             material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1);
-                        } catch (error) {
-                            console.warn("Failed to load texture for restored mesh:", error);
+                            console.log("✅ Texture applied to restored board:", materialId);
                         }
+                    } else {
+                        console.log("⚠️ No texture data found for material:", materialId);
                     }
+                } else {
+                    console.log("⚠️ MaterialsLibrary not available or no material name");
                 }
                 
                 mesh.material = material;

@@ -704,9 +704,9 @@ export class CutToolSystem {
             leftSize.x = leftWidth;
             rightSize.x = rightWidth;
             
-            // CORRECTED: Position pieces using world coordinates
-            leftCenter.x = worldMinX + leftWidth / 2;
-            rightCenter.x = worldMaxX - rightWidth / 2;
+            // CORRECTED: Position pieces relative to cut position
+            leftCenter.x = (worldMinX + cutPos - halfKerf) / 2;
+            rightCenter.x = (cutPos + halfKerf + worldMaxX) / 2;
             
             
         } else if (cutAxis === 'y') {
@@ -721,9 +721,9 @@ export class CutToolSystem {
             leftSize.y = leftDepth;
             rightSize.y = rightDepth;
             
-            // CORRECTED: Position pieces using world coordinates
-            leftCenter.y = worldMinY + leftDepth / 2;
-            rightCenter.y = worldMaxY - rightDepth / 2;
+            // CORRECTED: Position pieces relative to cut position
+            leftCenter.y = (worldMinY + cutPos - halfKerf) / 2;
+            rightCenter.y = (cutPos + halfKerf + worldMaxY) / 2;
             
             
         } else { // z axis
@@ -738,9 +738,9 @@ export class CutToolSystem {
             leftSize.z = leftHeight;
             rightSize.z = rightHeight;
             
-            // CORRECTED: Position pieces using world coordinates
-            leftCenter.z = worldMinZ + leftHeight / 2;
-            rightCenter.z = worldMaxZ - rightHeight / 2;
+            // CORRECTED: Position pieces relative to cut position
+            leftCenter.z = (worldMinZ + cutPos - halfKerf) / 2;
+            rightCenter.z = (cutPos + halfKerf + worldMaxZ) / 2;
             
             // Reduced Z-axis debug logging
         }
@@ -752,7 +752,7 @@ export class CutToolSystem {
             depth: leftSize.z * 1.001
         }, this.scene);
         this.leftPreviewPiece.position = leftCenter;
-        this.leftPreviewPiece.position.y += 0.2; // Slightly above surface
+        this.leftPreviewPiece.position.y += 0.05; // Very slightly above surface to stay on board
         
         const leftMaterial = new BABYLON.StandardMaterial("leftPreviewMaterial", this.scene);
         leftMaterial.diffuseColor = new BABYLON.Color3(0, 1, 0); // Green
@@ -764,6 +764,11 @@ export class CutToolSystem {
         // CRITICAL FIX: Apply the board's rotation to the preview piece
         this.leftPreviewPiece.rotation = meshRotation;
         
+        // Set parent to match board's parent (if any) for proper transform inheritance
+        if (mesh.parent) {
+            this.leftPreviewPiece.parent = mesh.parent;
+        }
+        
         // Create right preview piece (blue) - slightly larger to avoid z-fighting
         this.rightPreviewPiece = BABYLON.MeshBuilder.CreateBox("rightPreview", {
             width: rightSize.x * 1.001,
@@ -771,7 +776,7 @@ export class CutToolSystem {
             depth: rightSize.z * 1.001
         }, this.scene);
         this.rightPreviewPiece.position = rightCenter;
-        this.rightPreviewPiece.position.y += 0.2; // Slightly above surface
+        this.rightPreviewPiece.position.y += 0.05; // Very slightly above surface to stay on board
         
         const rightMaterial = new BABYLON.StandardMaterial("rightPreviewMaterial", this.scene);
         rightMaterial.diffuseColor = new BABYLON.Color3(0, 0, 1); // Blue
@@ -782,6 +787,11 @@ export class CutToolSystem {
         
         // CRITICAL FIX: Apply the board's rotation to the preview piece
         this.rightPreviewPiece.rotation = meshRotation;
+        
+        // Set parent to match board's parent (if any) for proper transform inheritance
+        if (mesh.parent) {
+            this.rightPreviewPiece.parent = mesh.parent;
+        }
         
     }
     

@@ -10789,6 +10789,54 @@ class DrawingWorld {
         }
     }
 
+
+    // Calculate appropriate gizmo scale based on object and viewport
+    calculateGizmoScale(mesh) {
+        if (!mesh || !this.camera) return 1.0;
+        
+        // Get mesh bounding box
+        mesh.computeWorldMatrix(true);
+        const boundingInfo = mesh.getBoundingInfo();
+        const meshSize = boundingInfo.boundingBox.maximum.subtract(boundingInfo.boundingBox.minimum);
+        const maxMeshDimension = Math.max(meshSize.x, meshSize.y, meshSize.z);
+        
+        // Calculate viewport size for gizmo scaling
+        const distance = BABYLON.Vector3.Distance(this.camera.position, mesh.position);
+        const fov = this.camera.fov;
+        
+        // When zoomed out (large distance), we want larger gizmos
+        // When zoomed in (small distance), we want smaller gizmos
+        // So we use distance directly as a scaling factor
+        const viewportScale = distance * 0.1; // Base scale on camera distance
+        
+        // Rule 1: Never bigger than the object
+        const objectScale = maxMeshDimension * 0.5; // 50% of object size max
+        
+        // Rule 2 & 3: Scale based on camera distance
+        const idealScale = viewportScale * 0.5; // Adjust multiplier as needed
+        const maxScale = viewportScale * 1.0; // Max relative to distance
+        const minScale = viewportScale * 0.1; // Min relative to distance
+        
+        // Apply all constraints
+        let scale = Math.min(objectScale, idealScale);
+        scale = Math.min(scale, maxScale);
+        scale = Math.max(scale, minScale);
+        
+        // Final scale ratio
+        const scaleRatio = scale;
+        
+        console.log('Gizmo scale calculated:', {
+            meshSize: maxMeshDimension,
+            viewportSize: viewportSize,
+            objectScale: objectScale,
+            maxViewportScale: maxViewportScale,
+            minViewportScale: minViewportScale,
+            finalScale: scaleRatio
+        });
+        
+        return scaleRatio;
+    }
+
         createDragHandles(mesh) {
         console.log("🎯 createDragHandles called with mesh:", mesh?.name, "Tool:", this.activeTool);
         console.log("GizmoManager exists?", !!this.gizmoManager);
@@ -10833,7 +10881,7 @@ class DrawingWorld {
             console.log('Created GizmoManager');
             
             // Configure gizmo visibility and size
-            this.gizmoManager.scaleRatio = 5.0; // Make gizmos larger
+            this.gizmoManager.scaleRatio = 1.0; // Will be set dynamically per mesh
             this.gizmoManager.usePointerToAttachGizmos = false; // Don't auto-attach on click
         }
         
@@ -10852,7 +10900,7 @@ class DrawingWorld {
             // Configure rotation gizmo after enabling
             if (this.gizmoManager.gizmos.rotationGizmo) {
                 this.gizmoManager.gizmos.rotationGizmo.updateGizmoRotationToMatchAttachedMesh = false;
-                this.gizmoManager.gizmos.rotationGizmo.scaleRatio = 2;
+                // Scale will be set after attachment
                 console.log('Configured rotation gizmo');
             }
         } else if (this.activeTool === 'scale') {
@@ -10864,6 +10912,136 @@ class DrawingWorld {
         // NOW attach to mesh
         this.gizmoManager.attachToMesh(mesh);
         
+        // Calculate and set appropriate gizmo scale after attachment
+        const gizmoScale = this.calculateGizmoScale(mesh);
+        this.gizmoManager.scaleRatio = gizmoScale;
+
+        // Add observer to update gizmo scale when camera moves/zooms
+        if (this.gizmoScaleObserver) {
+            this.scene.onBeforeRenderObservable.remove(this.gizmoScaleObserver);
+        }
+        
+        this.gizmoScaleObserver = this.scene.onBeforeRenderObservable.add(() => {
+            if (this.gizmoManager && this.gizmoManager.attachedMesh) {
+                const newScale = this.calculateGizmoScale(this.gizmoManager.attachedMesh);
+                // Only update if scale changed significantly
+                if (Math.abs(this.gizmoManager.scaleRatio - newScale) > 0.1) {
+                    this.gizmoManager.scaleRatio = newScale;
+                    
+                    // Update individual gizmos if they exist
+                    if (this.gizmoManager.gizmos.positionGizmo) {
+                        this.gizmoManager.gizmos.positionGizmo.scaleRatio = newScale;
+                    }
+                    if (this.gizmoManager.gizmos.rotationGizmo) {
+                        this.gizmoManager.gizmos.rotationGizmo.scaleRatio = newScale;
+                    }
+                    if (this.gizmoManager.gizmos.scaleGizmo) {
+                        this.gizmoManager.gizmos.scaleGizmo.scaleRatio = newScale;
+                    }
+                }
+            }
+        });
+        
+        // Setup transform display and tracking
+        this.createTransformDisplay();
+        
+        // Track initial position/rotation for calculating deltas
+        // Store the current drag axis/direction to detect changes
+        this.lastDragAxis = this.currentDragAxis || null;
+        this.currentDragAxis = null; // Will be set on first movement
+        
+        // Only reset start values if we're starting fresh or changing direction
+        if (!this.transformStartPosition) {
+            this.transformStartPosition = mesh.position.clone();
+            this.transformStartRotation = mesh.rotation.clone();
+            this.transformStartScaling = mesh.scaling.clone();
+        }
+        
+// Simple approach: Just watch for mesh changes
+        
+        // Remove old observer code
+        if (this.transformObserver) {
+            this.scene.onPointerObservable.remove(this.transformObserver);
+        }
+        
+        // Simple approach: watch for mesh position changes
+        this.lastMeshPosition = mesh.position.clone();
+        this.lastMeshRotation = mesh.rotation.clone();
+        this.lastMeshScaling = mesh.scaling.clone();
+        this.isDraggingGizmo = false;
+        
+        // Use onBeforeRender to check for changes
+        if (this.transformCheckObserver) {
+            this.scene.onBeforeRenderObservable.remove(this.transformCheckObserver);
+        }
+        
+        this.transformCheckObserver = this.scene.onBeforeRenderObservable.add(() => {
+            if (!this.gizmoManager || !this.gizmoManager.attachedMesh) return;
+            
+            const mesh = this.gizmoManager.attachedMesh;
+            let hasChanged = false;
+            
+            // Check if position changed
+            if (!mesh.position.equals(this.lastMeshPosition)) {
+                hasChanged = true;
+                this.isDraggingGizmo = true;
+            }
+            // Check if rotation changed
+            else if (!mesh.rotation.equals(this.lastMeshRotation)) {
+                hasChanged = true;
+                this.isDraggingGizmo = true;
+            }
+            // Check if scale changed
+            else if (!mesh.scaling.equals(this.lastMeshScaling)) {
+                hasChanged = true;
+                this.isDraggingGizmo = true;
+            }
+            
+            if (hasChanged) {
+                // Create a fake pointer info for the display update
+                // Get actual screen coordinates
+                const rect = this.canvas.getBoundingClientRect();
+                const fakePointerInfo = {
+                    event: {
+                        clientX: rect.left + this.scene.pointerX,
+                        clientY: rect.top + this.scene.pointerY
+                    }
+                };
+                this.updateTransformDisplay(fakePointerInfo);
+                
+                // Update last values
+                this.lastMeshPosition = mesh.position.clone();
+                this.lastMeshRotation = mesh.rotation.clone();
+                this.lastMeshScaling = mesh.scaling.clone();
+                
+                // Reset the no-change counter
+                this.noChangeFrames = 0;
+            } else if (this.isDraggingGizmo) {
+                // No change but we think we're dragging - count frames
+                this.noChangeFrames = (this.noChangeFrames || 0) + 1;
+                
+                // If no change for several frames, we've stopped dragging
+                if (this.noChangeFrames > 5) {
+                    this.isDraggingGizmo = false;
+                    this.noChangeFrames = 0;
+                    if (this.transformDisplay && this.transformDisplay.style.display !== 'none') {
+                        console.log('Auto-converting to editable after drag stop');
+                        this.convertToEditableField();
+                    }
+                }
+            }
+        });
+        
+        // Add pointer up observer for converting to editable
+        this.transformPointerUpObserver = this.scene.onPointerObservable.add((pointerInfo) => {
+            if (pointerInfo.type === BABYLON.PointerEventTypes.POINTERUP) {
+                if (this.isDraggingGizmo && this.transformDisplay && this.transformDisplay.style.display !== 'none') {
+                    this.isDraggingGizmo = false;
+                    this.convertToEditableField();
+                }
+            }
+        });
+
         // Debug: Check if gizmos exist
         console.log('🔍 GIZMO DEBUG:');
         console.log('  - GizmoManager exists:', !!this.gizmoManager);
@@ -10881,6 +11059,24 @@ class DrawingWorld {
         console.log('Gizmo setup complete for tool:', this.activeTool);
     }
         clearDragHandles() {
+        // Clean up transform display and observers
+        if (this.transformCheckObserver) {
+            this.scene.onBeforeRenderObservable.remove(this.transformCheckObserver);
+            this.transformCheckObserver = null;
+        }
+        if (this.transformPointerUpObserver) {
+            this.scene.onPointerObservable.remove(this.transformPointerUpObserver);
+            this.transformPointerUpObserver = null;
+        }
+        if (this.gizmoScaleObserver) {
+            this.scene.onBeforeRenderObservable.remove(this.gizmoScaleObserver);
+            this.gizmoScaleObserver = null;
+        }
+        if (this.transformDisplay) {
+            this.transformDisplay.remove();
+            this.transformDisplay = null;
+        }
+        
         // Clear tracking observer
         if (this.gizmoTrackObserver) {
             this.scene.onBeforeRenderObservable.remove(this.gizmoTrackObserver);
@@ -10895,6 +11091,278 @@ class DrawingWorld {
         
         console.log('Cleared all drag handles and gizmos');
     }
+// Transform display functions to add to DrawingWorld class
+
+    createTransformDisplay() {
+        console.log('createTransformDisplay called');
+        // Remove old display if exists
+        if (this.transformDisplay) {
+            this.transformDisplay.remove();
+        }
+        
+        // Create display element
+        this.transformDisplay = document.createElement('div');
+        this.transformDisplay.style.position = 'fixed';
+        this.transformDisplay.style.fontSize = '45px';
+        this.transformDisplay.style.fontWeight = 'bold';
+        this.transformDisplay.style.color = 'black';
+        this.transformDisplay.style.textShadow = '-2px -2px 0 white, 2px -2px 0 white, -2px 2px 0 white, 2px 2px 0 white';
+        this.transformDisplay.style.pointerEvents = 'none';
+        this.transformDisplay.style.zIndex = '10000';
+        this.transformDisplay.style.display = 'none';
+        document.body.appendChild(this.transformDisplay);
+    }
+    
+    // Convert decimal inches to imperial fraction string
+    decimalToImperial(decimal) {
+        const negative = decimal < 0;
+        decimal = Math.abs(decimal);
+        
+        const wholeInches = Math.floor(decimal);
+        const fraction = decimal - wholeInches;
+        
+        // Convert to 32nds
+        const thirtySeconds = Math.round(fraction * 32);
+        
+        if (thirtySeconds === 0) {
+            // Just whole inches
+            return (negative ? '-' : '') + wholeInches + '"';
+        } else if (thirtySeconds === 32) {
+            // Round up to next whole inch
+            return (negative ? '-' : '') + (wholeInches + 1) + '"';
+        } else {
+            // Simplify fraction
+            let numerator = thirtySeconds;
+            let denominator = 32;
+            
+            // Find GCD to simplify
+            const gcd = (a, b) => b === 0 ? a : gcd(b, a % b);
+            const divisor = gcd(numerator, denominator);
+            numerator /= divisor;
+            denominator /= divisor;
+            
+            if (wholeInches === 0) {
+                return (negative ? '-' : '') + numerator + '/' + denominator + '"';
+            } else {
+                return (negative ? '-' : '') + wholeInches + ' ' + numerator + '/' + denominator + '"';
+            }
+        }
+    }
+
+
+    updateTransformDisplay(pointerInfo) {
+        console.log('updateTransformDisplay called');
+        if (!this.transformDisplay || !this.gizmoManager.attachedMesh) return;
+        
+        const mesh = this.gizmoManager.attachedMesh;
+        const boardId = mesh.id;
+        let value = '';
+        
+        // Get cumulative tracking data
+        const trackingData = this.cumulativeTransforms?.[boardId]?.[this.activeTool];
+        if (!trackingData) {
+            console.log('No tracking data for board/tool combo');
+            return;
+        }
+        
+        if (this.activeTool === 'move') {
+            // Calculate axis-specific movement from original position
+            const delta = mesh.position.subtract(trackingData.startPosition);
+            
+            // Determine which axis is being dragged currently
+            const currentDelta = mesh.position.subtract(this.lastMeshPosition || mesh.position);
+            let primaryAxis = 'X';
+            let axisValue = delta.x;
+            
+            // Find which axis has the most current movement
+            if (Math.abs(currentDelta.y) > Math.abs(currentDelta.x) && Math.abs(currentDelta.y) > Math.abs(currentDelta.z)) {
+                primaryAxis = 'Y';
+                axisValue = delta.y;
+            } else if (Math.abs(currentDelta.z) > Math.abs(currentDelta.x) && Math.abs(currentDelta.z) > Math.abs(currentDelta.y)) {
+                primaryAxis = 'Z';
+                axisValue = delta.z;
+            } else if (Math.abs(currentDelta.x) >= Math.abs(currentDelta.y) && Math.abs(currentDelta.x) >= Math.abs(currentDelta.z)) {
+                primaryAxis = 'X';
+                axisValue = delta.x;
+            }
+            
+            // If no current movement, show the axis with most total movement
+            if (currentDelta.length() < 0.01) {
+                if (Math.abs(delta.y) > Math.abs(delta.x) && Math.abs(delta.y) > Math.abs(delta.z)) {
+                    primaryAxis = 'Y';
+                    axisValue = delta.y;
+                } else if (Math.abs(delta.z) > Math.abs(delta.x)) {
+                    primaryAxis = 'Z';
+                    axisValue = delta.z;
+                } else {
+                    primaryAxis = 'X';
+                    axisValue = delta.x;
+                }
+            }
+            
+            // Convert to imperial fraction
+            const inches = axisValue / 2.54;
+            value = this.decimalToImperial(inches);
+        } else if (this.activeTool === 'rotate') {
+            // Calculate axis-specific rotation from original position
+            const deltaRotation = mesh.rotation.subtract(trackingData.startRotation);
+            
+            // Determine which axis is being rotated currently
+            const currentDelta = mesh.rotation.subtract(this.lastMeshRotation || mesh.rotation);
+            let primaryAxis = 'X';
+            let angle = deltaRotation.x * 180 / Math.PI;
+            
+            // Find which axis has the most current rotation
+            if (Math.abs(currentDelta.y) > Math.abs(currentDelta.x) && Math.abs(currentDelta.y) > Math.abs(currentDelta.z)) {
+                primaryAxis = 'Y';
+                angle = deltaRotation.y * 180 / Math.PI;
+            } else if (Math.abs(currentDelta.z) > Math.abs(currentDelta.x) && Math.abs(currentDelta.z) > Math.abs(currentDelta.y)) {
+                primaryAxis = 'Z';
+                angle = deltaRotation.z * 180 / Math.PI;
+            } else if (Math.abs(currentDelta.x) >= Math.abs(currentDelta.y) && Math.abs(currentDelta.x) >= Math.abs(currentDelta.z)) {
+                primaryAxis = 'X';
+                angle = deltaRotation.x * 180 / Math.PI;
+            }
+            
+            // If no current movement, show the axis with most total rotation
+            if (Math.abs(currentDelta.x) < 0.01 && Math.abs(currentDelta.y) < 0.01 && Math.abs(currentDelta.z) < 0.01) {
+                if (Math.abs(deltaRotation.y) > Math.abs(deltaRotation.x) && Math.abs(deltaRotation.y) > Math.abs(deltaRotation.z)) {
+                    primaryAxis = 'Y';
+                    angle = deltaRotation.y * 180 / Math.PI;
+                } else if (Math.abs(deltaRotation.z) > Math.abs(deltaRotation.x)) {
+                    primaryAxis = 'Z';
+                    angle = deltaRotation.z * 180 / Math.PI;
+                } else {
+                    primaryAxis = 'X';
+                    angle = deltaRotation.x * 180 / Math.PI;
+                }
+            }
+            
+            value = angle.toFixed(1) + '°';
+        } else if (this.activeTool === 'scale') {
+            // Calculate scale factor from original
+            const scale = mesh.scaling.x / trackingData.startScaling.x;
+            value = scale.toFixed(2) + 'x';
+        }
+        
+        // Update display
+        this.transformDisplay.textContent = value;
+        this.transformDisplay.style.display = 'block';
+        
+        // Position near mouse (adjusted for visibility)
+        this.transformDisplay.style.left = (pointerInfo.event.clientX + 15) + 'px';
+        this.transformDisplay.style.top = (pointerInfo.event.clientY + 10) + 'px';
+        
+        // Store value for editable field
+        this.currentTransformValue = value;
+        
+        // Also store all axis values for complete info
+        if (this.activeTool === 'move' && trackingData) {
+            const delta = mesh.position.subtract(trackingData.startPosition);
+            this.allAxisValues = {
+                x: (delta.x / 2.54).toFixed(2),
+                y: (delta.y / 2.54).toFixed(2),
+                z: (delta.z / 2.54).toFixed(2)
+            };
+        } else if (this.activeTool === 'rotate' && trackingData) {
+            const deltaRotation = mesh.rotation.subtract(trackingData.startRotation);
+            this.allAxisValues = {
+                x: (deltaRotation.x * 180 / Math.PI).toFixed(1),
+                y: (deltaRotation.y * 180 / Math.PI).toFixed(1),
+                z: (deltaRotation.z * 180 / Math.PI).toFixed(1)
+            };
+        }
+    }
+    
+    convertToEditableField() {
+        if (!this.transformDisplay || !this.currentTransformValue) return;
+        
+        // Convert to input field
+        const input = document.createElement('input');
+        input.type = 'text';
+        // Clean up the value for editing
+        input.value = this.currentTransformValue.replace(/["°x]/g, '').trim();
+        input.style.position = this.transformDisplay.style.position;
+        input.style.left = this.transformDisplay.style.left;
+        input.style.top = this.transformDisplay.style.top;
+        input.style.fontSize = '45px';
+        input.style.fontWeight = this.transformDisplay.style.fontWeight;
+        input.style.color = 'black';
+        input.style.background = 'white';
+        input.style.border = '3px solid #007bff';
+        input.style.textAlign = 'center';
+        input.style.padding = '6px 8px';
+        input.style.zIndex = this.transformDisplay.style.zIndex;
+        input.style.width = '100px';
+        
+        // Replace display with input
+        this.transformDisplay.remove();
+        document.body.appendChild(input);
+        
+        // Select all text
+        input.select();
+        input.focus();
+        
+        // Handle Enter key
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                this.applyPrecisionTransform(parseFloat(input.value));
+                input.remove();
+                // Recreate display for next drag
+                this.createTransformDisplay();
+            } else if (e.key === 'Escape') {
+                input.remove();
+                // Recreate display for next drag
+                this.createTransformDisplay();
+            }
+        });
+        
+        // Remove on click outside
+        input.addEventListener('blur', () => {
+            setTimeout(() => {
+                input.remove();
+                // Recreate display for next drag
+                this.createTransformDisplay();
+            }, 100);
+        });
+
+    }
+    
+    applyPrecisionTransform(value) {
+        if (!this.gizmoManager.attachedMesh || isNaN(value)) return;
+        
+        const mesh = this.gizmoManager.attachedMesh;
+        
+        if (this.activeTool === 'move') {
+            // Apply precise distance
+            const currentDelta = mesh.position.subtract(this.transformStartPosition);
+            const currentDistance = currentDelta.length();
+            if (currentDistance > 0) {
+                const targetDistance = value * 2.54; // Convert inches to cm
+                const scale = targetDistance / currentDistance;
+                const newDelta = currentDelta.scale(scale);
+                mesh.position = this.transformStartPosition.add(newDelta);
+            }
+        } else if (this.activeTool === 'rotate') {
+            // Apply precise angle
+            const angleRad = value * Math.PI / 180;
+            // Determine which axis had the most rotation
+            const deltaRotation = mesh.rotation.subtract(this.transformStartRotation);
+            if (Math.abs(deltaRotation.x) > Math.abs(deltaRotation.y) && Math.abs(deltaRotation.x) > Math.abs(deltaRotation.z)) {
+                mesh.rotation.x = this.transformStartRotation.x + (deltaRotation.x > 0 ? angleRad : -angleRad);
+            } else if (Math.abs(deltaRotation.y) > Math.abs(deltaRotation.z)) {
+                mesh.rotation.y = this.transformStartRotation.y + (deltaRotation.y > 0 ? angleRad : -angleRad);
+            } else {
+                mesh.rotation.z = this.transformStartRotation.z + (deltaRotation.z > 0 ? angleRad : -angleRad);
+            }
+        } else if (this.activeTool === 'scale') {
+            // Apply precise scale
+            mesh.scaling = new BABYLON.Vector3(value, value, value);
+        }
+        
+        console.log('Applied precision transform:', value);
+    }
+
     rotatePart(degrees, axis) {
         console.log("🔧 rotatePart called:", degrees, axis);
         console.log("selectedPart:", this.selectedPart);
@@ -11646,77 +12114,7 @@ class DrawingWorld {
         
         container.addControl(resetBtn);
     }
-    createTransformDisplay() {
-        // Remove any existing display
-        if (this.transformDisplay) {
-            this.transformDisplay.remove();
-        }
-        
-        // Create display container
-        const display = document.createElement("div");
-        display.id = "transform-display";
-        display.style.position = "fixed";
-        // No background - just plain text
-        display.style.color = "black";
-        // No padding needed
-        // No border radius needed
-        display.style.fontSize = "24px";
-        display.style.textShadow = "1px 1px 2px white, -1px -1px 2px white, 1px -1px 2px white, -1px 1px 2px white";
-        display.style.webkitTextStroke = "0.5px white";
-        display.style.fontWeight = "bold";
-        display.style.display = "none";
-        display.style.zIndex = "10000";
-        display.style.pointerEvents = "none";
-        document.body.appendChild(display);
-        this.transformDisplay = display;
-    }
     
-    updateTransformDisplay(value, type, displayPosition) {
-        if (!this.transformDisplay) return;
-        
-        // Show only the value for the current axis
-        const axis = this.currentDragAxis;
-        if (!axis) return;
-        
-        let displayText = '';
-        if (type === "position") {
-            const val = value[axis] || 0;
-            displayText = val.toFixed(2) + '"';
-        } else if (type === "rotation") {
-            const val = (value[axis] || 0) * 180 / Math.PI;
-            displayText = val.toFixed(1) + '°';
-        }
-        
-        this.transformDisplay.value = displayText;
-        
-        // Position at specified location or center
-        if (displayPosition) {
-            // Project the 3D position to screen coordinates
-            const coordinates = BABYLON.Vector3.Project(
-                displayPosition,
-                BABYLON.Matrix.Identity(),
-                this.scene.getTransformMatrix(),
-                this.scene.activeCamera.viewport.toGlobal(
-                    this.engine.getRenderWidth(),
-                    this.engine.getRenderHeight()
-                )
-            );
-            
-            this.transformDisplay.style.position = 'fixed';
-            this.transformDisplay.style.left = coordinates.x + 'px';
-            this.transformDisplay.style.top = coordinates.y + 'px';
-            this.transformDisplay.style.transform = 'translate(-50%, -50%)';
-        } else {
-            // Default to center of screen
-            this.transformDisplay.style.position = 'fixed';
-            this.transformDisplay.style.top = '50%';
-            this.transformDisplay.style.left = '50%';
-            this.transformDisplay.style.transform = 'translate(-50%, -50%)';
-        }
-        
-        
-                this.transformDisplay.style.display = 'block';
-    }
 
 
     
@@ -11727,36 +12125,6 @@ class DrawingWorld {
 
     }
     
-    applyPrecisionTransform() {
-        if (!this.transformDisplay || !this.ghostMesh) return;
-        
-        const value = parseFloat(this.transformDisplay.value);
-        if (isNaN(value)) return;
-        
-        const mesh = this.positionGizmo.attachedMesh || this.rotationGizmo.attachedMesh;
-        if (!mesh) return;
-        
-        if (this.transformType === 'position' && this.currentDragAxis) {
-            // Apply position change
-            const newPos = this.transformStartPosition.clone();
-            newPos[this.currentDragAxis] += value;
-            mesh.position.copyFrom(newPos);
-            
-            // Update ghost to match
-            if (this.ghostMesh) {
-                this.ghostMesh.position.copyFrom(newPos);
-            }
-        } else if (this.transformType === 'rotation' && this.currentDragAxis) {
-            // Apply rotation change
-            const newRot = this.transformStartRotation.clone();
-            newRot[this.currentDragAxis] += value * Math.PI / 180; // Convert degrees to radians
-            mesh.rotation.copyFrom(newRot);
-        }
-        
-        // Hide display and clean up
-        this.hideTransformDisplay();
-        this.removeGhostMesh();
-    }
     
     createGhostMesh(originalMesh) {
         // Remove existing ghost
@@ -12765,4 +13133,116 @@ window.debugRotationGizmo = () => {
         console.log('After manual attempt:');
         console.log('Rotation gizmo:', drawingWorld.gizmoManager.gizmos.rotationGizmo);
     }
+};
+
+// DEBUG: Test transform display directly
+window.testTransformDisplay = () => {
+    console.log('Testing transform display...');
+    
+    // Create display manually
+    if (drawingWorld.transformDisplay) {
+        drawingWorld.transformDisplay.remove();
+    }
+    
+    drawingWorld.transformDisplay = document.createElement('div');
+    drawingWorld.transformDisplay.style.position = 'fixed';
+    drawingWorld.transformDisplay.style.fontSize = '60px';
+    drawingWorld.transformDisplay.style.fontWeight = 'bold';
+    drawingWorld.transformDisplay.style.color = 'black';
+    drawingWorld.transformDisplay.style.textShadow = '-2px -2px 0 white, 2px -2px 0 white, -2px 2px 0 white, 2px 2px 0 white';
+    drawingWorld.transformDisplay.style.pointerEvents = 'none';
+    drawingWorld.transformDisplay.style.zIndex = '10000';
+    drawingWorld.transformDisplay.style.left = '200px';
+    drawingWorld.transformDisplay.style.top = '200px';
+    drawingWorld.transformDisplay.textContent = '12.5"';
+    document.body.appendChild(drawingWorld.transformDisplay);
+    
+    console.log('Display created at 200,200 with text: 12.5"');
+    console.log('Display element:', drawingWorld.transformDisplay);
+};
+
+// DEBUG: Check gizmo drag state
+window.checkGizmoDrag = () => {
+    if (!drawingWorld.gizmoManager) {
+        console.log('No gizmoManager');
+        return;
+    }
+    
+    console.log('Active tool:', drawingWorld.activeTool);
+    
+    if (drawingWorld.gizmoManager.gizmos.positionGizmo) {
+        console.log('Position gizmo isDragging:', drawingWorld.gizmoManager.gizmos.positionGizmo.isDragging);
+    }
+    if (drawingWorld.gizmoManager.gizmos.rotationGizmo) {
+        console.log('Rotation gizmo isDragging:', drawingWorld.gizmoManager.gizmos.rotationGizmo.isDragging);
+    }
+    if (drawingWorld.gizmoManager.gizmos.scaleGizmo) {
+        console.log('Scale gizmo isDragging:', drawingWorld.gizmoManager.gizmos.scaleGizmo.isDragging);
+    }
+};
+
+// DIRECT TEST: Force display to show
+window.forceShowDisplay = () => {
+    console.log('Forcing display to show...');
+    
+    if (!drawingWorld.transformDisplay) {
+        console.log('Creating display element...');
+        drawingWorld.createTransformDisplay();
+    }
+    
+    if (drawingWorld.transformDisplay) {
+        drawingWorld.transformDisplay.textContent = '5.25"';
+        drawingWorld.transformDisplay.style.display = 'block';
+        drawingWorld.transformDisplay.style.left = (window.event ? window.event.clientX + 5 : 500) + 'px';
+        drawingWorld.transformDisplay.style.top = (window.event ? window.event.clientY - 25 : 300) + 'px';
+        console.log('Display should be visible at 500,300');
+        console.log('Element:', drawingWorld.transformDisplay);
+        console.log('Parent:', drawingWorld.transformDisplay.parentElement);
+    } else {
+        console.log('Failed to create display!');
+    }
+};
+
+// Check if observers are running
+window.checkObservers = () => {
+    console.log('transformCheckObserver:', !!drawingWorld.transformCheckObserver);
+    console.log('transformPointerUpObserver:', !!drawingWorld.transformPointerUpObserver);
+    console.log('isDraggingGizmo:', drawingWorld.isDraggingGizmo);
+    console.log('transformDisplay:', drawingWorld.transformDisplay);
+    console.log('Active tool:', drawingWorld.activeTool);
+    console.log('Attached mesh:', drawingWorld.gizmoManager?.attachedMesh?.name);
+};
+
+// Debug mouse position
+window.debugMousePosition = () => {
+    if (!drawingWorld.transformDisplay) {
+        drawingWorld.createTransformDisplay();
+    }
+    
+    const display = drawingWorld.transformDisplay;
+    display.textContent = 'TEST';
+    display.style.display = 'block';
+    
+    // Test different positions
+    const positions = [
+        { x: 5, y: -25, label: 'Current' },
+        { x: 0, y: 0, label: 'Exact' },
+        { x: 15, y: 15, label: 'Below' },
+        { x: -30, y: 0, label: 'Left' }
+    ];
+    
+    let index = 0;
+    document.addEventListener('mousemove', function updatePos(e) {
+        const pos = positions[index % positions.length];
+        display.style.left = (e.clientX + pos.x) + 'px';
+        display.style.top = (e.clientY + pos.y) + 'px';
+        display.textContent = pos.label;
+    });
+    
+    document.addEventListener('click', function nextPos() {
+        index++;
+        console.log('Switched to position:', positions[index % positions.length].label);
+    });
+    
+    console.log('Move mouse to see display. Click to switch positions.');
 };

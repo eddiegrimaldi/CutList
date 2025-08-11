@@ -669,6 +669,8 @@ export class CutToolSystem {
         // CRITICAL: Update world matrix to ensure current transform is used
         mesh.computeWorldMatrix(true);
         
+        // CRITICAL FIX: Force bounding info refresh to get current position
+        mesh.refreshBoundingInfo();
         const meshBounds = mesh.getBoundingInfo();
         const meshSize = meshBounds.maximum.subtract(meshBounds.minimum);
         const meshCenter = mesh.getAbsolutePosition();
@@ -692,9 +694,9 @@ export class CutToolSystem {
         
         if (cutAxis === 'x') {
             // Cut along X axis
-            // MAJOR FIX: Calculate positions relative to WORLD coordinates, not local bounds
-            const worldMinX = meshCenter.x + meshBounds.minimum.x;
-            const worldMaxX = meshCenter.x + meshBounds.maximum.x;
+            // MAJOR FIX: Use bounding box world coordinates directly
+            const worldMinX = meshBounds.boundingBox.minimumWorld.x;
+            const worldMaxX = meshBounds.boundingBox.maximumWorld.x;
             
             const leftWidth = Math.abs(cutPos - worldMinX) - halfKerf;
             const rightWidth = Math.abs(worldMaxX - cutPos) - halfKerf;
@@ -709,9 +711,9 @@ export class CutToolSystem {
             
         } else if (cutAxis === 'y') {
             // Cut along Y axis
-            // MAJOR FIX: Calculate positions relative to WORLD coordinates, not local bounds
-            const worldMinY = meshCenter.y + meshBounds.minimum.y;
-            const worldMaxY = meshCenter.y + meshBounds.maximum.y;
+            // MAJOR FIX: Use bounding box world coordinates directly
+            const worldMinY = meshBounds.boundingBox.minimumWorld.y;
+            const worldMaxY = meshBounds.boundingBox.maximumWorld.y;
             
             const leftDepth = Math.abs(cutPos - worldMinY) - halfKerf;
             const rightDepth = Math.abs(worldMaxY - cutPos) - halfKerf;
@@ -726,9 +728,9 @@ export class CutToolSystem {
             
         } else { // z axis
             // Cut along Z axis
-            // MAJOR FIX: Calculate positions relative to WORLD coordinates, not local bounds
-            const worldMinZ = meshCenter.z + meshBounds.minimum.z;
-            const worldMaxZ = meshCenter.z + meshBounds.maximum.z;
+            // MAJOR FIX: Use bounding box world coordinates directly
+            const worldMinZ = meshBounds.boundingBox.minimumWorld.z;
+            const worldMaxZ = meshBounds.boundingBox.maximumWorld.z;
             
             const leftHeight = Math.abs(cutPos - worldMinZ) - halfKerf;
             const rightHeight = Math.abs(worldMaxZ - cutPos) - halfKerf;
@@ -959,6 +961,9 @@ export class CutToolSystem {
         // CRITICAL: Force world matrix update to get current transform
         mesh.computeWorldMatrix(true);
         
+        // CRITICAL FIX: Force bounding info refresh for moved boards
+        mesh.refreshBoundingInfo();
+        
         // FRESH calculation every time - no cached values
         const meshBounds = mesh.getBoundingInfo();
         const meshSize = meshBounds.maximum.subtract(meshBounds.minimum);
@@ -1036,10 +1041,12 @@ export class CutToolSystem {
             cutLine.depth = meshSize.z + 1;
             
             // Position blade at hit point but constrain to mesh bounds
-            // Use local hit point for proper rotation handling
-            const xPos = Math.max(meshCenter.x - meshSize.x/2, Math.min(meshCenter.x + meshSize.x/2, meshCenter.x + localHitPoint.x));
+            // Use world bounds for accurate positioning after movement
+            const worldMinX = meshBounds.boundingBox.minimumWorld.x;
+            const worldMaxX = meshBounds.boundingBox.maximumWorld.x;
+            const xPos = Math.max(worldMinX, Math.min(worldMaxX, hitPoint.x));
             cutLine.position = new BABYLON.Vector3(xPos, meshCenter.y, meshCenter.z);
-            cutLine.normalizedPosition = (xPos - (meshCenter.x - meshSize.x/2)) / meshSize.x;
+            cutLine.normalizedPosition = (xPos - worldMinX) / (worldMaxX - worldMinX);
             
         } else if (cutAxis === 'y') {
             cutLine.width = meshSize.x + 1;
@@ -1047,10 +1054,12 @@ export class CutToolSystem {
             cutLine.depth = meshSize.z + 1;
             
             // Position blade at hit point but constrain to mesh bounds
-            // Use local hit point for proper rotation handling
-            const yPos = Math.max(meshCenter.y - meshSize.y/2, Math.min(meshCenter.y + meshSize.y/2, meshCenter.y + localHitPoint.y));
+            // Use world bounds for accurate positioning after movement
+            const worldMinY = meshBounds.boundingBox.minimumWorld.y;
+            const worldMaxY = meshBounds.boundingBox.maximumWorld.y;
+            const yPos = Math.max(worldMinY, Math.min(worldMaxY, hitPoint.y));
             cutLine.position = new BABYLON.Vector3(meshCenter.x, yPos, meshCenter.z);
-            cutLine.normalizedPosition = (yPos - (meshCenter.y - meshSize.y/2)) / meshSize.y;
+            cutLine.normalizedPosition = (yPos - worldMinY) / (worldMaxY - worldMinY);
             
         } else { // z axis
             cutLine.width = meshSize.x + 1;
@@ -1058,10 +1067,12 @@ export class CutToolSystem {
             cutLine.depth = 0.3;
             
             // Position blade at hit point but constrain to mesh bounds
-            // Use local hit point for proper rotation handling
-            const zPos = Math.max(meshCenter.z - meshSize.z/2, Math.min(meshCenter.z + meshSize.z/2, meshCenter.z + localHitPoint.z));
+            // Use world bounds for accurate positioning after movement
+            const worldMinZ = meshBounds.boundingBox.minimumWorld.z;
+            const worldMaxZ = meshBounds.boundingBox.maximumWorld.z;
+            const zPos = Math.max(worldMinZ, Math.min(worldMaxZ, hitPoint.z));
             cutLine.position = new BABYLON.Vector3(meshCenter.x, meshCenter.y, zPos);
-            cutLine.normalizedPosition = (zPos - (meshCenter.z - meshSize.z/2)) / meshSize.z;
+            cutLine.normalizedPosition = (zPos - worldMinZ) / (worldMaxZ - worldMinZ);
         }
         
         // Store cut info

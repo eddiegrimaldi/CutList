@@ -671,10 +671,10 @@ class ModernGizmoSystem {
             }
         }, BABYLON.PointerEventTypes.POINTERMOVE);
         
-        // Prevent context menu
-        this.canvas.addEventListener('contextmenu', (e) => {
-            e.preventDefault();
-        });
+        // Prevent context menu - DISABLED to allow right-click menu
+        // this.canvas.addEventListener('contextmenu', (e) => {
+        //     e.preventDefault();
+        // });
         
         // Reset appearance
         if (this.activeHandle) {
@@ -1479,8 +1479,8 @@ class DrawingWorld {
         this.canvas.addEventListener('pointerup', (evt) => this.onCameraPointerUp(evt));
         this.canvas.addEventListener('wheel', (evt) => this.onCameraWheel(evt));
         
-        // Prevent context menu on right-click
-        this.canvas.addEventListener('contextmenu', (evt) => evt.preventDefault());
+        // Prevent context menu on right-click - DISABLED to allow right-click menu
+        // this.canvas.addEventListener('contextmenu', (evt) => evt.preventDefault());
         
         console.log('Shapr3D-style camera controls enabled:');
                 // console.log('- LEFT CLICK: Tools and picking ONLY');
@@ -2366,8 +2366,8 @@ class DrawingWorld {
         this.canvas.addEventListener('mouseup', (e) => this.onMouseUp(e));
         this.canvas.addEventListener('wheel', (e) => this.onMouseWheel(e));
         
-        // Prevent context menu on right click
-        this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+        // Prevent context menu on right click - DISABLED to allow right-click menu
+        // this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
         
     }
     
@@ -8793,6 +8793,20 @@ class DrawingWorld {
         // Store reference
         box.partData = part;
         box.isProjectPart = true;
+        
+        // CRITICAL: Restore saved transforms from partData (single source of truth)
+        if (part.position && Array.isArray(part.position) && part.position.length === 3) {
+            box.position = new BABYLON.Vector3(part.position[0], part.position[1], part.position[2]);
+            console.log('Restored position from partData:', part.position);
+        }
+        if (part.rotation && Array.isArray(part.rotation) && part.rotation.length === 3) {
+            box.rotation = new BABYLON.Vector3(part.rotation[0], part.rotation[1], part.rotation[2]);
+            console.log('Restored rotation from partData:', part.rotation);
+        }
+        if (part.scaling && Array.isArray(part.scaling) && part.scaling.length === 3) {
+            box.scaling = new BABYLON.Vector3(part.scaling[0], part.scaling[1], part.scaling[2]);
+            console.log('Restored scaling from partData:', part.scaling);
+        }
             box.isWorkBenchPart = false; // Ensure it's not marked as both
 
         console.log(`Created 3D block for ${part.materialName}:`, box);
@@ -9322,6 +9336,16 @@ class DrawingWorld {
                 part.meshGeometry.position.z
             );
             console.log('Restored saved position for', part.materialName, ':', box.position);
+            
+            // CRITICAL: Also restore rotation if saved
+            if (part.meshGeometry.rotation) {
+                box.rotation = new BABYLON.Vector3(
+                    part.meshGeometry.rotation.x,
+                    part.meshGeometry.rotation.y,
+                    part.meshGeometry.rotation.z
+                );
+                console.log('Restored saved rotation for', part.materialName, ':', box.rotation);
+            }
         } else {
             // Use spawn position for new parts or when not restoring
             const lengthCm = part.dimensions.length * 2.54;
@@ -10170,6 +10194,16 @@ class DrawingWorld {
                     part.meshGeometry.position.z
                 );
                 console.log('Restored saved position for assembly part', part.materialName, ':', box.position);
+            
+            // CRITICAL: Also restore rotation if saved
+            if (part.meshGeometry.rotation) {
+                box.rotation = new BABYLON.Vector3(
+                    part.meshGeometry.rotation.x,
+                    part.meshGeometry.rotation.y,
+                    part.meshGeometry.rotation.z
+                );
+                console.log('Restored saved rotation for assembly part', part.materialName, ':', box.rotation);
+            }
             } else {
                 // Use assembly position for new parts
                 const lengthCm = part.dimensions.length * 2.54;
@@ -10816,49 +10850,8 @@ class DrawingWorld {
 
     // Calculate appropriate gizmo scale based on object and viewport
     calculateGizmoScale(mesh) {
-        if (!mesh || !this.camera) return 1.0;
-        
-        // Get mesh bounding box
-        mesh.computeWorldMatrix(true);
-        const boundingInfo = mesh.getBoundingInfo();
-        const meshSize = boundingInfo.boundingBox.maximum.subtract(boundingInfo.boundingBox.minimum);
-        const maxMeshDimension = Math.max(meshSize.x, meshSize.y, meshSize.z);
-        
-        // Calculate viewport size for gizmo scaling
-        const distance = BABYLON.Vector3.Distance(this.camera.position, mesh.position);
-        const fov = this.camera.fov;
-        
-        // When zoomed out (large distance), we want larger gizmos
-        // When zoomed in (small distance), we want smaller gizmos
-        // So we use distance directly as a scaling factor
-        const viewportScale = distance * 0.1; // Base scale on camera distance
-        
-        // Rule 1: Never bigger than the object
-        const objectScale = maxMeshDimension * 0.5; // 50% of object size max
-        
-        // Rule 2 & 3: Scale based on camera distance
-        const idealScale = viewportScale * 0.5; // Adjust multiplier as needed
-        const maxScale = viewportScale * 1.0; // Max relative to distance
-        const minScale = viewportScale * 0.1; // Min relative to distance
-        
-        // Apply all constraints
-        let scale = Math.min(objectScale, idealScale);
-        scale = Math.min(scale, maxScale);
-        scale = Math.max(scale, minScale);
-        
-        // Final scale ratio
-        const scaleRatio = scale;
-        
-        console.log('Gizmo scale calculated:', {
-            meshSize: maxMeshDimension,
-            viewportSize: viewportSize,
-            objectScale: objectScale,
-            maxViewportScale: maxViewportScale,
-            minViewportScale: minViewportScale,
-            finalScale: scaleRatio
-        });
-        
-        return scaleRatio;
+        // Simple fixed scale for gizmos
+        return 1.0;
     }
 
         createDragHandles(mesh) {
@@ -10969,6 +10962,9 @@ class DrawingWorld {
         // Setup transform display and tracking
         this.createTransformDisplay();
         
+        // CRITICAL: Add observers to save transforms to partData when gizmos are used
+        this.setupGizmoTransformSaving(mesh);
+        
         // Track initial position/rotation for calculating deltas
         // Store the current drag axis/direction to detect changes
         this.lastDragAxis = this.currentDragAxis || null;
@@ -11022,6 +11018,12 @@ class DrawingWorld {
             }
             
             if (hasChanged) {
+                console.log('Transform changed\! Showing display...');
+                
+                // CRITICAL: Update cut preview if cut tool is active
+                if (this.activeTool === 'cut' && this.cutToolSystem && this.cutToolSystem.isActive) {
+                    this.cutToolSystem.updatePreviewForTransform();
+                }
                 // Create a fake pointer info for the display update
                 // Get actual screen coordinates
                 const rect = this.canvas.getBoundingClientRect();
@@ -11136,6 +11138,118 @@ class DrawingWorld {
         this.transformDisplay.style.display = 'none';
         document.body.appendChild(this.transformDisplay);
     }
+
+    /**
+     * CRITICAL: Setup observers to save transform data to partData whenever gizmos modify the mesh
+     * This enforces the "A Board Is A Board" principle - single source of truth
+     */
+    setupGizmoTransformSaving(mesh) {
+        if (!mesh || !mesh.partData) return;
+        
+        // Remove any existing observers
+        if (this.positionGizmoObserver) {
+            if (this.gizmoManager.gizmos.positionGizmo) {
+                this.gizmoManager.gizmos.positionGizmo.onDragEndObservable.remove(this.positionGizmoObserver);
+            }
+            this.positionGizmoObserver = null;
+        }
+        if (this.rotationGizmoObserver) {
+            if (this.gizmoManager.gizmos.rotationGizmo) {
+                this.gizmoManager.gizmos.rotationGizmo.onDragEndObservable.remove(this.rotationGizmoObserver);
+            }
+            this.rotationGizmoObserver = null;
+        }
+        if (this.scaleGizmoObserver) {
+            if (this.gizmoManager.gizmos.scaleGizmo) {
+                this.gizmoManager.gizmos.scaleGizmo.onDragEndObservable.remove(this.scaleGizmoObserver);
+            }
+            this.scaleGizmoObserver = null;
+        }
+        
+        // Add observer for position gizmo
+        if (this.gizmoManager.gizmos.positionGizmo) {
+            // Update cut preview during drag
+            this.gizmoManager.gizmos.positionGizmo.onDragObservable.add(() => {
+                if (this.cutToolSystem && this.cutToolSystem.updatePreviewForTransform) {
+                    this.cutToolSystem.updatePreviewForTransform();
+                }
+            });
+            
+            this.positionGizmoObserver = this.gizmoManager.gizmos.positionGizmo.onDragEndObservable.add(() => {
+                console.log('Position gizmo drag ended - saving to partData');
+                if (mesh.partData) {
+                    mesh.partData.position = mesh.position.asArray();
+                    console.log('Saved position to partData:', mesh.partData.position);
+                    
+                    // Also save to meshGeometry for compatibility with existing code
+                    if (!mesh.partData.meshGeometry) {
+                        mesh.partData.meshGeometry = {};
+                    }
+                    mesh.partData.meshGeometry.position = {
+                        x: mesh.position.x,
+                        y: mesh.position.y,
+                        z: mesh.position.z
+                    };
+                    if (this.autosave) {
+                        this.autosave();
+                    }
+                }
+            });
+        }
+        
+        // Add observer for rotation gizmo
+        if (this.gizmoManager.gizmos.rotationGizmo) {
+            // Update cut preview during drag
+            this.gizmoManager.gizmos.rotationGizmo.onDragObservable.add(() => {
+                if (this.cutToolSystem && this.cutToolSystem.updatePreviewForTransform) {
+                    this.cutToolSystem.updatePreviewForTransform();
+                }
+            });
+            
+            this.rotationGizmoObserver = this.gizmoManager.gizmos.rotationGizmo.onDragEndObservable.add(() => {
+                console.log('Rotation gizmo drag ended - saving to partData');
+                if (mesh.partData) {
+                    mesh.partData.rotation = mesh.rotation.asArray();
+                    console.log('Saved rotation to partData:', mesh.partData.rotation);
+                    
+                    // Also save to meshGeometry for compatibility with existing code
+                    if (!mesh.partData.meshGeometry) {
+                        mesh.partData.meshGeometry = {};
+                    }
+                    mesh.partData.meshGeometry.rotation = {
+                        x: mesh.rotation.x,
+                        y: mesh.rotation.y,
+                        z: mesh.rotation.z
+                    };
+                    if (this.autosave) {
+                        this.autosave();
+                    }
+                }
+            });
+        }
+        
+        // Add observer for scale gizmo
+        if (this.gizmoManager.gizmos.scaleGizmo) {
+            // Update cut preview during drag
+            this.gizmoManager.gizmos.scaleGizmo.onDragObservable.add(() => {
+                if (this.cutToolSystem && this.cutToolSystem.updatePreviewForTransform) {
+                    this.cutToolSystem.updatePreviewForTransform();
+                }
+            });
+            
+            this.scaleGizmoObserver = this.gizmoManager.gizmos.scaleGizmo.onDragEndObservable.add(() => {
+                console.log('Scale gizmo drag ended - saving to partData');
+                if (mesh.partData) {
+                    mesh.partData.scaling = mesh.scaling.asArray();
+                    console.log('Saved scaling to partData:', mesh.partData.scaling);
+                    if (this.autosave) {
+                        this.autosave();
+                    }
+                }
+            });
+        }
+    }
+
     
     // Convert decimal inches to imperial fraction string
     decimalToImperial(decimal) {
@@ -11175,7 +11289,7 @@ class DrawingWorld {
 
 
     updateTransformDisplay(pointerInfo) {
-        console.log('updateTransformDisplay called');
+        console.log('updateTransformDisplay called - SHOWING DISPLAY');
         if (!this.transformDisplay || !this.gizmoManager.attachedMesh) return;
         
         const mesh = this.gizmoManager.attachedMesh;
@@ -11276,6 +11390,9 @@ class DrawingWorld {
         // Position near mouse (adjusted for visibility)
         this.transformDisplay.style.left = (pointerInfo.event.clientX + 15) + 'px';
         this.transformDisplay.style.top = (pointerInfo.event.clientY + 10) + 'px';
+        
+        // Store current value for potential editing
+        this.currentTransformValue = value;
         
         // Store value for editable field
         this.currentTransformValue = value;

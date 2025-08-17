@@ -126,6 +126,7 @@ class BoardFactory {
         
         // Store mesh reference
         board.mesh_id = mesh.id;
+        board.mesh = mesh;  // Store actual mesh reference
         mesh.board = board; // Back reference
         
         // Apply material

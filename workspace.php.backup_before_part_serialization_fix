@@ -717,21 +717,7 @@
                 
 
                 const preservedWorkBenchParts = (drawingWorld.workBenchParts || []).map(part => {
-                    // CRITICAL FIX: Properly serialize Part class instances to avoid circular references
-                    const partCopy = {
-                        id: part.id,
-                        type: part.type,
-                        dimensions: part.dimensions,
-                        position: part.position,
-                        rotation: part.rotation,
-                        material: part.material,
-                        materialId: part.materialId || (part.material ? part.material.id : null),
-                        materialName: part.materialName || (part.material ? part.material.name : null),
-                        grade: part.grade,
-                        grain: part.grain,
-                        created: part.created,
-                        modified: part.modified
-                    };
+                    const partCopy = { ...part };
                     
                     // Find the corresponding mesh in the scene
                     // Check both partData and board references
@@ -766,21 +752,7 @@
                 console.log('Preserved workBench parts:', preservedWorkBenchParts);
                 
                 const preservedAssemblyParts = (drawingWorld.projectParts || []).map(part => {
-                    // CRITICAL FIX: Properly serialize Part class instances to avoid circular references
-                    const partCopy = {
-                        id: part.id,
-                        type: part.type,
-                        dimensions: part.dimensions,
-                        position: part.position,
-                        rotation: part.rotation,
-                        material: part.material,
-                        materialId: part.materialId || (part.material ? part.material.id : null),
-                        materialName: part.materialName || (part.material ? part.material.name : null),
-                        grade: part.grade,
-                        grain: part.grain,
-                        created: part.created,
-                        modified: part.modified
-                    };
+                    const partCopy = { ...part };
                     
                     // Find the corresponding mesh in the scene
                     // Check both partData and board references

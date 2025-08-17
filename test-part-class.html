@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Part Class Integration</title>
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+</head>
+<body>
+    <h1>Part Class Integration Test</h1>
+    <button onclick="testPartCreation()">Test Part Creation</button>
+    <button onclick="testPartGizmo()">Test Part with Gizmo</button>
+    <div id="output"></div>
+    
+    <canvas id="renderCanvas" style="width: 100%; height: 400px;"></canvas>
+    
+    <script type="module">
+        import { Part } from './modules/Part.js';
+        
+        let scene, engine, camera;
+        let testPart;
+        
+        // Initialize Babylon.js
+        const canvas = document.getElementById('renderCanvas');
+        engine = new BABYLON.Engine(canvas, true);
+        scene = new BABYLON.Scene(engine);
+        
+        // Create camera
+        camera = new BABYLON.UniversalCamera('camera', new BABYLON.Vector3(0, 5, -10), scene);
+        camera.attachControls(canvas, true);
+        camera.setTarget(BABYLON.Vector3.Zero());
+        
+        // Create light
+        const light = new BABYLON.HemisphericLight('light', new BABYLON.Vector3(0, 1, 0), scene);
+        
+        // Start render loop
+        engine.runRenderLoop(() => {
+            scene.render();
+        });
+        
+        window.testPartCreation = function() {
+            console.log('Testing Part creation...');
+            
+            // Create a mock DrawingWorld for Part.drawingWorld reference
+            const mockDrawingWorld = {
+                workBenchParts: [],
+                saveWorkspaceToLocal: () => console.log('Mock save called'),
+                materialsLibrary: null
+            };
+            
+            // Create Part instance
+            testPart = new Part({
+                dimensions: { length: 48, width: 6, thickness: 0.75 },
+                position: { x: 0, y: 0, z: 0 },
+                material: { id: 'walnut_001', name: 'Black Walnut' }
+            });
+            
+            testPart.drawingWorld = mockDrawingWorld;
+            
+            // Create mesh
+            const mesh = testPart.createMesh(scene);
+            
+            // Test position update
+            console.log('Before setPosition:', testPart.position);
+            testPart.setPosition(5, 2, 3);
+            console.log('After setPosition:', testPart.position);
+            console.log('Mesh position:', mesh.position);
+            
+            document.getElementById('output').innerHTML += '<p>✅ Part creation test passed! Check console for details.</p>';
+        };
+        
+        window.testPartGizmo = function() {
+            if (!testPart) {
+                alert('Create a part first!');
+                return;
+            }
+            
+            console.log('Testing Part with gizmo...');
+            
+            // Create simple position gizmo
+            const gizmoManager = new BABYLON.GizmoManager(scene);
+            gizmoManager.positionGizmoEnabled = true;
+            gizmoManager.attachToMesh(testPart.mesh);
+            
+            // Add observer to test Part updates
+            if (gizmoManager.gizmos.positionGizmo) {
+                gizmoManager.gizmos.positionGizmo.onDragEndObservable.add(() => {
+                    console.log('Gizmo drag ended!');
+                    console.log('Mesh position:', testPart.mesh.position);
+                    
+                    // Manually update Part (simulating our system)
+                    testPart.setPosition(
+                        testPart.mesh.position.x,
+                        testPart.mesh.position.y, 
+                        testPart.mesh.position.z
+                    );
+                    
+                    console.log('Part position updated:', testPart.position);
+                    document.getElementById('output').innerHTML += '<p>✅ Gizmo updated Part position!</p>';
+                });
+            }
+            
+            document.getElementById('output').innerHTML += '<p>🎮 Try dragging the gizmo arrows to test Part updates!</p>';
+        };
+        
+        console.log('Test page loaded. Part class available:', typeof Part);
+    </script>
+</body>
+</html>

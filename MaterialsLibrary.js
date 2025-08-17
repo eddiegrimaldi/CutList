@@ -32,7 +32,7 @@ class MaterialsLibrary {
             }
             
             this.materials = data.materials;
-            console.log("🔍 MaterialsLibrary loaded:", typeof this.materials, Object.keys(this.materials).length, "materials");
+            // console.log("🔍 MaterialsLibrary loaded:", typeof this.materials, Object.keys(this.materials).length, "materials");
             this.categories = data.categories;
             this.databaseInfo = data.database_info;
             this.lumberGrades = data.lumber_grades;

@@ -1731,13 +1731,13 @@ export class CutToolSystem {
             mesh1.position.z = originalPosition.z;
         } else if (cutAxis === 'y') {
             // For Y-axis cut: piece 1 gets bottom side, piece 2 gets top side
-            const piece1CenterY = (worldMin.y + actualCutPos - kerfOffsetCm) / 2;
+            const piece1CenterY = (minPos.y + actualCutPos - kerfOffsetCm) / 2;
             mesh1.position.x = originalPosition.x;
             mesh1.position.y = piece1CenterY;
             mesh1.position.z = originalPosition.z;
         } else {
             // For Z-axis cut: piece 1 gets front side, piece 2 gets back side
-            const piece1CenterZ = (worldMin.z + actualCutPos - kerfOffsetCm) / 2;
+            const piece1CenterZ = (minPos.z + actualCutPos - kerfOffsetCm) / 2;
             mesh1.position.x = originalPosition.x;
             mesh1.position.y = originalPosition.y;
             mesh1.position.z = piece1CenterZ;
@@ -1875,7 +1875,13 @@ export class CutToolSystem {
         }
         
         if (!targetMesh) {
-            // No target mesh found
+            console.error('No target mesh found for camera animation');
+            return;
+        }
+        
+        
+        if (!targetMesh || typeof targetMesh.getBoundingInfo !== "function") {
+            console.error("Invalid mesh:", targetMesh);
             return;
         }
         // CRITICAL FIX: Use Part position and account for rotation

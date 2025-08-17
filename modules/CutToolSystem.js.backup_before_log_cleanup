@@ -408,6 +408,7 @@ export class CutToolSystem {
             piece2Mesh.position.x += kerfCm; // Move piece 2 right by kerf width
         }
         
+        console.log(`Positioned cut pieces with kerf gap of ${kerfCm}cm`);
         
         
         // Ensure pieces are visible and enabled
@@ -705,12 +706,21 @@ export class CutToolSystem {
         // Clear existing preview pieces
         this.clearColoredPreviewPieces();
         
-        // CRITICAL FIX: Always use mesh world bounds for preview positioning
-        const meshBounds = mesh.getBoundingInfo().boundingBox;
-        const worldMin = meshBounds.minimumWorld;
-        const worldMax = meshBounds.maximumWorld;
-        const meshSize = worldMax.subtract(worldMin);
-        const meshCenter = worldMin.add(worldMax).scale(0.5);
+        // CRITICAL FIX: Use Part data for preview positioning
+        let meshBounds, meshSize, meshCenter;
+        
+        if (mesh.partInstance) {
+            const part = mesh.partInstance;
+            meshCenter = new BABYLON.Vector3(part.position.x, part.position.y, part.position.z);
+            meshBounds = mesh.getBoundingInfo();
+            meshSize = meshBounds.maximum.subtract(meshBounds.minimum);
+            console.log('Preview using Part position:', meshCenter);
+        } else {
+            meshBounds = mesh.getBoundingInfo();
+            meshSize = meshBounds.maximum.subtract(meshBounds.minimum);
+            meshCenter = mesh.position;
+            console.warn('Preview using mesh position (Part system not available)');
+        }
         
         // Calculate cut position
         const cutAxis = cutLine.cutAxis;
@@ -730,9 +740,9 @@ export class CutToolSystem {
         
         if (cutAxis === 'x') {
             // Cut along X axis
-            // Use world coordinates directly from bounding box
-            const worldMinX = worldMin.x;
-            const worldMaxX = worldMax.x;
+            // MAJOR FIX: Calculate positions relative to WORLD coordinates, not local bounds
+            const worldMinX = meshCenter.x + meshBounds.minimum.x;
+            const worldMaxX = meshCenter.x + meshBounds.maximum.x;
             
             const leftWidth = Math.abs(cutPos - worldMinX) - halfKerf;
             const rightWidth = Math.abs(worldMaxX - cutPos) - halfKerf;
@@ -747,9 +757,9 @@ export class CutToolSystem {
             
         } else if (cutAxis === 'y') {
             // Cut along Y axis
-            // Use world coordinates directly from bounding box
-            const worldMinY = worldMin.y;
-            const worldMaxY = worldMax.y;
+            // MAJOR FIX: Calculate positions relative to WORLD coordinates, not local bounds
+            const worldMinY = meshCenter.y + meshBounds.minimum.y;
+            const worldMaxY = meshCenter.y + meshBounds.maximum.y;
             
             const leftDepth = Math.abs(cutPos - worldMinY) - halfKerf;
             const rightDepth = Math.abs(worldMaxY - cutPos) - halfKerf;
@@ -764,9 +774,9 @@ export class CutToolSystem {
             
         } else { // z axis
             // Cut along Z axis
-            // Use world coordinates directly from bounding box
-            const worldMinZ = worldMin.z;
-            const worldMaxZ = worldMax.z;
+            // MAJOR FIX: Calculate positions relative to WORLD coordinates, not local bounds
+            const worldMinZ = meshCenter.z + meshBounds.minimum.z;
+            const worldMaxZ = meshCenter.z + meshBounds.maximum.z;
             
             const leftHeight = Math.abs(cutPos - worldMinZ) - halfKerf;
             const rightHeight = Math.abs(worldMaxZ - cutPos) - halfKerf;
@@ -783,48 +793,34 @@ export class CutToolSystem {
         
         // Create left preview piece (green) - slightly larger to avoid z-fighting
         this.leftPreviewPiece = BABYLON.MeshBuilder.CreateBox("leftPreview", {
-            width: leftSize.x * 1.01,  // Just 1% larger
-            height: leftSize.y * 1.01,  // Just 1% larger
-            depth: leftSize.z * 1.01   // Just 1% larger
+            width: leftSize.x * 1.05,  // 5% larger to avoid z-fighting
+            height: leftSize.y * 1.05,  // 5% larger to avoid z-fighting 
+            depth: leftSize.z * 1.02  // 2% larger for airgap
         }, this.scene);
         this.leftPreviewPiece.position = leftCenter;
-        
-        // CRITICAL FIX: Raise preview based on camera distance for consistent visibility
-        const cameraDistance = BABYLON.Vector3.Distance(this.scene.activeCamera.position, leftCenter);
-        const heightOffset = Math.max(0.5, cameraDistance * 0.01); // Scale with distance, minimum 0.5
-        this.leftPreviewPiece.position.y += heightOffset;
+        this.leftPreviewPiece.position.y += 0.05; // Higher to avoid z-fighting // Slightly above surface
         
         const leftMaterial = new BABYLON.StandardMaterial("leftPreviewMaterial", this.scene);
         leftMaterial.diffuseColor = new BABYLON.Color3(0, 1, 0); // Green
-        leftMaterial.alpha = 0.7; // More opaque for better visibility
-        leftMaterial.emissiveColor = new BABYLON.Color3(0, 0.3, 0); // Add glow for visibility
+        leftMaterial.alpha = 0.6;
         leftMaterial.wireframe = false;
-        leftMaterial.backFaceCulling = false; // Render both sides
         this.leftPreviewPiece.material = leftMaterial;
-        this.leftPreviewPiece.renderingGroupId = 1; // Render on top of regular meshes
         this.leftPreviewPiece.isPickable = false;
         
         // Create right preview piece (blue) - slightly larger to avoid z-fighting
         this.rightPreviewPiece = BABYLON.MeshBuilder.CreateBox("rightPreview", {
-            width: rightSize.x * 1.01,  // Just 1% larger
-            height: rightSize.y * 1.01,  // Just 1% larger
-            depth: rightSize.z * 1.01   // Just 1% larger
+            width: rightSize.x * 1.05,  // 5% larger to avoid z-fighting
+            height: rightSize.y * 1.05,  // 5% larger to avoid z-fighting
+            depth: rightSize.z * 1.02  // 2% larger for airgap
         }, this.scene);
         this.rightPreviewPiece.position = rightCenter;
-        
-        // CRITICAL FIX: Raise preview based on camera distance for consistent visibility
-        const cameraDistanceRight = BABYLON.Vector3.Distance(this.scene.activeCamera.position, rightCenter);
-        const heightOffsetRight = Math.max(0.5, cameraDistanceRight * 0.01); // Scale with distance, minimum 0.5
-        this.rightPreviewPiece.position.y += heightOffsetRight;
+        this.rightPreviewPiece.position.y += 0.05; // Higher to avoid z-fighting // Slightly above surface
         
         const rightMaterial = new BABYLON.StandardMaterial("rightPreviewMaterial", this.scene);
         rightMaterial.diffuseColor = new BABYLON.Color3(0, 0, 1); // Blue
-        rightMaterial.alpha = 0.7; // More opaque for better visibility
-        rightMaterial.emissiveColor = new BABYLON.Color3(0, 0, 0.3); // Add glow for visibility
+        rightMaterial.alpha = 0.6;
         rightMaterial.wireframe = false;
-        rightMaterial.backFaceCulling = false; // Render both sides
         this.rightPreviewPiece.material = rightMaterial;
-        this.rightPreviewPiece.renderingGroupId = 1; // Render on top of regular meshes
         this.rightPreviewPiece.isPickable = false;
         
     }
@@ -992,29 +988,7 @@ export class CutToolSystem {
         this.updateMeasurementsFromCutLine(cutLine);
         
         // Update colored preview pieces
-        // Update preview height based on camera distance
-        if (this.leftPreviewPiece && this.rightPreviewPiece) {
-            const leftDistance = BABYLON.Vector3.Distance(this.scene.activeCamera.position, this.leftPreviewPiece.position);
-            const rightDistance = BABYLON.Vector3.Distance(this.scene.activeCamera.position, this.rightPreviewPiece.position);
-            
-            // Dynamically adjust height to prevent z-fighting at any distance
-            const leftHeight = Math.max(0.5, leftDistance * 0.01);
-            const rightHeight = Math.max(0.5, rightDistance * 0.01);
-            
-            // Update positions maintaining the offset
-            const currentLeftY = this.leftPreviewPiece.position.y;
-            const currentRightY = this.rightPreviewPiece.position.y;
-            
-            // Only update if significantly different to avoid jitter
-            if (Math.abs(currentLeftY - (leftCenter.y + leftHeight)) > 0.1) {
-                this.leftPreviewPiece.position.y = leftCenter.y + leftHeight;
-            }
-            if (Math.abs(currentRightY - (rightCenter.y + rightHeight)) > 0.1) {
-                this.rightPreviewPiece.position.y = rightCenter.y + rightHeight;
-            }
-        } else {
-            this.createColoredPreviewPieces(mesh, cutLine);
-        }
+        this.createColoredPreviewPieces(mesh, cutLine);
         
         // Store updated cut line
         this.storedCutLine = cutLine;
@@ -1028,12 +1002,18 @@ export class CutToolSystem {
         // CRITICAL FIX: Use Part data for preview positioning
         let meshBounds, meshSize, meshCenter;
         
-        // CRITICAL FIX: Use world coordinates consistently for all calculations
-        meshBounds = mesh.getBoundingInfo().boundingBox;
-        const worldMin = meshBounds.minimumWorld;
-        const worldMax = meshBounds.maximumWorld;
-        meshSize = worldMax.subtract(worldMin);
-        meshCenter = worldMin.add(worldMax).scale(0.5);
+        if (mesh.partInstance) {
+            const part = mesh.partInstance;
+            meshCenter = new BABYLON.Vector3(part.position.x, part.position.y, part.position.z);
+            meshBounds = mesh.getBoundingInfo();
+            meshSize = meshBounds.maximum.subtract(meshBounds.minimum);
+            console.log('Preview using Part position:', meshCenter);
+        } else {
+            meshBounds = mesh.getBoundingInfo();
+            meshSize = meshBounds.maximum.subtract(meshBounds.minimum);
+            meshCenter = mesh.position;
+            console.warn('Preview using mesh position (Part system not available)');
+        }
         
         // Project mouse onto the mesh to get cut position
         const hitPoint = pickInfo.pickedPoint;
@@ -1105,9 +1085,9 @@ export class CutToolSystem {
             cutLine.depth = meshSize.z + 1;
             
             // Position blade at hit point but constrain to mesh bounds
-            const xPos = Math.max(worldMin.x, Math.min(worldMax.x, hitPoint.x));
+            const xPos = Math.max(meshCenter.x - meshSize.x/2, Math.min(meshCenter.x + meshSize.x/2, hitPoint.x));
             cutLine.position = new BABYLON.Vector3(xPos, meshCenter.y, meshCenter.z);
-            cutLine.normalizedPosition = (xPos - worldMin.x) / meshSize.x;
+            cutLine.normalizedPosition = (xPos - (meshCenter.x - meshSize.x/2)) / meshSize.x;
             
         } else if (cutAxis === 'y') {
             cutLine.width = meshSize.x + 1;
@@ -1115,9 +1095,9 @@ export class CutToolSystem {
             cutLine.depth = meshSize.z + 1;
             
             // Position blade at hit point but constrain to mesh bounds
-            const yPos = Math.max(worldMin.y, Math.min(worldMax.y, hitPoint.y));
+            const yPos = Math.max(meshCenter.y - meshSize.y/2, Math.min(meshCenter.y + meshSize.y/2, hitPoint.y));
             cutLine.position = new BABYLON.Vector3(meshCenter.x, yPos, meshCenter.z);
-            cutLine.normalizedPosition = (yPos - worldMin.y) / meshSize.y;
+            cutLine.normalizedPosition = (yPos - (meshCenter.y - meshSize.y/2)) / meshSize.y;
             
         } else { // z axis
             cutLine.width = meshSize.x + 1;
@@ -1125,9 +1105,9 @@ export class CutToolSystem {
             cutLine.depth = 0.3;
             
             // Position blade at hit point but constrain to mesh bounds
-            const zPos = Math.max(worldMin.z, Math.min(worldMax.z, hitPoint.z));
+            const zPos = Math.max(meshCenter.z - meshSize.z/2, Math.min(meshCenter.z + meshSize.z/2, hitPoint.z));
             cutLine.position = new BABYLON.Vector3(meshCenter.x, meshCenter.y, zPos);
-            cutLine.normalizedPosition = (zPos - worldMin.z) / meshSize.z;
+            cutLine.normalizedPosition = (zPos - (meshCenter.z - meshSize.z/2)) / meshSize.z;
         }
         
         // Store cut info
@@ -1157,6 +1137,7 @@ export class CutToolSystem {
         this.executeCut(this.hoveredPart, this.cutPosition);
         
         // Return true to indicate we handled this event
+        console.log("CUT EXECUTED - Camera should NOT move after this point");
         return true;
     }
     
@@ -1552,10 +1533,7 @@ export class CutToolSystem {
         // Calculate sizes in cm (needed regardless of input source)
         const piece1SizeCm = piece1SizeInches * 2.54;
         const piece2SizeCm = piece2SizeInches * 2.54;
-        // CRITICAL: Deduct half kerf from EACH piece so total equals original minus kerf
-        const halfKerfInches = this.kerfWidth / 2;
-        piece1SizeInches = piece1SizeInches - halfKerfInches;
-        piece2SizeInches = piece2SizeInches - halfKerfInches;
+        const piece2SizeCmAfterKerf = piece2SizeCm - kerfWidth; // Deduct kerf from piece 2
 
         
         
@@ -1565,13 +1543,13 @@ export class CutToolSystem {
             id: `workpart_${timestamp}_A`,
             materialId: partData.materialId || partData.material?.id,
             material: partData.material,
-            materialName: (partData.materialName || (partData.material ? partData.material.name : "Material")) + " (A)",
+            materialName: `${partData.materialName || partData.material?.name || "Board"} (A)`,
             dimensions: {
                 length: this.activeCutDirection === 'cross' ? piece1SizeInches : partData.dimensions.length,
                 width: this.activeCutDirection === 'rip' ? piece1SizeInches : partData.dimensions.width,
                 thickness: partData.dimensions.thickness
             },
-            grade: partData.grade || "select",
+            grade: partData.grade,
             status: 'Cut from parent',
             parentId: partData.id,
             cutHistory: (partData.cutHistory || []).concat([{
@@ -1600,13 +1578,13 @@ export class CutToolSystem {
             id: `workpart_${timestamp + 1}_B`,
             materialId: partData.materialId || partData.material?.id,
             material: partData.material,
-            materialName: (partData.materialName || (partData.material ? partData.material.name : "Material")) + " (B)",
+            materialName: `${partData.materialName || partData.material?.name || "Board"} (B)`,
             dimensions: {
                 length: this.activeCutDirection === 'cross' ? piece2SizeInches : partData.dimensions.length,
                 width: this.activeCutDirection === 'rip' ? piece2SizeInches : partData.dimensions.width,
                 thickness: partData.dimensions.thickness
             },
-            grade: partData.grade || "select",
+            grade: partData.grade,
             status: 'Cut from parent',
             parentId: partData.id,
             cutHistory: (partData.cutHistory || []).concat([{
@@ -1685,6 +1663,12 @@ export class CutToolSystem {
         this.drawingWorld.workBenchParts.push(piece1Data);
         this.drawingWorld.workBenchParts.push(piece2Data);
         
+        console.log('=== PIECES CREATED WITH POSITIONS ===');
+        console.log('Piece 1 position:', JSON.stringify(piece1Data.meshGeometry.position));
+        console.log('Piece 2 position:', JSON.stringify(piece2Data.meshGeometry.position));
+        console.log('Original mesh size X:', meshSize.x, 'Y:', meshSize.y, 'Z:', meshSize.z);
+        console.log('Cut axis:', cutAxis);
+        console.log('Piece sizes (cm):', piece1SizeCm, piece2SizeCm);
         
         
         // Create piece 1 - LEFT side of cut
@@ -1712,38 +1696,48 @@ export class CutToolSystem {
         const originalStart = originalAxisValue - (totalSize / 2);
         // Position piece 1 so its edge aligns with original board's starting edge
         
+        console.log('Original position:', originalPosition);
+        console.log('Cut axis:', cutAxis);
+        console.log('Cut dimension (inches):', cutDimension);
+        console.log('Total size (cm):', totalSize);
+        console.log('Original axis value:', originalAxisValue);
+        console.log('Original start:', originalStart);
+        console.log('Piece 1 size (cm):', piece1SizeCm);
+        console.log('Piece 2 size (cm):', piece2SizeCm);
+        console.log('Kerf width (cm):', kerfWidth);
+        console.log('Mesh size:', meshSize);
+        console.log('Piece 1 final dimensions (cm):', piece1SizeCm);
+        console.log('Piece 2 final dimensions (cm):', piece2SizeCm);
+        console.log('Piece 2 after kerf (cm):', piece2SizeCmAfterKerf);
         const piece1Center = originalStart + (piece1SizeCm / 2);
         const kerfOffsetCm = (this.kerfWidth / 2) * 2.54; // Half kerf width in cm for offset
         
         // SIMPLE GEOMETRIC POSITIONING: Use cut line position directly
         const actualCutPos = this.currentCutLine.position[cutAxis];
-        const originalBounds = mesh.getBoundingInfo().boundingBox;
-        const worldMin = originalBounds.minimumWorld;
-        const worldMax = originalBounds.maximumWorld;
-        
-        // Calculate the kerf offset (half kerf on each side)
+        const originalBounds = mesh.getBoundingInfo();
+        const minPos = originalBounds.minimum;
+        const maxPos = originalBounds.maximum;
         
         if (cutAxis === 'x') {
-            // For X-axis cut: piece 1 gets left side, piece 2 gets right side
-            const piece1CenterX = (worldMin.x + actualCutPos - kerfOffsetCm) / 2;
-            mesh1.position.x = piece1CenterX;
+            // Piece 1: left side, piece 2: right side
+            const piece1Center = (minPos.x + actualCutPos) / 2;
+            const piece2Center = (actualCutPos + maxPos.x) / 2;
+            mesh1.position.x = piece1Center;
             mesh1.position.y = originalPosition.y;
             mesh1.position.z = originalPosition.z;
         } else if (cutAxis === 'y') {
-            // For Y-axis cut: piece 1 gets bottom side, piece 2 gets top side
-            const piece1CenterY = (worldMin.y + actualCutPos - kerfOffsetCm) / 2;
+            const piece1Center = (minPos.y + actualCutPos) / 2;
+            const piece2Center = (actualCutPos + maxPos.y) / 2;
             mesh1.position.x = originalPosition.x;
-            mesh1.position.y = piece1CenterY;
+            mesh1.position.y = piece1Center;
             mesh1.position.z = originalPosition.z;
         } else {
-            // For Z-axis cut: piece 1 gets front side, piece 2 gets back side
-            const piece1CenterZ = (worldMin.z + actualCutPos - kerfOffsetCm) / 2;
+            const piece1Center = (minPos.z + actualCutPos) / 2;
+            const piece2Center = (actualCutPos + maxPos.z) / 2;
             mesh1.position.x = originalPosition.x;
             mesh1.position.y = originalPosition.y;
-            mesh1.position.z = piece1CenterZ;
+            mesh1.position.z = piece1Center;
         }
-        
-
         
         // Create piece 2 - RIGHT side of cut
         
@@ -1762,6 +1756,11 @@ export class CutToolSystem {
         // mesh2.position = originalPosition.clone(); // REMOVED - position already set by createWorkBenchMaterial
         mesh2.rotation = originalRotation.clone();
         
+        console.log('=== FINAL CUT PIECE POSITIONS ===');
+        console.log('Mesh1 position after creation:', mesh1.position);
+        console.log('Mesh2 position after creation:', mesh2.position);
+        console.log('Piece1 stored position:', JSON.stringify(piece1Data.meshGeometry.position));
+        console.log('Piece2 stored position:', JSON.stringify(piece2Data.meshGeometry.position));
         
         // No scaling needed - mesh created with correct dimensions
         
@@ -1772,23 +1771,17 @@ export class CutToolSystem {
         
         // SIMPLE GEOMETRIC POSITIONING: Piece 2 gets the other side
         if (cutAxis === 'x') {
-            // For X-axis cut: piece 2 gets right side
-            const piece2CenterX = (actualCutPos + kerfOffsetCm + worldMax.x) / 2;
-            mesh2.position.x = piece2CenterX;
+            mesh2.position.x = piece2Center;  // Already calculated above
             mesh2.position.y = originalPosition.y;
             mesh2.position.z = originalPosition.z;
         } else if (cutAxis === 'y') {
-            // For Y-axis cut: piece 2 gets top side
-            const piece2CenterY = (actualCutPos + kerfOffsetCm + worldMax.y) / 2;
             mesh2.position.x = originalPosition.x;
-            mesh2.position.y = piece2CenterY;
+            mesh2.position.y = piece2Center;  // Already calculated above
             mesh2.position.z = originalPosition.z;
         } else {
-            // For Z-axis cut: piece 2 gets back side
-            const piece2CenterZ = (actualCutPos + kerfOffsetCm + worldMax.z) / 2;
             mesh2.position.x = originalPosition.x;
             mesh2.position.y = originalPosition.y;
-            mesh2.position.z = piece2CenterZ;
+            mesh2.position.z = piece2Center;  // Already calculated above
         }
         
         const piece1Pos = cutAxis === 'x' ? mesh1.position.x : (cutAxis === 'y' ? mesh1.position.y : mesh1.position.z);
@@ -1875,9 +1868,17 @@ export class CutToolSystem {
         }
         
         if (!targetMesh) {
-            // No target mesh found
+            console.error('No target mesh found for camera animation');
             return;
         }
+        
+        console.log('Camera animation target mesh:', targetMesh.name, 'has partInstance:', !!targetMesh.partInstance);
+        
+        if (!targetMesh || typeof targetMesh.getBoundingInfo !== "function") {
+            console.error("Invalid mesh:", targetMesh);
+            return;
+        }
+        console.log("✅ Valid mesh found, proceeding with cut tool");
         // CRITICAL FIX: Use Part position and account for rotation
         let meshCenter, meshSize;
         
@@ -1921,6 +1922,8 @@ export class CutToolSystem {
             
             meshSize = new BABYLON.Vector3(maxX - minX, maxY - minY, maxZ - minZ);
             
+            console.log('Camera animation using Part data - rotation:', rotation);
+            console.log('Rotated meshSize:', meshSize);
         } else {
             // Fallback to mesh data (should not happen with Part system)
             const meshBounds = targetMesh.getBoundingInfo();

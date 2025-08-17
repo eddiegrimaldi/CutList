@@ -1028,12 +1028,17 @@ export class CutToolSystem {
         // CRITICAL FIX: Use Part data for preview positioning
         let meshBounds, meshSize, meshCenter;
         
-        // CRITICAL FIX: Use world coordinates consistently for all calculations
-        meshBounds = mesh.getBoundingInfo().boundingBox;
-        const worldMin = meshBounds.minimumWorld;
-        const worldMax = meshBounds.maximumWorld;
-        meshSize = worldMax.subtract(worldMin);
-        meshCenter = worldMin.add(worldMax).scale(0.5);
+        if (mesh.partInstance) {
+            const part = mesh.partInstance;
+            meshCenter = new BABYLON.Vector3(part.position.x, part.position.y, part.position.z);
+            meshBounds = mesh.getBoundingInfo();
+            meshSize = meshBounds.maximum.subtract(meshBounds.minimum);
+        } else {
+            meshBounds = mesh.getBoundingInfo();
+            meshSize = meshBounds.maximum.subtract(meshBounds.minimum);
+            meshCenter = mesh.position;
+            console.warn('Preview using mesh position (Part system not available)');
+        }
         
         // Project mouse onto the mesh to get cut position
         const hitPoint = pickInfo.pickedPoint;
@@ -1105,9 +1110,9 @@ export class CutToolSystem {
             cutLine.depth = meshSize.z + 1;
             
             // Position blade at hit point but constrain to mesh bounds
-            const xPos = Math.max(worldMin.x, Math.min(worldMax.x, hitPoint.x));
+            const xPos = Math.max(meshCenter.x - meshSize.x/2, Math.min(meshCenter.x + meshSize.x/2, hitPoint.x));
             cutLine.position = new BABYLON.Vector3(xPos, meshCenter.y, meshCenter.z);
-            cutLine.normalizedPosition = (xPos - worldMin.x) / meshSize.x;
+            cutLine.normalizedPosition = (xPos - (meshCenter.x - meshSize.x/2)) / meshSize.x;
             
         } else if (cutAxis === 'y') {
             cutLine.width = meshSize.x + 1;
@@ -1115,9 +1120,9 @@ export class CutToolSystem {
             cutLine.depth = meshSize.z + 1;
             
             // Position blade at hit point but constrain to mesh bounds
-            const yPos = Math.max(worldMin.y, Math.min(worldMax.y, hitPoint.y));
+            const yPos = Math.max(meshCenter.y - meshSize.y/2, Math.min(meshCenter.y + meshSize.y/2, hitPoint.y));
             cutLine.position = new BABYLON.Vector3(meshCenter.x, yPos, meshCenter.z);
-            cutLine.normalizedPosition = (yPos - worldMin.y) / meshSize.y;
+            cutLine.normalizedPosition = (yPos - (meshCenter.y - meshSize.y/2)) / meshSize.y;
             
         } else { // z axis
             cutLine.width = meshSize.x + 1;
@@ -1125,9 +1130,9 @@ export class CutToolSystem {
             cutLine.depth = 0.3;
             
             // Position blade at hit point but constrain to mesh bounds
-            const zPos = Math.max(worldMin.z, Math.min(worldMax.z, hitPoint.z));
+            const zPos = Math.max(meshCenter.z - meshSize.z/2, Math.min(meshCenter.z + meshSize.z/2, hitPoint.z));
             cutLine.position = new BABYLON.Vector3(meshCenter.x, meshCenter.y, zPos);
-            cutLine.normalizedPosition = (zPos - worldMin.z) / meshSize.z;
+            cutLine.normalizedPosition = (zPos - (meshCenter.z - meshSize.z/2)) / meshSize.z;
         }
         
         // Store cut info
@@ -1731,13 +1736,13 @@ export class CutToolSystem {
             mesh1.position.z = originalPosition.z;
         } else if (cutAxis === 'y') {
             // For Y-axis cut: piece 1 gets bottom side, piece 2 gets top side
-            const piece1CenterY = (worldMin.y + actualCutPos - kerfOffsetCm) / 2;
+            const piece1CenterY = (minPos.y + actualCutPos - kerfOffsetCm) / 2;
             mesh1.position.x = originalPosition.x;
             mesh1.position.y = piece1CenterY;
             mesh1.position.z = originalPosition.z;
         } else {
             // For Z-axis cut: piece 1 gets front side, piece 2 gets back side
-            const piece1CenterZ = (worldMin.z + actualCutPos - kerfOffsetCm) / 2;
+            const piece1CenterZ = (minPos.z + actualCutPos - kerfOffsetCm) / 2;
             mesh1.position.x = originalPosition.x;
             mesh1.position.y = originalPosition.y;
             mesh1.position.z = piece1CenterZ;
@@ -1875,7 +1880,13 @@ export class CutToolSystem {
         }
         
         if (!targetMesh) {
-            // No target mesh found
+            console.error('No target mesh found for camera animation');
+            return;
+        }
+        
+        
+        if (!targetMesh || typeof targetMesh.getBoundingInfo !== "function") {
+            console.error("Invalid mesh:", targetMesh);
             return;
         }
         // CRITICAL FIX: Use Part position and account for rotation

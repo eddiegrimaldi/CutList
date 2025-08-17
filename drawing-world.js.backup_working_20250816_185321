@@ -8765,7 +8765,7 @@ class DrawingWorld {
                         <li class="part-item ${currentClass}" data-part-id="${part.id}" onclick="drawingWorld.focusPartInScene('${part.id}')">
                             <div class="part-thumbnail-container">${thumbnailHtml}</div>
                             <div class="part-info">
-                                <span class="part-name">${(part.materialName || (part.material ? part.material.name : "Unknown Material"))}</span>
+                                <span class="part-name">${part.materialName}</span>
                                 <span class="part-dimensions">${part.dimensions.length.toFixed(2)}" × ${part.dimensions.width.toFixed(2)}" × ${part.dimensions.thickness.toFixed(2)}"</span>
                                 <span class="part-status">${part.status || 'Ready'}</span>
                             </div>
@@ -9138,20 +9138,6 @@ class DrawingWorld {
     createWorkBenchMaterial(part, isRestoring = false) {
         // DON'T clear existing materials - allow multiple boards on work bench
         
-        // CRITICAL: Ensure material properties exist
-        if (!part.materialId && part.material) {
-            part.materialId = part.material.id || part.material.materialId;
-        }
-        if (!part.materialName && part.material) {
-            part.materialName = part.material.name || part.material.materialName;
-        }
-        // Fallback to walnut if no material specified
-        if (!part.materialId) {
-            console.warn('No materialId found for part:', part.id, '- using default walnut');
-            part.materialId = 'walnut';
-            part.materialName = 'Black Walnut';
-        }
-        
         let box;
         
         // CRITICAL: Check if part has preserved geometry from previous modifications
@@ -9212,8 +9198,12 @@ class DrawingWorld {
             box.position = spawnPosition;
         }
 
-        // Always apply material with texture for consistency
-        box.material = this.getMaterialColor(part.materialId || part.material?.id);
+        // Only create material if it doesn't already exist (restored geometry has its own material)
+        if (!box.material) {
+        // Apply material with texture
+            box.material = this.getMaterialColor(part.materialId);
+
+        }
 
         // Store reference
         box.partData = part;

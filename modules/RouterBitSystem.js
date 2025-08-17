@@ -49,7 +49,7 @@ export class RouterBitSystem {
     }
     
     init() {
-        console.log('RouterBitSystem: Initializing professional router bit system');
+        // console.log('RouterBitSystem: Initializing professional router bit system');
         this.createRouterBitLibrary();
         this.setupEdgePreviewMaterials();
         this.setupMouseTracking();
@@ -63,7 +63,7 @@ export class RouterBitSystem {
         // Empty library - only imported router bits allowed
         this.routerBitLibrary = {};
         
-        console.log('RouterBitSystem: Router bit library created with', Object.keys(this.routerBitLibrary).length, 'profiles');
+        // console.log('RouterBitSystem: Router bit library created with', Object.keys(this.routerBitLibrary).length, 'profiles');
     }
     
     /**
@@ -88,7 +88,7 @@ export class RouterBitSystem {
         this.selectedEdgeMaterial.disableLighting = true;
         this.selectedEdgeMaterial.backFaceCulling = false;
         
-        console.log('RouterBitSystem: Edge preview materials created with bold tube rendering');
+        // console.log('RouterBitSystem: Edge preview materials created with bold tube rendering');
     }
     
     /**
@@ -107,7 +107,7 @@ export class RouterBitSystem {
             }
         });
         
-        console.log('RouterBitSystem: Mouse tracking setup complete');
+        // console.log('RouterBitSystem: Mouse tracking setup complete');
     }
     
     /**
@@ -155,7 +155,7 @@ export class RouterBitSystem {
             
             if (pickInfo.hit && pickInfo.pickedMesh && !this.focusPart) {
                 this.setFocusPart(pickInfo.pickedMesh);
-                console.log('RouterBitSystem: Auto-focused on clicked part');
+                // console.log('RouterBitSystem: Auto-focused on clicked part');
             }
         }
     }
@@ -176,8 +176,8 @@ export class RouterBitSystem {
         const relativePoint = pickPoint.subtract(center);
         const edgeTolerance = 3.0; // Tighter tolerance for precise edge detection
         
-        console.log('RouterBitSystem: Analyzing click at relative position:', relativePoint);
-        console.log('RouterBitSystem: Board dimensions - X:', size.x.toFixed(1), 'Y:', size.y.toFixed(1), 'Z:', size.z.toFixed(1));
+        // console.log('RouterBitSystem: Analyzing click at relative position:', relativePoint);
+        // console.log('RouterBitSystem: Board dimensions - X:', size.x.toFixed(1), 'Y:', size.y.toFixed(1), 'Z:', size.z.toFixed(1));
         
         // Calculate distances to each face
         const distToTop = Math.abs(relativePoint.y - size.y / 2);
@@ -191,7 +191,7 @@ export class RouterBitSystem {
         const minDistance = Math.min(distToTop, distToBottom, distToRight, distToLeft, distToFront, distToBack);
         
         if (minDistance > edgeTolerance) {
-            console.log('RouterBitSystem: Click too far from any edge, min distance:', minDistance.toFixed(1));
+            // console.log('RouterBitSystem: Click too far from any edge, min distance:', minDistance.toFixed(1));
             return null;
         }
         
@@ -202,7 +202,7 @@ export class RouterBitSystem {
         // Determine which specific edge based on the closest face and position
         if (minDistance === distToTop) {
             // Top face - determine which specific edge
-            console.log('RouterBitSystem: On top face');
+            // console.log('RouterBitSystem: On top face');
             
             // Check if we're near the X edges (front/back edges of top face)
             if (Math.abs(relativePoint.z - size.z / 2) < edgeTolerance) {
@@ -259,12 +259,12 @@ export class RouterBitSystem {
                 id: `edge_${mesh.uniqueId}_${Date.now()}_${specificSide}`
             };
             
-            console.log('RouterBitSystem: PRECISE edge detected -', edgeType, '(', edgeDirection, ') on', specificSide, 'side');
-            console.log('RouterBitSystem: Distance to edge:', minDistance.toFixed(1), 'cm');
+            // console.log('RouterBitSystem: PRECISE edge detected -', edgeType, '(', edgeDirection, ') on', specificSide, 'side');
+            // console.log('RouterBitSystem: Distance to edge:', minDistance.toFixed(1), 'cm');
             return edge;
         }
         
-        console.log('RouterBitSystem: No valid edge detected');
+        // console.log('RouterBitSystem: No valid edge detected');
         return null;
     }
     
@@ -391,7 +391,7 @@ export class RouterBitSystem {
             }, this.scene);
         }
         else {
-            console.warn('RouterBitSystem: Unknown edge type:', edge.type, '- no preview will be shown');
+            // console.warn('RouterBitSystem: Unknown edge type:', edge.type, '- no preview will be shown');
             return; // Don't show anything for unknown edge types
         }
         
@@ -403,7 +403,7 @@ export class RouterBitSystem {
             // Store reference for cleanup
             this.currentEdgePreview = edgeLine;
             
-            console.log('RouterBitSystem: Showing BOLD tube edge preview for', edge.type, 'on', edge.specificSide, 'side');
+            // console.log('RouterBitSystem: Showing BOLD tube edge preview for', edge.type, 'on', edge.specificSide, 'side');
         }
     }
     
@@ -423,7 +423,7 @@ export class RouterBitSystem {
      */
     selectEdge(edge) {
         this.selectedEdges.push(edge);
-        console.log('RouterBitSystem: Edge selected for routing:', edge.type, 'Total selected:', this.selectedEdges.length);
+        // console.log('RouterBitSystem: Edge selected for routing:', edge.type, 'Total selected:', this.selectedEdges.length);
         
         // Show persistent selection highlight
         this.showEdgeSelection(edge);
@@ -442,7 +442,7 @@ export class RouterBitSystem {
         const index = this.selectedEdges.indexOf(edge);
         if (index > -1) {
             this.selectedEdges.splice(index, 1);
-            console.log('RouterBitSystem: Edge deselected:', edge.type, 'Total selected:', this.selectedEdges.length);
+            // console.log('RouterBitSystem: Edge deselected:', edge.type, 'Total selected:', this.selectedEdges.length);
             
             // Remove selection highlight
             if (edge.selectionHighlight) {
@@ -530,7 +530,7 @@ export class RouterBitSystem {
             // Store for cleanup
             edge.selectionHighlight = selectionLine;
             
-            console.log('RouterBitSystem: Showing BOLD tube edge selection for', edge.type);
+            // console.log('RouterBitSystem: Showing BOLD tube edge selection for', edge.type);
         }
     }
     
@@ -561,7 +561,7 @@ export class RouterBitSystem {
      */
     setFocusPart(mesh) {
         this.focusPart = mesh;
-        console.log('RouterBitSystem: Focus part set to', mesh.name || 'unnamed mesh');
+        // console.log('RouterBitSystem: Focus part set to', mesh.name || 'unnamed mesh');
         
         // Update UI
         this.updateSelectionUI();
@@ -572,7 +572,7 @@ export class RouterBitSystem {
      */
     clearFocusPart() {
         this.focusPart = null;
-        console.log('RouterBitSystem: Focus part cleared');
+        // console.log('RouterBitSystem: Focus part cleared');
     }
     
     /**
@@ -1249,7 +1249,7 @@ export class RouterBitSystem {
         // Populate router bit grid
         this.populateRouterBitGrid();
         
-        console.log('RouterBitSystem: Router bit modal setup complete');
+        // console.log('RouterBitSystem: Router bit modal setup complete');
     }
 
     /**
@@ -1336,7 +1336,7 @@ export class RouterBitSystem {
         if (bitProfile) {
             this.selectedBitProfile = bitType;
             this.selectedBitInfo = bitProfile;
-            console.log('RouterBitSystem: Selected router bit:', bitType);
+            // console.log('RouterBitSystem: Selected router bit:', bitType);
             
             // Update UI to show selection
             this.showRouterBitsInPropertiesPanel();
@@ -1353,7 +1353,7 @@ export class RouterBitSystem {
                 }
             });
         } else {
-            console.error('RouterBitSystem: Bit profile not found:', bitType);
+            // console.error('RouterBitSystem: Bit profile not found:', bitType);
         }
     }
 
@@ -1384,7 +1384,7 @@ export class RouterBitSystem {
         this.setBitSize(this.currentBitSize);
         this.applyProfileToSelectedEdges();
         
-        console.log(`RouterBitSystem: Applied ${this.selectedBitProfile} bit (${this.currentBitSize}") to ${this.selectedEdges.length} edges`);
+        // console.log(`RouterBitSystem: Applied ${this.selectedBitProfile} bit (${this.currentBitSize}") to ${this.selectedEdges.length} edges`);
     }
     
     /**
@@ -1516,11 +1516,11 @@ export class RouterBitSystem {
      */
     applySelectedBit() {
         if (!this.selectedBitProfile || !this.selectedBitSize) {
-            console.log('RouterBitSystem: No bit or size selected');
+            // console.log('RouterBitSystem: No bit or size selected');
             return;
         }
         
-        console.log('RouterBitSystem: Applying', this.selectedBitProfile, 'bit, size', this.selectedBitSize);
+        // console.log('RouterBitSystem: Applying', this.selectedBitProfile, 'bit, size', this.selectedBitSize);
         
         // Set the current bit profile and size
         this.setBitSize(this.selectedBitSize);
@@ -1538,7 +1538,7 @@ export class RouterBitSystem {
      * Activate the router bit system
      */
     activate(bitProfile = null) {
-        console.log('RouterBitSystem: Activating router bit system with', bitProfile, 'profile');
+        // console.log('RouterBitSystem: Activating router bit system with', bitProfile, 'profile');
         this.isActive = true;
         this.selectedBitProfile = bitProfile;
         this.clearAll();
@@ -1548,7 +1548,7 @@ export class RouterBitSystem {
      * Deactivate the router bit system
      */
     deactivate() {
-        console.log('RouterBitSystem: Deactivating router bit system');
+        // console.log('RouterBitSystem: Deactivating router bit system');
         this.isActive = false;
         this.selectedBitProfile = null;
         this.clearFocusPart();
@@ -1596,7 +1596,7 @@ export class RouterBitSystem {
      */
     setBitSize(size) {
         this.currentBitSize = size;
-        console.log('RouterBitSystem: Bit size set to', size, 'inches');
+        // console.log('RouterBitSystem: Bit size set to', size, 'inches');
     }
     
     /**
@@ -1604,16 +1604,16 @@ export class RouterBitSystem {
      */
     applyProfileToSelectedEdges() {
         if (this.selectedEdges.length === 0) {
-            console.log('RouterBitSystem: No edges selected for routing');
+            // console.log('RouterBitSystem: No edges selected for routing');
             return;
         }
         
         if (!this.selectedBitProfile) {
-            console.log('RouterBitSystem: No router bit profile selected');
+            // console.log('RouterBitSystem: No router bit profile selected');
             return;
         }
         
-        console.log('RouterBitSystem: Applying', this.selectedBitProfile, 'profile to', this.selectedEdges.length, 'edges');
+        // console.log('RouterBitSystem: Applying', this.selectedBitProfile, 'profile to', this.selectedEdges.length, 'edges');
         
         // Apply profile to each selected edge
         this.selectedEdges.forEach(edge => {
@@ -1628,12 +1628,12 @@ export class RouterBitSystem {
      * Apply profile to a specific edge
      */
     applyProfileToEdge(edge, profileName, size) {
-        console.log('RouterBitSystem: Applying', profileName, 'profile to edge', edge.type);
+        // console.log('RouterBitSystem: Applying', profileName, 'profile to edge', edge.type);
         
         // Get profile generator
         const profileInfo = this.routerBitLibrary[profileName];
         if (!profileInfo) {
-            console.error('RouterBitSystem: Unknown profile:', profileName);
+            // console.error('RouterBitSystem: Unknown profile:', profileName);
             return;
         }
         
@@ -1643,7 +1643,7 @@ export class RouterBitSystem {
         // Apply actual geometry modification
         this.modifyMeshWithProfile(edge, profilePoints, profileName, size);
         
-        console.log('RouterBitSystem: Profile applied with', profilePoints.length, 'points');
+        // console.log('RouterBitSystem: Profile applied with', profilePoints.length, 'points');
     }
     
     /**
@@ -1654,7 +1654,7 @@ export class RouterBitSystem {
         const meshBounds = mesh.getBoundingInfo();
         const meshSize = meshBounds.maximum.subtract(meshBounds.minimum);
         
-        console.log('RouterBitSystem: Modifying mesh geometry for', profileName, 'profile');
+        // console.log('RouterBitSystem: Modifying mesh geometry for', profileName, 'profile');
         
         // Create the cutting tool geometry
         const cuttingTool = this.createCuttingToolGeometry(edge, profileName, size);
@@ -1770,7 +1770,7 @@ export class RouterBitSystem {
                 cuttingTool.rotation.x = Math.PI / 4; // 45-degree rotation for chamfer
             }
             
-            console.log('RouterBitSystem: Positioned on top FRONT edge');
+            // console.log('RouterBitSystem: Positioned on top FRONT edge');
             
         } else if (edge.type === 'top_back_edge') {
             // Back edge of top face (along X axis)
@@ -1784,7 +1784,7 @@ export class RouterBitSystem {
                 cuttingTool.rotation.x = -Math.PI / 4; // -45-degree rotation for back edge
             }
             
-            console.log('RouterBitSystem: Positioned on top BACK edge');
+            // console.log('RouterBitSystem: Positioned on top BACK edge');
             
         } else if (edge.type === 'top_left_edge') {
             // Left edge of top face (along Z axis)
@@ -1798,7 +1798,7 @@ export class RouterBitSystem {
                 cuttingTool.rotation.z = Math.PI / 4; // 45-degree rotation for chamfer
             }
             
-            console.log('RouterBitSystem: Positioned on top LEFT edge');
+            // console.log('RouterBitSystem: Positioned on top LEFT edge');
             
         } else if (edge.type === 'top_right_edge') {
             // Right edge of top face (along Z axis)
@@ -1814,38 +1814,38 @@ export class RouterBitSystem {
                 // For other tools (roundover), align along Z axis
                 cuttingTool.rotation.y = Math.PI / 2; // Align along Z axis
             }
-            console.log('RouterBitSystem: Positioned on top RIGHT edge (', edge.direction, ')');
+            // console.log('RouterBitSystem: Positioned on top RIGHT edge (', edge.direction, ')');
             
         } else if (edge.type === 'right_edge') {
             // Right side edge (vertical)
             cuttingTool.position.x = meshCenter.x + meshSize.x / 2;
             cuttingTool.rotation.z = Math.PI / 2; // Vertical orientation
-            console.log('RouterBitSystem: Positioned on right vertical edge (', edge.direction, ')');
+            // console.log('RouterBitSystem: Positioned on right vertical edge (', edge.direction, ')');
             
         } else if (edge.type === 'left_edge') {
             // Left side edge (vertical)
             cuttingTool.position.x = meshCenter.x - meshSize.x / 2;
             cuttingTool.rotation.z = Math.PI / 2; // Vertical orientation
-            console.log('RouterBitSystem: Positioned on left vertical edge (', edge.direction, ')');
+            // console.log('RouterBitSystem: Positioned on left vertical edge (', edge.direction, ')');
             
         } else if (edge.type === 'front_edge') {
             // Front side edge (vertical)
             cuttingTool.position.z = meshCenter.z + meshSize.z / 2;
             cuttingTool.rotation.x = Math.PI / 2; // Vertical orientation
-            console.log('RouterBitSystem: Positioned on front vertical edge (', edge.direction, ')');
+            // console.log('RouterBitSystem: Positioned on front vertical edge (', edge.direction, ')');
             
         } else if (edge.type === 'back_edge') {
             // Back side edge (vertical)
             cuttingTool.position.z = meshCenter.z - meshSize.z / 2;
             cuttingTool.rotation.x = Math.PI / 2; // Vertical orientation
-            console.log('RouterBitSystem: Positioned on back vertical edge (', edge.direction, ')');
+            // console.log('RouterBitSystem: Positioned on back vertical edge (', edge.direction, ')');
             
         } else {
-            console.log('RouterBitSystem: Unknown edge type, using fallback positioning');
+            // console.log('RouterBitSystem: Unknown edge type, using fallback positioning');
         }
         
-        console.log('RouterBitSystem: Final cutting tool position:', cuttingTool.position);
-        console.log('RouterBitSystem: Final cutting tool rotation:', cuttingTool.rotation);
+        // console.log('RouterBitSystem: Final cutting tool position:', cuttingTool.position);
+        // console.log('RouterBitSystem: Final cutting tool rotation:', cuttingTool.rotation);
         
         return cuttingTool;
     }
@@ -1854,7 +1854,7 @@ export class RouterBitSystem {
      * Perform CSG subtraction to actually modify the board geometry
      */
     performCSGSubtraction(boardMesh, cuttingTool, profileName) {
-        console.log('RouterBitSystem: Performing CSG subtraction for', profileName);
+        // console.log('RouterBitSystem: Performing CSG subtraction for', profileName);
         
         try {
             // Create CSG objects
@@ -1879,7 +1879,7 @@ export class RouterBitSystem {
             
             // Chamfering doesn't change board dimensions - just adds routed geometry
             // The board is still the same size, just with chamfered edges
-            console.log('RouterBitSystem: Chamfer applied - board dimensions unchanged');
+            // console.log('RouterBitSystem: Chamfer applied - board dimensions unchanged');
             
             // AGGRESSIVELY UPDATE ALL PART REFERENCES WITH ROUTED GEOMETRY
             if (boardMesh.isWorkBenchPart && this.drawingWorld.workBenchParts) {
@@ -1893,7 +1893,7 @@ export class RouterBitSystem {
                         length: newMesh.partData.dimensions.length,
                         thickness: newMesh.partData.dimensions.thickness
                     };
-                    console.log('RouterBitSystem: COMPLETELY updated workBenchParts array with routed mesh AND dimensions');
+                    // console.log('RouterBitSystem: COMPLETELY updated workBenchParts array with routed mesh AND dimensions');
                 }
             }
             
@@ -1908,7 +1908,7 @@ export class RouterBitSystem {
                         length: newMesh.partData.dimensions.length,
                         thickness: newMesh.partData.dimensions.thickness
                     };
-                    console.log('RouterBitSystem: COMPLETELY updated projectParts array with routed mesh AND dimensions');
+                    // console.log('RouterBitSystem: COMPLETELY updated projectParts array with routed mesh AND dimensions');
                 }
             }
             
@@ -1922,7 +1922,7 @@ export class RouterBitSystem {
             if (this.drawingWorld.selectedPart && this.drawingWorld.selectedPart.id === newMesh.partData.id) {
                 // Replace selectedPart entirely with the new partData containing routed dimensions
                 this.drawingWorld.selectedPart = newMesh.partData;
-                console.log('RouterBitSystem: UPDATED selectedPart reference with routed dimensions');
+                // console.log('RouterBitSystem: UPDATED selectedPart reference with routed dimensions');
             }
             
             // DEBUG: Show cutting tool position
@@ -1936,7 +1936,7 @@ export class RouterBitSystem {
                 cuttingTool.material = debugMat;
             }
             
-            console.log('RouterBitSystem: CSG completed - disposing cutting tool');
+            // console.log('RouterBitSystem: CSG completed - disposing cutting tool');
             
             // CRITICAL: Serialize the routed geometry to preserve modifications permanently
             if (newMesh && this.drawingWorld.serializeMeshGeometry) {
@@ -1957,10 +1957,10 @@ export class RouterBitSystem {
             }
             
         } catch (error) {
-            console.error('RouterBitSystem: CSG operation failed:', error);
+            // console.error('RouterBitSystem: CSG operation failed:', error);
             
             // Fallback: Create a visual effect instead
-            console.log('RouterBitSystem: Falling back to visual effect');
+            // console.log('RouterBitSystem: Falling back to visual effect');
             this.createRouterBitEffect({mesh: boardMesh, type: 'fallback'}, [], profileName, this.currentBitSize);
             
             // Clean up cutting tool
@@ -2008,7 +2008,7 @@ export class RouterBitSystem {
                 effectMesh.material = effectMaterial;
             }
             
-            console.log('RouterBitSystem: Created', profileName, 'effect on edge');
+            // console.log('RouterBitSystem: Created', profileName, 'effect on edge');
         }
     }
     
@@ -2105,7 +2105,7 @@ export class RouterBitSystem {
      * Dispose of the router bit system
      */
     dispose() {
-        console.log('RouterBitSystem: Disposing router bit system');
+        // console.log('RouterBitSystem: Disposing router bit system');
         
         // Remove observer
         if (this.pointerObserver) {

@@ -1,5 +1,6 @@
 // Drawing World with Babylon.js - UPDATED FOR CAMERA FOCUS FIX
 // UNIT STANDARD: 1 unit = 1 cm (eventually selectable between metric/imperial)
+// console.log("🚀 DRAWING-WORLD.JS LOADED - CAMERA FIX VERSION 2024-07-14 18:43:00 TIMESTAMP");
 import { GridSystem } from './grid/GridSystem.js';
 import { Shape2D } from './modules/Shape2D.js?v=20250112001';
 import { CutToolSystem } from './modules/CutToolSystem.js';
@@ -27,11 +28,17 @@ class ModernGizmoSystem {
         // Pointer tool system for compatibility
         this.pointerToolSystem = {
             setMode: (mode) => {
+                // console.log('Pointer tool mode set to:', mode);
                 this.pointerMode = mode;
             },
             showPositionGizmo: (mesh) => {
+                // console.log('Showing position gizmo for mesh:', mesh.name);
                 if (this.selectedPart) {
+                    // console.log('GIZMO DEBUG: About to call createDragHandles');
+                // console.log('GIZMO DEBUG: activeTool is:', this.activeTool);
+                // console.log('GIZMO DEBUG: mesh is:', mesh);
                 this.createDragHandles(mesh);
+                // console.log('GIZMO DEBUG: createDragHandles called');
                 }
             }
         };
@@ -363,6 +370,7 @@ class ModernGizmoSystem {
             
             // CRITICAL FIX: Skip if cut tool is active and should handle this
             if (this.cutToolSystem && this.cutToolSystem.cutPreviewActive) {
+                // console.log('Part selection skipped - cut tool is active');
                 return;
             }
             
@@ -373,11 +381,13 @@ class ModernGizmoSystem {
             // Check if we clicked on a part
             const partPickInfo = this.scene.pick(x, y, (mesh) => {
                 if (mesh) {
+                    // console.log('Checking mesh:', mesh.id, 'partData:', !!mesh.partData, 'isWorkBenchPart:', mesh.isWorkBenchPart);
                 }
                 return mesh && mesh.partData;
             });
             
             if (partPickInfo.hit && partPickInfo.pickedMesh && partPickInfo.pickedMesh.partData) {
+                    // console.log("PART: Selecting part");
                 this.selectPart(partPickInfo.pickedMesh.partData);
                 pointerInfo.skipOnPointerObservable = true; // Stop other handlers
             } else {
@@ -489,6 +499,7 @@ class ModernGizmoSystem {
     }
     
     startDrag(handle, pickInfo) {
+        // console.log("GIZMO: Starting drag on", handle.axis || handle.type);
         this.isDragging = true;
         this.activeHandle = handle;
         this.dragStartPosition = this.targetMesh.position.clone();
@@ -511,6 +522,7 @@ class ModernGizmoSystem {
         );
         
         const distance = ray.intersectsPlane(this.dragPlane);
+        // console.log("GIZMO: Drag distance:", distance);
         if (distance) {
             const pickedPoint = ray.origin.add(ray.direction.scale(distance));
             this.dragOffset = this.targetMesh.position.subtract(pickedPoint);
@@ -558,6 +570,7 @@ class ModernGizmoSystem {
         
         // Find intersection with drag plane
         const distance = ray.intersectsPlane(this.dragPlane);
+        // console.log("GIZMO: Drag distance:", distance);
         if (!distance) return;
         
         const pickedPoint = ray.origin.add(ray.direction.scale(distance));
@@ -606,7 +619,9 @@ class ModernGizmoSystem {
         this.scene.onPointerObservable.add((pointerInfo) => {
             // Check for right mouse button events
             if (pointerInfo.event.button === 2) {
+                // console.log('Right-click detected, camera mode:', this.camera.mode);
                 if (this.camera.mode === BABYLON.Camera.ORTHOGRAPHIC_CAMERA) {
+                    // console.log('Switching back to perspective mode');
                     this.removeOrthoRulers();
                     this.camera.mode = BABYLON.Camera.PERSPECTIVE_CAMERA;
                     
@@ -624,7 +639,9 @@ class ModernGizmoSystem {
         // Also handle right-click drag (mouse move with right button held)
         this.scene.onPointerObservable.add((pointerInfo) => {
             if (pointerInfo.event.buttons === 2) { // Right button is held
+                // console.log('Right-drag detected, camera mode:', this.camera.mode);
                 if (this.camera.mode === BABYLON.Camera.ORTHOGRAPHIC_CAMERA) {
+                    // console.log('Switching back to perspective mode from drag');
                     this.camera.mode = BABYLON.Camera.PERSPECTIVE_CAMERA;
                     
                     // Remove rulers when returning to perspective
@@ -701,6 +718,7 @@ class ModernGizmoSystem {
         const xBlackArrow = this.scene.getMeshByName('border_arrow_x');
         
         if (xLine && xArrow) {
+            // console.log('Found X axis meshes, xDir:', xDir);
             // Update positions
             xLine.position.x = xDir * (this.originGap + (this.axisLength - this.originGap) / 2);
             xLine.position.y = 0;
@@ -733,6 +751,7 @@ class ModernGizmoSystem {
         const zBlackArrow = this.scene.getMeshByName('border_arrow_z');
         
         if (zLine && zArrow) {
+            // console.log('Found Z axis meshes, zDir:', zDir);
             // Update positions
             zLine.position.x = 0;
             zLine.position.y = 0;
@@ -764,6 +783,7 @@ class ModernGizmoSystem {
         const xzPlane = this.scene.getMeshByName('plane_xz');
         const yzPlane = this.scene.getMeshByName('plane_yz');
         
+        // console.log('Drag planes found:', { xy: !!xyPlane, xz: !!xzPlane, yz: !!yzPlane });
         
         if (xyPlane) {
             // XY plane moves with X axis (offset from both X and Y axes)
@@ -1183,6 +1203,7 @@ class DrawingWorld {
                     if (pickResult.hit && pickResult.pickedMesh === cube) {
                         const faceId = pickResult.faceId;
                         const faceIndex = Math.floor(faceId / 2);
+                        // console.log('Clicked face:', faceIndex);
                         
                         let targetAlpha = this.camera.alpha;
                         let targetBeta = this.camera.beta;
@@ -1201,6 +1222,7 @@ class DrawingWorld {
                                 targetBeta = Math.PI / 2;
                                 break;
                             case 3: // BLACK side (was incorrectly marked as bottom)
+                                // console.log('BLACK face clicked - animating to back view');
                                 targetAlpha = Math.PI;  // Back view (180 degrees)
                                 targetBeta = Math.PI / 2;
                                 break;
@@ -1217,6 +1239,7 @@ class DrawingWorld {
                         // Remove beta limits for ViewCube navigation
                         this.camera.lowerBetaLimit = null;
                         this.camera.upperBetaLimit = null;
+                        // console.log('Removed beta limits for ViewCube click');
                         
                         // Shortest path
                         let deltaAlpha = targetAlpha - this.camera.alpha;
@@ -1224,6 +1247,8 @@ class DrawingWorld {
                         while (deltaAlpha < -Math.PI) deltaAlpha += 2 * Math.PI;
                         const finalAlpha = this.camera.alpha + deltaAlpha;
                         
+                        // console.log('Animating from alpha:', this.camera.alpha, 'to:', finalAlpha);
+                        // console.log('Beta from:', this.camera.beta, 'to:', targetBeta);
                         
                         // Animate rotation and switch to orthographic
                         BABYLON.Animation.CreateAndStartAnimation(
@@ -1243,10 +1268,12 @@ class DrawingWorld {
                             // For side views, ensure perfectly horizontal (no tilt)
                             if (faceIndex  !==  4 && faceIndex  !==  5) {
                                 this.camera.beta = Math.PI / 2; // Exactly 90 degrees
+                                // console.log("Forced beta to exactly PI/2 for side view");
                             }
                         };
                         
                         // Switch to orthographic mode
+                        // console.log("Setting orthographic mode");
                         this.camera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
                         
                         // Create rulers for orthographic view
@@ -1303,9 +1330,10 @@ class DrawingWorld {
             this.viewCubeEngine = viewCubeEngine;
             this.viewCubeScene = viewCubeScene;
             
+            // console.log('ViewCube initialized');
             
         } catch (err) {
-            console.error('Failed to initialize ViewCube:', err);
+            // console.error('Failed to initialize ViewCube:', err);
         }
     }
 
@@ -1384,6 +1412,7 @@ class DrawingWorld {
         
         chamferedBox.isWorkBenchPart = true;
         
+        // console.log('DrawingWorld: Created NATIVE chamfered box with vertex geometry - no original box exists');
         
         return chamferedBox;
     }
@@ -1441,7 +1470,11 @@ class DrawingWorld {
         // Prevent context menu on right-click - DISABLED to allow right-click menu
         // this.canvas.addEventListener('contextmenu', (evt) => evt.preventDefault());
         
+        // console.log('Shapr3D-style camera controls enabled:');
                 // console.log('- LEFT CLICK: Tools and picking ONLY');
+        // console.log('- RIGHT CLICK + DRAG: Spin the world (orbit around object)'); 
+        // console.log('- MIDDLE CLICK + DRAG: Pan view');
+        // console.log('- WHEEL: Zoom in/out');
     }
     
     /**
@@ -1454,6 +1487,7 @@ class DrawingWorld {
         );
         
         if (allParts.length === 0) {
+            // console.log('No visible parts found, keeping current target');
             return;
         }
         
@@ -1478,6 +1512,7 @@ class DrawingWorld {
             const newTarget = new BABYLON.Vector3(centerX, centerY, centerZ);
             this.camera.setTarget(newTarget);
             
+            // console.log(`Updated camera target to center of ${validParts} objects:`, newTarget);
         }
     }
     
@@ -1499,6 +1534,7 @@ class DrawingWorld {
         // Setup preferences modal
         this.setupPreferencesModal();
         
+        // console.log('Preferences system initialized:', this.preferences);
     }
     
     /**
@@ -1510,8 +1546,9 @@ class DrawingWorld {
             try {
                 const parsed = JSON.parse(saved);
                 this.preferences = { ...this.preferences, ...parsed };
+                // console.log('Loaded preferences from localStorage:', this.preferences);
             } catch (e) {
-                console.warn('Failed to load preferences from localStorage:', e);
+                // console.warn('Failed to load preferences from localStorage:', e);
             }
         }
     }
@@ -1521,6 +1558,7 @@ class DrawingWorld {
      */
     savePreferences() {
         localStorage.setItem('cutlist-preferences', JSON.stringify(this.preferences));
+        // console.log('Saved preferences to localStorage:', this.preferences);
     }
     
     /**
@@ -1614,6 +1652,7 @@ class DrawingWorld {
         // Hide modal
         this.hidePreferencesModal();
         
+        // console.log('Applied preferences:', this.preferences);
     }
     
     /**
@@ -1636,6 +1675,7 @@ class DrawingWorld {
         document.getElementById('zoom-speed').value = this.preferences.zoomSpeed;
         document.getElementById('zoom-speed-value').textContent = this.preferences.zoomSpeed;
         
+        // console.log('Reset preferences to defaults');
     }
 
     /**
@@ -1643,6 +1683,7 @@ class DrawingWorld {
      * Creates a cinematic introduction that showcases the precision and quality of the CAD system
      */
     performOpeningAnimation() {
+        // console.log('Starting dramatic opening animation for CutList');
         
         // Start from a dramatic wide shot
         const startPosition = new BABYLON.Vector3(0, 300, 500);
@@ -1679,6 +1720,7 @@ class DrawingWorld {
             if (progress < 1) {
                 requestAnimationFrame(animateOpening);
             } else {
+                // console.log('CutList opening animation complete - Ready for work!');
                 // No bounce - just clean finish
             }
         };
@@ -1692,6 +1734,7 @@ class DrawingWorld {
      */
     performReadyBounce() {
         // Removed bounce - clean cutscene finish
+        // console.log('CutList is ready for professional woodworking!');
     }
 
     onCameraPointerDown(evt) {
@@ -1711,11 +1754,13 @@ class DrawingWorld {
         } else if (evt.button === 1) {
             // MIDDLE MOUSE: Pan (move camera and target together)
             this.cameraState.isPanning = true;
+            // console.log('Started panning');
         } else if (evt.button === 2) {
             // RIGHT MOUSE: Spin the world (orbit around target) - Shapr3D style
             
             // Return to perspective mode if in orthographic
             if (this.camera.mode === BABYLON.Camera.ORTHOGRAPHIC_CAMERA) {
+                // console.log('Returning to perspective mode');
                 this.camera.mode = BABYLON.Camera.PERSPECTIVE_CAMERA;
                     
                     // Remove rulers when returning to perspective
@@ -1726,6 +1771,7 @@ class DrawingWorld {
             }
             
             this.cameraState.isOrbiting = true;
+            // console.log('Started spinning world');
         }
 
         evt.preventDefault();
@@ -1772,6 +1818,7 @@ class DrawingWorld {
     }
 
     onCameraPointerUp(evt) {
+        // console.log('Pointer up - stopping camera movement');
         this.cameraState.isOrbiting = false;
         this.cameraState.isPanning = false;
         
@@ -1858,6 +1905,7 @@ class DrawingWorld {
     
     // Create orthographic mode rulers
     createOrthoRulers() {
+        // console.log('Creating orthographic rulers');
         
         // Remove existing rulers if any
         this.removeOrthoRulers();
@@ -2005,6 +2053,7 @@ class DrawingWorld {
             // viewWidth is in world units (inches), canvasWidth is in pixels
             pixelsPerInch = canvasWidth / viewWidth;
             
+            // console.log('Ortho view width:', viewWidth, 'inches, pixels per inch:', pixelsPerInch);
         }
         
         if (isHorizontal) {
@@ -2155,6 +2204,7 @@ class DrawingWorld {
     }
     
     removeOrthoRulers() {
+        // console.log('Removing orthographic rulers');
         
         // Remove event handlers
         if (this.rulerMouseMoveHandler) {
@@ -2685,8 +2735,9 @@ class DrawingWorld {
         if (this.gridSystem) {
             this.gridSystem.isVisible = !this.gridSystem.isVisible;
             this.gridSystem.setVisible(this.gridSystem.isVisible);
+            // console.log("Grid toggled:", this.gridSystem.isVisible ? "ON" : "OFF");
         } else {
-            console.error("GridSystem not initialized");
+            // console.error("GridSystem not initialized");
         }
     }
 
@@ -3130,7 +3181,6 @@ class DrawingWorld {
         
         // Add sketch tools
         const tools = [
-            { name: 'line', label: 'Line', icon: '📏' },
             { name: 'rectangle', label: 'Rectangle', icon: '▭' },
             { name: 'circle', label: 'Circle', icon: '○' },
             { name: 'ellipse', label: 'Ellipse', icon: '⬭' },
@@ -3161,6 +3211,10 @@ class DrawingWorld {
     }
 
     selectSketchTool(toolName) {
+        // console.log('=============================================');
+        // console.log('selectSketchTool called with toolName:', toolName);
+        // console.log('Current activeTool:', this.activeTool);
+        // console.log('=============================================');
         
         if (toolName === 'sketch') {
             // Sketch tool selected - enter surface selection mode
@@ -3189,14 +3243,17 @@ class DrawingWorld {
             
         } else if (toolName === 'extrude') {
             // Activate extrude tool
+            // console.log('EXTRUDE TOOL ACTIVATED! selectedFace:', this.selectedFace?.name);
             this.activeTool = 'extrude';
             
             // Update button visual state
             this.updateToolButtonStates();
             
             if (this.selectedFace) {
+                // console.log('Starting extrusion for face:', this.selectedFace.name);
                 this.startBidirectionalExtrusion();
             } else {
+                // console.log('Extrude tool active - waiting for face selection');
                 // Show instruction in UI
                 const selectionInfo = document.getElementById('selection-info');
                 if (selectionInfo) {
@@ -3206,6 +3263,7 @@ class DrawingWorld {
             
         } else if (toolName === 'rip-cut') {
             // Activate rip cut tool (cut along grain/length)
+            // console.log('RIP CUT TOOL ACTIVATED!');
             this.activeTool = 'rip-cut';
             
             // Clear drag handles and manipulation buttons since cut tools don't use them
@@ -3226,6 +3284,7 @@ class DrawingWorld {
             
         } else if (toolName === 'cross-cut') {
             // Activate cross cut tool (cut across grain/width)
+            // console.log('CROSS CUT TOOL ACTIVATED!');
             this.activeTool = 'cross-cut';
             
             // Clear drag handles and manipulation buttons since cut tools don't use them
@@ -3246,6 +3305,7 @@ class DrawingWorld {
             
         } else if (toolName === 'pointer') {
             // Activate pointer tool (default selection)
+            // console.log('POINTER TOOL ACTIVATED!');
             this.activeTool = 'pointer';
             
             // Deactivate cut tool if it's active
@@ -3273,6 +3333,7 @@ class DrawingWorld {
             
         } else if (toolName === 'move') {
             // Activate move tool (shows manipulation buttons immediately)
+            // console.log('MOVE TOOL ACTIVATED!');
             this.activeTool = 'move';
             
             // Deactivate cut tool if it's active
@@ -3292,6 +3353,7 @@ class DrawingWorld {
                 this.gizmoManager.positionGizmoEnabled = true;
                 this.gizmoManager.rotationGizmoEnabled = false;
                 this.gizmoManager.scaleGizmoEnabled = false;
+                // console.log('Switched existing gizmo to position');
             } else if (this.selectedPart) {
                 // No gizmo yet, create one
                 const selectedMesh = this.scene.meshes.find(m => m.partData === this.selectedPart);
@@ -3304,6 +3366,7 @@ class DrawingWorld {
             
         } else if (toolName === 'rotate') {
             // Activate rotate tool
+            // console.log('ROTATE TOOL ACTIVATED!');
             this.activeTool = 'rotate';
             
             // Deactivate cut tool if it is active
@@ -3324,6 +3387,7 @@ class DrawingWorld {
             
         } else if (toolName === 'scale') {
             // Activate scale tool
+            // console.log('SCALE TOOL ACTIVATED!');
             this.activeTool = 'scale';
             
             // Deactivate cut tool if it is active
@@ -3344,14 +3408,18 @@ class DrawingWorld {
             
         } else if (toolName === 'router') {
             // Activate router tool for edge shaping
+            // console.log('ROUTER TOOL ACTIVATED!');
+            // console.log('DEBUG: selectedPart before router activation:', this.selectedPart);
             this.activeTool = 'router';
             
             // Clear drag handles and manipulation buttons but preserve part selection
             this.clearDragHandles();
             this.clearManipulationButtons();
+            // console.log('DEBUG: selectedPart after clearing handles:', this.selectedPart);
             
             // Update button visual state
             this.updateToolButtonStates();
+            // console.log('DEBUG: selectedPart after updateToolButtonStates:', this.selectedPart);
             
             // Activate router bit system with default roundover profile
             this.routerBitSystem.activate('roundover');
@@ -3361,6 +3429,7 @@ class DrawingWorld {
                 const selectedMesh = this.scene.meshes.find(m => m.partData === this.selectedPart);
                 if (selectedMesh) {
                     this.routerBitSystem.setFocusPart(selectedMesh);
+                    // console.log('RouterBitSystem: Focused on selected part for edge detection');
                 }
             }
             
@@ -3376,6 +3445,7 @@ class DrawingWorld {
             
         } else if (toolName === 'scroll-cut') {
             // Activate scroll cutting tool for freehand cutting
+            // console.log('🎨 SCROLL CUTTING TOOL ACTIVATED!');
             this.activeTool = 'scroll-cut';
             
             // Clear other tool states
@@ -3392,14 +3462,16 @@ class DrawingWorld {
                     // Activate scroll cutting on the selected part
                     const success = this.scrollCuttingSystem.activate(selectedMesh);
                     if (success) {
+                        // console.log('🎨 Scroll cutting activated on:', selectedMesh.partData?.materialName);
                     } else {
-                        console.warn('🎨 Failed to activate scroll cutting');
+                        // console.warn('🎨 Failed to activate scroll cutting');
                     }
                 } else {
-                    console.warn('🎨 Selected part is not suitable for scroll cutting');
+                    // console.warn('🎨 Selected part is not suitable for scroll cutting');
                 }
             } else {
                 // No part selected - try to find any workbench part
+                // console.log('🎨 No part selected, looking for workbench parts...');
                 const workBenchParts = this.workBenchParts.filter(part => part.isWorkBenchPart);
                 
                 if (workBenchParts.length > 0) {
@@ -3407,11 +3479,12 @@ class DrawingWorld {
                     const firstPart = workBenchParts[0];
                     const success = this.scrollCuttingSystem.activate(firstPart);
                     if (success) {
+                        // console.log('🎨 Scroll cutting activated on first workbench part:', firstPart.partData?.materialName);
                     } else {
-                        console.warn('🎨 Failed to activate scroll cutting on first workbench part');
+                        // console.warn('🎨 Failed to activate scroll cutting on first workbench part');
                     }
                 } else {
-                    console.warn('🎨 No workbench parts available for scroll cutting');
+                    // console.warn('🎨 No workbench parts available for scroll cutting');
                     
                     // Show message to select a part first
                     const selectionInfo = document.getElementById('selection-info');
@@ -3423,6 +3496,7 @@ class DrawingWorld {
             
         } else if (toolName === 'plane') {
             // Activate planing tool for thickness reduction
+            // console.log('🪚 PLANE TOOL ACTIVATED!');
             this.activeTool = 'plane';
             
             // Clear other tool states
@@ -3443,6 +3517,7 @@ class DrawingWorld {
             
         } else if (toolName === 'join') {
             // Activate join tool for precision part alignment
+            // console.log('🧩 JOIN TOOL ACTIVATED!');
             this.activeTool = 'join';
             
             // Clear other tool states
@@ -3463,6 +3538,7 @@ class DrawingWorld {
             
         } else if (toolName === 'drill') {
             // Activate drill press tool for precision hole drilling
+            // console.log('🔩 DRILL PRESS ACTIVATED!');
             this.activeTool = 'drill';
             
             // Clear other tool states
@@ -3559,6 +3635,7 @@ class DrawingWorld {
             const activeButton = document.querySelector(`[data-tool="${this.activeTool}"]`);
             if (activeButton) {
                 activeButton.classList.add('active');
+                // console.log('Set active state for tool:', this.activeTool);
             }
         }
     }
@@ -3893,6 +3970,7 @@ class DrawingWorld {
                 const partPickInfo = this.scene.pick(x, y, (mesh) => mesh && mesh.partData);
                 
                 if (partPickInfo.hit && partPickInfo.pickedMesh && partPickInfo.pickedMesh.partData) {
+                    // console.log("PART: Selecting part");
                     this.selectPart(partPickInfo.pickedMesh.partData);
                     return; // Stop processing - we handled the part selection
                 } else {
@@ -3942,13 +4020,16 @@ class DrawingWorld {
                 
                 // For circle tool, start drawing immediately on mouse down
                 if (this.currentSketch && this.currentSketch.currentTool === 'circle') {
+                    // console.log('CIRCLE TOOL DETECTED');
                     const rect = this.canvas.getBoundingClientRect();
                     const x = event.clientX - rect.left;
                     const y = event.clientY - rect.top;
                     
                     const pickInfo = this.scene.pick(x, y, (mesh) => mesh.name === 'sketchGround');
+                    // console.log('CIRCLE PICK RESULT:', pickInfo.hit, pickInfo.pickedMesh?.name);
                     
                     if (pickInfo.hit) {
+                        // console.log('STARTING CIRCLE DRAW');
                         // Start circle drawing immediately on mouse down
                         this.currentSketch.isDrawing = true;
                         // Apply grid snapping to start point (half-grid if Shift is held)
@@ -4019,6 +4100,7 @@ class DrawingWorld {
             }
             // For circle tool, finish drawing on mouse up if we were dragging
             else if (this.currentSketch && this.currentSketch.currentTool === 'circle' && this.currentSketch.isDrawing) {
+                // console.log('FINISHING CIRCLE DRAW');
                 const rect = this.canvas.getBoundingClientRect();
                 const x = event.clientX - rect.left;
                 const y = event.clientY - rect.top;
@@ -4029,6 +4111,7 @@ class DrawingWorld {
                     const snappedPoint = this.snapToGrid(pickInfo.pickedPoint);
                     // Calculate radius from start point to snapped end point
                     const radius = BABYLON.Vector3.Distance(this.currentSketch.startPoint, snappedPoint);
+                    // console.log('Circle radius:', radius);
                     this.finishCircle(radius);
                     this.currentSketch.isDrawing = false;
                 }
@@ -5377,7 +5460,7 @@ class DrawingWorld {
         if (!this.materialsLibrary.isLoaded) {
             const loaded = await this.materialsLibrary.loadDatabase();
             if (!loaded) {
-                console.error('Failed to load materials database');
+                // console.error('Failed to load materials database');
                 return;
             }
         }
@@ -5464,9 +5547,13 @@ class DrawingWorld {
             const scientificName = material.basic_info?.scientific_name || material.species || '';
             const pricePerBF = material.cost_structure?.base_price_bf || 'N/A';
             
+            // console.log("🔍 Material ID:", materialId, "- Name:", materialName);
+            // console.log("🔍 Full material object:", material);
             // Debug logging for thumbnails
             if (material.visual_assets?.thumbnail) {
+                // console.log(`Material ${materialName} has thumbnail:`, material.visual_assets.thumbnail.substring(0, 50) + '...');
             } else {
+                // console.log(`Material ${materialName} has no thumbnail, using placeholder`);
             }
             
             card.innerHTML = `
@@ -5657,6 +5744,7 @@ class DrawingWorld {
         // Update parts list display
         this.updatePartsListDisplay();
 
+        // console.log('Material added to project:', materialEntry);
     }
 
     updatePartsListDisplay() {
@@ -5700,10 +5788,12 @@ class DrawingWorld {
     
     updateToolGroups() {
         // Debug logging
+        // console.log('updateToolGroups called - currentMode:', this.currentMode, 'selectedFace:', this.selectedFace?.name, 'isSketchMode:', this.isSketchMode);
         
         // FORCE OVERRIDE - if mode is sketch but we're not in sketch mode, fix it
         if (this.currentMode === 'sketch' && !this.isSketchMode) {
             this.currentMode = 'model';
+            // console.log('Mode corrected to model');
         }
         
         
@@ -5739,6 +5829,7 @@ class DrawingWorld {
             // Additionally show context tools based on selection
             if (this.selectedFace) {
                 // Face selected - show selection info
+                // console.log('Showing face info for selected face:', this.selectedFace.name);
                 const faceTools = document.getElementById('model-tools-face');
                 if (faceTools) {
                     faceTools.style.display = 'block';
@@ -5763,6 +5854,7 @@ class DrawingWorld {
         this.camera.alpha = -Math.PI / 2;
         this.camera.beta = Math.PI / 2.5;
         this.camera.radius = Math.max(200, this.camera.radius); // Ensure minimum radius
+        // console.log('resetView: Set camera radius to', this.camera.radius);
     }
 
     switchBench(benchType) {
@@ -5793,6 +5885,7 @@ class DrawingWorld {
         // DRAMATIC BENCH REVEAL: Animate camera to showcase the bench contents
         this.animateCameraToShowcaseBench(benchType);
         
+        // console.log(`Switched to ${benchType} bench`);
     }
 
     /**
@@ -5800,6 +5893,7 @@ class DrawingWorld {
      * Automatically frames all parts optimally with cinematic camera movement
      */
     animateCameraToShowcaseBench(benchType) {
+        // console.log(`Starting dramatic bench reveal animation for ${benchType} bench`);
         
         // Get all parts on the current bench
         const parts = benchType === 'work' ? 
@@ -5807,6 +5901,7 @@ class DrawingWorld {
             this.scene.meshes.filter(m => m.isProjectPart);
         
         if (parts.length === 0) {
+            // console.log(`No parts to showcase on ${benchType} bench`);
             // Still animate to origin for clean empty bench view
             this.animateCameraToPosition(new BABYLON.Vector3(0, 50, 100), BABYLON.Vector3.Zero());
             return;
@@ -5835,6 +5930,7 @@ class DrawingWorld {
         // Animate to showcase position
         this.animateCameraToPosition(targetCameraPosition, centerPoint);
         
+        // console.log(`Showcasing ${parts.length} parts on ${benchType} bench`);
     }
     
     /**
@@ -5916,6 +6012,7 @@ class DrawingWorld {
             if (progress < 1) {
                 requestAnimationFrame(animateCamera);
             } else {
+                // console.log(`Camera cutscene complete`);
             }
         };
         
@@ -6141,6 +6238,7 @@ class DrawingWorld {
         );
         
         if (partPickInfo.hit && partPickInfo.pickedMesh && partPickInfo.pickedMesh.partData) {
+                    // console.log("PART: Selecting part");
             const partMesh = partPickInfo.pickedMesh;
             const part = partMesh.partData;
             
@@ -6214,6 +6312,7 @@ class DrawingWorld {
                 window.ContextMenuSystem.showContextMenu(x, y, part);
             }
             
+            // console.log('Right-clicked on part:', part.materialName);
         }
     }
     
@@ -6241,27 +6340,36 @@ class DrawingWorld {
     }
     
     performExtrusion(isPositive) {
+        // console.log('startExtrusion called with isPositive:', isPositive);
         if (!this.selectedFace) {
+            // console.log('No selected face for extrusion');
             return;
         }
         
+        // console.log('Looking for shape data for face:', this.selectedFace.name);
         
         // Find the shape data for the selected face
         let shapeData = null;
         
         // Check closedShapes first
+        // console.log('Checking closedShapes:', this.closedShapes.length, 'shapes');
         for (const shape of this.closedShapes) {
+            // console.log('Checking shape:', shape.type, 'mesh:', shape.mesh?.name);
             if (shape.mesh === this.selectedFace || shape.mesh === this.selectedFace.parent) {
                 shapeData = shape;
+                // console.log('Found matching shape in closedShapes:', shape.type);
                 break;
             }
         }
         
         // Check current sketch elements if not found
         if (!shapeData && this.currentSketch && this.currentSketch.elements) {
+            // console.log('Checking current sketch elements:', this.currentSketch.elements.length, 'elements');
             for (const element of this.currentSketch.elements) {
+                // console.log('Checking element:', element.type, 'mesh:', element.mesh?.name);
                 if (element.closed && (element.mesh === this.selectedFace || element.mesh === this.selectedFace.parent)) {
                     shapeData = element;
+                    // console.log('Found matching element in sketch:', element.type);
                     break;
                 }
             }
@@ -6272,20 +6380,26 @@ class DrawingWorld {
             const height = 5; // 5cm extrusion
             
             // Perform the extrusion based on shape type
+            // console.log('About to extrude shape type:', shapeData.type, 'height:', height, 'isPositive:', isPositive);
             switch (shapeData.type) {
                 case 'rectangle':
+                    // console.log('Calling extrudeRectangle');
                     this.extrudeRectangle(shapeData, height, isPositive);
                     break;
                 case 'circle':
+                    // console.log('Calling extrudeCircle');
                     this.extrudeCircle(shapeData, height, isPositive);
                     break;
                 case 'ellipse':
+                    // console.log('Calling extrudeEllipse');
                     this.extrudeEllipse(shapeData, height, isPositive);
                     break;
                 case 'triangle':
+                    // console.log('Calling extrudeTriangle');
                     this.extrudeTriangle(shapeData, height, isPositive);
                     break;
             }
+            // console.log('Extrusion method completed');
             
             // Deselect the face after extrusion
             this.deselectFace();
@@ -6293,6 +6407,7 @@ class DrawingWorld {
     }
     
     selectFace(face) {
+        // console.log('selectFace called for:', face.name);
         
         // Clear previous selection only if different face
         if (this.selectedFace && this.selectedFace !== face) {
@@ -6317,17 +6432,21 @@ class DrawingWorld {
         
         // Check if extrude tool is active and auto-start extrusion
         if (this.activeTool === 'extrude') {
+            // console.log('Extrude tool is active, starting extrusion for selected face:', this.selectedFace?.name);
             this.startBidirectionalExtrusion();
         }
         
+        // console.log('Face selection complete, selectedFace:', this.selectedFace?.name);
     }
     
     deselectFace() {
         if (this.selectedFace) {
-            console.trace('Deselection stack trace');
+            // console.log('deselectFace called for:', this.selectedFace.name);
+            // console.trace('Deselection stack trace');
             
             // Clean up any active extrusion
             if (this.isInteractiveExtruding) {
+                // console.log('Cleaning up active extrusion during deselection');
                 this.cleanupInteractiveExtrusion();
             }
             
@@ -6341,6 +6460,7 @@ class DrawingWorld {
     }
     
     selectPart(part) {
+        // console.log('selectPart called for:', part?.name || part);
         
         // Clear previous part selection
         if (this.selectedPart && this.selectedPart !== part) {
@@ -6364,10 +6484,12 @@ class DrawingWorld {
         if (this.camera.mode === BABYLON.Camera.ORTHOGRAPHIC_CAMERA && this.rulerContainer) {
             this.updateRulerHighlights();
         }
+        // console.log('Part selection complete, selectedPart:', this.selectedPart?.name);
     }
     
     deselectPart() {
         if (this.selectedPart) {
+            // console.log('deselectPart called for:', this.selectedPart.name);
             
             this.setPartSelection(this.selectedPart, false);
             this.selectedPart = null;
@@ -6396,6 +6518,7 @@ class DrawingWorld {
         if (partMesh) {
             // DEBUG: Track position before/after selection
             const positionBefore = partMesh.position.clone();
+            // console.log(`POSITION BEFORE selection (${isSelected}):`, positionBefore);
             
             if (isSelected) {
                 // Store original material if not already stored
@@ -6414,11 +6537,12 @@ class DrawingWorld {
             
             // DEBUG: Track position after selection
             const positionAfter = partMesh.position.clone();
+            // console.log(`POSITION AFTER selection (${isSelected}):`, positionAfter);
             
             // DEBUG: Check if position changed
             const positionDelta = positionAfter.subtract(positionBefore);
             if (positionDelta.length() > 0.001) {
-                console.error(`❌ POSITION CHANGED during selection! Delta:`, positionDelta);
+                // console.error(`❌ POSITION CHANGED during selection! Delta:`, positionDelta);
             }
         }
     }
@@ -6451,44 +6575,58 @@ class DrawingWorld {
     }
     
     setFaceHover(face, isHovered) {
+        // console.log('setFaceHover called:', face.name, 'isHovered:', isHovered, 'selectedFace:', this.selectedFace?.name);
+        // console.log('Face material before hover:', face.material?.name);
         
         if (isHovered) {
             // Store base material if not already stored
             if (!face.baseMaterial) {
                 face.baseMaterial = face.material;
+                // console.log('Hover stored base material:', face.baseMaterial?.name);
             }
             // Don't apply hover if face is selected
             if (this.selectedFace !== face) {
                 face.material = this.hoverOutlineMaterial;
+                // console.log('Applied hover material');
             } else {
+                // console.log('Skipped hover - face is selected');
             }
         } else {
             // Only restore if this face is not selected
             if (this.selectedFace !== face && face.baseMaterial) {
+                // console.log('Hover restoring base material:', face.baseMaterial.name);
                 face.material = face.baseMaterial;
             } else {
+                // console.log('Skipped hover restore - face is selected or no base material');
             }
         }
+        // console.log('Face material after hover:', face.material?.name);
     }
     
     setFaceSelection(face, isSelected) {
+        // console.log('setFaceSelection called:', face.name, 'isSelected:', isSelected);
+        // console.log('Current material before:', face.material?.name);
         
         if (isSelected) {
             // Store base material if not already stored
             if (!face.baseMaterial) {
                 face.baseMaterial = face.material;
+                // console.log('Stored base material:', face.baseMaterial?.name);
             }
             // Apply selection material
             const highlightMaterial = face.baseMaterial.clone(face.name + '_selected');
             highlightMaterial.emissiveColor = new BABYLON.Color3(0.2, 0.4, 1.0); // Blue tint
             face.material = highlightMaterial;
+            // console.log('Applied selection material:', highlightMaterial.name);
         } else {
             // Restore base material
             if (face.baseMaterial) {
+                // console.log('Restoring base material:', face.baseMaterial.name);
                 face.material = face.baseMaterial;
                 face.baseMaterial = null;
             }
         }
+        // console.log('Material after selection:', face.material?.name);
     }
     
     clearHover() {
@@ -6837,10 +6975,12 @@ class DrawingWorld {
     }
     
     getFaceCenter(face) {
+        // console.log('getFaceCenter called for face:', face.name);
         
         // Calculate geometric center from vertices - works for ANY mesh
         const positions = face.getVerticesData(BABYLON.VertexBuffer.PositionKind);
         if (!positions || positions.length === 0) {
+            // console.log('No vertex data, using mesh position');
             return face.position.clone();
         }
         
@@ -6862,6 +7002,7 @@ class DrawingWorld {
         const localCenter = new BABYLON.Vector3(centerX, centerY, centerZ);
         const worldCenter = BABYLON.Vector3.TransformCoordinates(localCenter, face.getWorldMatrix());
         
+        // console.log('Calculated geometric center:', worldCenter);
         return worldCenter;
     }
     
@@ -7168,11 +7309,13 @@ class DrawingWorld {
     }
     
     extrudeCircle(shape, height = null, isPositive = true) {
+        // console.log('extrudeCircle called with shape:', shape);
         
         // Create cylinder from circle
         const radius = shape.radius || 1;
         const depth = height !== null ? height : Math.abs(this.extrusionDistance);
         
+        // console.log('Circle extrusion - radius:', radius, 'depth:', depth);
         
         const cylinderName = isPositive ? 'extrudedCircle' : 'extrudedCircleHole';
         const cylinder = BABYLON.MeshBuilder.CreateCylinder(cylinderName, {
@@ -7183,6 +7326,7 @@ class DrawingWorld {
         
         // Get the sketch surface normal from the circle's mesh
         const sketchNormal = this.getFaceNormal(shape.mesh);
+        // console.log('Sketch normal:', sketchNormal);
         
         // Orient cylinder to extrude along sketch normal
         // Default cylinder axis is Y-up, we need to align it with sketch normal
@@ -7200,6 +7344,7 @@ class DrawingWorld {
         const direction = isPositive ? 1 : -1;
         cylinder.position = center.add(sketchNormal.scale(depth / 2 * direction));
         
+        // console.log('Cylinder positioned at:', cylinder.position);
         
         // Apply appropriate material
         cylinder.material = isPositive ? this.createSolidMaterial() : this.createHoleMaterial();
@@ -7275,10 +7420,11 @@ class DrawingWorld {
     
     startBidirectionalExtrusion() {
         if (!this.selectedFace) {
-            console.error('startBidirectionalExtrusion called but no selectedFace!');
+            // console.error('startBidirectionalExtrusion called but no selectedFace!');
             return;
         }
         
+        // console.log('Starting bidirectional extrusion for face:', this.selectedFace.name);
         
         // Store extrusion state
         this.isInteractiveExtruding = true;
@@ -7289,16 +7435,20 @@ class DrawingWorld {
         this.setupSmartCameraControl();
         
         // Get face center and normal for gizmo positioning
+        // console.log('Getting face center and normal...');
         const faceCenter = this.getFaceCenter(this.selectedFace);
         const faceNormal = this.getFaceNormal(this.selectedFace);
         
+        // console.log('Face center:', faceCenter);
+        // console.log('Face normal:', faceNormal);
         
         if (!faceCenter || !faceNormal) {
-            console.error('Failed to get face center or normal! center:', faceCenter, 'normal:', faceNormal);
+            // console.error('Failed to get face center or normal! center:', faceCenter, 'normal:', faceNormal);
             return;
         }
         
         // Create bidirectional extrusion gizmo
+        // console.log('About to create bidirectional gizmo...');
         this.createBidirectionalGizmo(faceCenter, faceNormal);
         
         // Update UI
@@ -7312,6 +7462,7 @@ class DrawingWorld {
             selectionInfo.textContent = 'Drag gizmo: Pull out to add material, Push in to cut. Rotate camera away from gizmo/surface to navigate.';
         }
         
+        // console.log('Bidirectional extrusion started');
     }
     
     setupSmartCameraControl() {
@@ -7352,6 +7503,7 @@ class DrawingWorld {
             }
         });
         
+        // console.log('Smart camera control enabled - camera rotates when not over gizmo/surface');
     }
     
     cleanupSmartCameraControl() {
@@ -7366,6 +7518,7 @@ class DrawingWorld {
             this.cameraControlsDetached = false;
         }
         
+        // console.log('Smart camera control cleaned up');
     }
     
     updateGizmoBillboard(gizmoPlane) {
@@ -7411,6 +7564,7 @@ class DrawingWorld {
         // Set up continuous billboard updates during camera movement
         this.gizmoBillboardObserver = this.scene.onBeforeRenderObservable.add(updateBillboard);
         
+        // console.log('Dynamic billboard behavior enabled - gizmo rotates on surface normal axis');
     }
     
     cleanupGizmoBillboard() {
@@ -7426,12 +7580,14 @@ class DrawingWorld {
             this.scene.onBeforeRenderObservable.remove(this.gizmoTracker);
             this.gizmoTracker = null;
         }
+        // console.log('Gizmo orientation tracking cleaned up');
     }
     
     createBidirectionalGizmo(position, normal) {
         // Clean up existing gizmo
         this.cleanupExtrusionGizmo();
         
+        // console.log('Creating 2D sprite gizmo at position:', position, 'with normal:', normal);
         
         // Create gizmo root
         this.extrusionGizmo = new BABYLON.TransformNode('extrusionGizmo', this.scene);
@@ -7469,6 +7625,7 @@ class DrawingWorld {
         
         this.gizmoTracker = this.scene.onBeforeRenderObservable.add(trackCamera);
         
+        // console.log('Arrow locked to normal, sprite tracks camera');
         
         // Create canvas for professional arrow sprite
         const canvas = document.createElement('canvas');
@@ -7493,7 +7650,11 @@ class DrawingWorld {
         
         gizmoPlane.material = gizmoMaterial;
         
+        // console.log('Professional arrow gizmo created with manual camera orientation');
+        // console.log('Camera direction:', cameraDirection);
+        // console.log('Gizmo position:', gizmoPlane.position);
         
+        // console.log('PNG arrow sprite created with transparency');
         
         // Create invisible interaction plane (larger for easier clicking)
         const interactionPlane = BABYLON.MeshBuilder.CreatePlane('interactionPlane', {
@@ -7522,6 +7683,7 @@ class DrawingWorld {
         // Set up gizmo interaction
         this.setupSpriteGizmoInteraction();
         
+        // console.log('2D sprite gizmo created');
     }
     
     drawProfessionalGizmo(ctx, mode) {
@@ -7617,6 +7779,7 @@ class DrawingWorld {
                         y: this.scene.pointerY
                     };
                     
+                    // console.log('Sprite gizmo drag started');
                 }
             }
         });
@@ -7685,6 +7848,7 @@ class DrawingWorld {
                     this.cancelInteractiveExtrusion();
                 }
                 
+                // console.log('Sprite gizmo drag ended');
             }
         });
     }
@@ -7729,6 +7893,7 @@ class DrawingWorld {
                         y: this.scene.pointerY
                     };
                     
+                    // console.log('Bidirectional gizmo drag started');
                 }
             }
         });
@@ -7803,6 +7968,7 @@ class DrawingWorld {
                     this.cancelInteractiveExtrusion();
                 }
                 
+                // console.log('Bidirectional gizmo drag ended');
             }
         });
     }
@@ -7871,6 +8037,7 @@ class DrawingWorld {
                         y: this.scene.pointerY
                     };
                     
+                    // console.log('Gizmo drag started');
                 }
             }
         });
@@ -7939,6 +8106,7 @@ class DrawingWorld {
                     this.cancelInteractiveExtrusion();
                 }
                 
+                // console.log('Gizmo drag ended');
             }
         });
     }
@@ -7968,6 +8136,7 @@ class DrawingWorld {
             // Set preview material - initially neutral
             this.updatePreviewMaterial();
             
+            // console.log('Interactive extrusion preview created');
         }
     }
     
@@ -8040,6 +8209,7 @@ class DrawingWorld {
             return;
         }
         
+        // console.log(`Finishing interactive extrusion: ${this.extrusionDistance} cm`);
         
         // Perform the actual extrusion using the existing system
         const shapeData = this.getShapeData(this.selectedFace);
@@ -8068,9 +8238,11 @@ class DrawingWorld {
         // Deselect face
         this.deselectFace();
         
+        // console.log('Interactive extrusion completed');
     }
     
     cancelInteractiveExtrusion() {
+        // console.log('Cancelling interactive extrusion');
         this.cleanupInteractiveExtrusion();
         
         // Update UI
@@ -8086,6 +8258,7 @@ class DrawingWorld {
     }
     
     cleanupInteractiveExtrusion() {
+        // console.log('cleanupInteractiveExtrusion called - re-enabling camera controls');
         
         // Clean up smart camera control system
         this.cleanupSmartCameraControl();
@@ -8107,6 +8280,7 @@ class DrawingWorld {
         this.extrusionDistance = 0;
         this.extrusionMode = null;
         
+        // console.log('Interactive extrusion cleaned up - camera controls restored');
     }
     
     cleanupExtrusionGizmo() {
@@ -8142,12 +8316,14 @@ class DrawingWorld {
     
     // Helper method to get face normal
     getFaceNormal(face) {
+        // console.log('getFaceNormal called for face:', face.name);
         
         // Calculate normal from face geometry - works for ANY mesh
         const positions = face.getVerticesData(BABYLON.VertexBuffer.PositionKind);
         const indices = face.getIndices();
         
         if (!positions || !indices || indices.length < 3) {
+            // console.log('Insufficient geometry data, using Y-up normal');
             return new BABYLON.Vector3(0, 1, 0);
         }
         
@@ -8168,31 +8344,39 @@ class DrawingWorld {
         // Transform to world coordinates
         const worldNormal = BABYLON.Vector3.TransformNormal(normal, face.getWorldMatrix());
         
+        // console.log('Calculated face normal:', worldNormal);
         return worldNormal;
     }
 
     // === MATERIALS SYSTEM ===
     async initializeMaterialsSystem() {
         try {
+            // console.log('Initializing materials system...');
             this.materialsLibrary = new MaterialsLibrary();
             
             // Initialize BoardFactory
             this.boardFactory = new BoardFactory(this.scene, this.materialsLibrary);
+            // console.log("BoardFactory initialized");
             
             // TEST: Verify Board system is available
             if (typeof Board !== "undefined" && typeof BoardFactory !== "undefined") {
+                // console.log("✅ Board system loaded successfully");
+                // console.log("   Board class:", typeof Board);
+                // console.log("   BoardFactory class:", typeof BoardFactory);
+                // console.log("   boardFactory instance:", this.boardFactory ? "initialized" : "not initialized");
             } else {
-                console.error("❌ Board system failed to load!");
+                // console.error("❌ Board system failed to load!");
             }
             
             const success = await this.materialsLibrary.loadDatabase();
             if (success) {
+                // console.log('Materials database loaded successfully');
                 this.setupMaterialModalListeners();
             } else {
-                console.error('Failed to load materials database');
+                // console.error('Failed to load materials database');
             }
         } catch (error) {
-            console.error('Error initializing materials system:', error);
+            // console.error('Error initializing materials system:', error);
         }
     }
 
@@ -8262,6 +8446,7 @@ class DrawingWorld {
         if (addToProjectBtn) {
             addToProjectBtn.addEventListener('click', () => {
                 if (this.isAddingMaterial) {
+                    // console.log('Already adding material, skipping duplicate call');
                     return;
                 }
                 this.isAddingMaterial = true;
@@ -8362,11 +8547,9 @@ class DrawingWorld {
     getMaterialIcon(category) {
         const icons = {
             'hardwood': '🌳',
-            'sheet_goods': '📋',
             'softwood': '🌲',
             'exotic': '🌴'
         };
-        return icons[category] || '📦';
     }
 
     filterMaterials(searchTerm) {
@@ -8479,7 +8662,7 @@ class DrawingWorld {
 
     addMaterialToProject() {
         if (!this.selectedMaterial || !this.materialsLibrary || !this.boardFactory) {
-            console.error('Cannot add material: missing dependencies');
+            // console.error('Cannot add material: missing dependencies');
             this.isAddingMaterial = false; // CRITICAL: Reset flag on early return
             return;
         }
@@ -8491,6 +8674,7 @@ class DrawingWorld {
 
         try {
             // Use BoardFactory to create the board
+            // console.log("About to create board with:", {materialId: this.selectedMaterial, length: length, width: width, thickness: thickness, grade: grade});
             const board = this.boardFactory.createFromMaterial(
                 this.selectedMaterial,
                 length,
@@ -8530,6 +8714,7 @@ class DrawingWorld {
             this.workBenchParts.push(part);
             // Link the existing board mesh to the Part instance
             if (board.mesh) {
+                // console.log('Setting up board mesh:', board.mesh.id, 'for Part:', part.id);
                 
                 // Set critical properties for tool detection
                 board.mesh.partInstance = part;
@@ -8561,15 +8746,19 @@ class DrawingWorld {
                 }
                 this.workBenchMeshes.push(board.mesh);
                 
+                // console.log('Board mesh registered. Scene meshes:', this.scene.meshes.length);
+                // console.log('Board mesh pickable:', board.mesh.isPickable);
+                // console.log('Board mesh isWorkBenchPart:', board.mesh.isWorkBenchPart);
                 
                 // Setup gizmo observers for this mesh
                 this.setupGizmoPartSaving(board.mesh);
             } else {
-                console.error('No mesh found on board:', board);
+                // console.error('No mesh found on board:', board);
             }
             // Close modal
             this.closeMaterialModal();
 
+            // console.log('✅ Material added to work bench using Part system:', part);
             
             // Switch to work bench and make this the current work part
             this.switchBench('work');
@@ -8611,8 +8800,8 @@ class DrawingWorld {
             // DISABLED BoardFactory:             console.log('✅ Material added to work bench using Board system:', board);
             
         } catch (error) {
-            console.error("Failed to add material:", error);
-            console.error("Error details:", error.message, error.stack);
+            // console.error("Failed to add material:", error);
+            // console.error("Error details:", error.message, error.stack);
             this.isAddingMaterial = false; // CRITICAL: Reset flag on error
             // alert removed - check console for errors
         } finally {
@@ -8645,7 +8834,25 @@ class DrawingWorld {
         box.position = new BABYLON.Vector3(xPosition, thicknessCm / 2, 0);
 
         // Apply material with texture
-        box.material = this.getMaterialColor(part.materialId);
+        // Use BoardFactory material creation (same as cutting system uses)
+                const materialId = part.materialId || part.material?.id;
+                if (materialId && this.boardFactory) {
+                    try {
+                        // Use BoardFactory to create material - same method that works in cutting
+                        const material = this.boardFactory.createMaterial(materialId, part.materialName || "Restored Board");
+                        if (material) {
+                            box.material = material;
+                            // console.log("✅ Applied BoardFactory material for:", part.materialName);
+                        } else {
+                            box.material = this.getMaterialColor(materialId);
+                        }
+                    } catch (error) {
+                        // console.warn("Failed to create BoardFactory material:", error);
+                        box.material = this.getMaterialColor(materialId);
+                    }
+                } else {
+                    box.material = this.getMaterialColor(part.materialId);
+                }
 
         // Store reference
         box.partData = part;
@@ -8654,15 +8861,19 @@ class DrawingWorld {
         // CRITICAL: Restore saved transforms from partData (single source of truth)
         if (part.position && Array.isArray(part.position) && part.position.length === 3) {
             box.position = new BABYLON.Vector3(part.position[0], part.position[1], part.position[2]);
+            // console.log('Restored position from partData:', part.position);
         }
         if (part.rotation && Array.isArray(part.rotation) && part.rotation.length === 3) {
             box.rotation = new BABYLON.Vector3(part.rotation[0], part.rotation[1], part.rotation[2]);
+            // console.log('Restored rotation from partData:', part.rotation);
         }
         if (part.scaling && Array.isArray(part.scaling) && part.scaling.length === 3) {
             box.scaling = new BABYLON.Vector3(part.scaling[0], part.scaling[1], part.scaling[2]);
+            // console.log('Restored scaling from partData:', part.scaling);
         }
             box.isWorkBenchPart = false; // Ensure it's not marked as both
 
+        // console.log(`Created 3D block for ${part.materialName}:`, box);
     }
 
     getMaterialColor(materialId) {
@@ -8685,7 +8896,7 @@ class DrawingWorld {
                     // Texture loaded successfully
                     return material;
                 } catch (error) {
-                    console.warn("Failed to load texture for " + materialId + ", using fallback color");
+                    // console.warn("Failed to load texture for " + materialId + ", using fallback color");
                 }
             }
         }
@@ -8708,6 +8919,7 @@ class DrawingWorld {
 
     // === BENCH SYSTEM METHODS ===
     switchBench(benchType) {
+        // console.log(`Switching to ${benchType} bench`);
         this.currentBench = benchType;
         
         // Update button states
@@ -8740,6 +8952,7 @@ class DrawingWorld {
         // Clear loading flag after bench switch (project loading complete)
         setTimeout(() => {
             this.isLoadingProject = false;
+            // console.log('Project loading complete - camera animations re-enabled');
         }, 100);
     }
 
@@ -8750,6 +8963,7 @@ class DrawingWorld {
         if (workBenchList) {
             // Count actual work bench meshes in scene
         const actualWorkBenchMeshes = this.scene.meshes.filter(m => m.isWorkBenchPart);
+        // console.log('Project Explorer Update - Array parts:', this.workBenchParts.length, 'Scene meshes:', actualWorkBenchMeshes.length);
         
         if (actualWorkBenchMeshes.length === 0) {
                 if (emptyMessage) emptyMessage.style.display = 'block';
@@ -8760,12 +8974,11 @@ class DrawingWorld {
                     const currentClass = part === this.currentWorkPart ? 'current-work-part' : '';
                     const thumbnailHtml = part.thumbnail ? 
                         `<img src="${part.thumbnail}" class="part-thumbnail" alt="Part thumbnail">` :
-                        `<div class="part-thumbnail-placeholder">📦</div>`;
+                        `<img src="${part.thumbnail}" class="part-thumbnail" alt="Part thumbnail">` : ``;
                     return `
-                        <li class="part-item ${currentClass}" data-part-id="${part.id}" onclick="drawingWorld.focusPartInScene('${part.id}')">
                             <div class="part-thumbnail-container">${thumbnailHtml}</div>
                             <div class="part-info">
-                                <span class="part-name">${(part.materialName || (part.material ? part.material.name : "Unknown Material"))}</span>
+                                <span class="part-name">${part.materialName}</span>
                                 <span class="part-dimensions">${part.dimensions.length.toFixed(2)}" × ${part.dimensions.width.toFixed(2)}" × ${part.dimensions.thickness.toFixed(2)}"</span>
                                 <span class="part-status">${part.status || 'Ready'}</span>
                             </div>
@@ -8780,10 +8993,13 @@ class DrawingWorld {
      * Focus a part in the 3D scene when selected from project explorer
      */
     focusPartInScene(partId) {
+        // console.log(`DrawingWorld: Focusing part in scene: ${partId}`);
         
         // Debug: show all meshes with partData
+        // console.log('DrawingWorld: Available meshes with partData:');
         this.scene.meshes.forEach(mesh => {
             if (mesh.partData) {
+                // console.log(`  - Mesh: ${mesh.name}, partData.id: ${mesh.partData.id}, mesh.id: ${mesh.id}`);
             }
         });
         
@@ -8793,10 +9009,11 @@ class DrawingWorld {
         );
         
         if (!targetMesh) {
-            console.warn(`DrawingWorld: Could not find mesh for part ID: ${partId}`);
+            // console.warn(`DrawingWorld: Could not find mesh for part ID: ${partId}`);
             // Try alternative search by mesh.id
             const altMesh = this.scene.meshes.find(mesh => mesh.id === partId);
             if (altMesh) {
+                // console.log(`DrawingWorld: Found mesh by direct ID match: ${altMesh.name}`);
                 return this.focusPartInScene(altMesh.id);
             }
             return;
@@ -8833,6 +9050,7 @@ class DrawingWorld {
         }
         }
         
+        // console.log(`DrawingWorld: Focused on part: ${targetMesh.partData.materialName}`);
     }
     
     /**
@@ -8881,6 +9099,7 @@ class DrawingWorld {
      * Generate a 3D thumbnail for a part using screenshot
      */
     generatePartThumbnail(mesh, partData) {
+        // console.log(`DrawingWorld: Generating thumbnail for ${partData.materialName}`);
         
         // Create a separate camera for thumbnail generation to avoid moving the main camera
         const thumbnailCamera = new BABYLON.ArcRotateCamera(
@@ -8917,6 +9136,7 @@ class DrawingWorld {
                 { width: 128, height: 128 },
                 (data) => {
                     partData.thumbnail = data;
+                    // console.log(`DrawingWorld: Generated thumbnail for ${partData.materialName}`);
                     
                     // Update the project explorer to show the new thumbnail
                     this.updateWorkBenchDisplay();
@@ -8945,6 +9165,7 @@ class DrawingWorld {
      * Save workspace data to local storage or server
      */
     saveWorkspaceToLocal() {
+        // console.log('Saving workspace to local storage...');
         
         // Convert Part instances to plain objects for storage
         const workBenchData = [];
@@ -8961,8 +9182,9 @@ class DrawingWorld {
         
         try {
             localStorage.setItem('cutlist-workspace', JSON.stringify(workspaceData));
+            // console.log(`Saved ${workBenchData.length} parts to workspace`);
         } catch (error) {
-            console.error('Error saving workspace:', error);
+            // console.error('Error saving workspace:', error);
         }
     }
     
@@ -9005,10 +9227,11 @@ class DrawingWorld {
                 hasCustomGeometry: vertices !== null // Flag to indicate if this has modified geometry
             };
             
+            // console.log('Serialized mesh geometry:', geometryData);
             return geometryData;
             
         } catch (error) {
-            console.error('Error serializing mesh geometry:', error);
+            // console.error('Error serializing mesh geometry:', error);
             return null;
         }
     }
@@ -9040,6 +9263,7 @@ class DrawingWorld {
             
             // CRITICAL FIX: Generate UV coordinates for ANY mesh geometry
             if (!mesh.isVerticesDataPresent(BABYLON.VertexBuffer.UVKind)) {
+                // console.log("🔧 Generating UV coordinates for restored mesh");
                 const positions = mesh.getVerticesData(BABYLON.VertexBuffer.PositionKind);
                 if (positions) {
                     const uvs = [];
@@ -9073,8 +9297,9 @@ class DrawingWorld {
                     }
                     
                     mesh.setVerticesData(BABYLON.VertexBuffer.UVKind, uvs);
+                    // console.log("✅ UV coordinates generated for", vertexCount, "vertices");
                 } else {
-                    console.warn("⚠️ No position data found for UV generation");
+                    // console.warn("⚠️ No position data found for UV generation");
                 }
             }
             // Restore transforms
@@ -9095,11 +9320,14 @@ class DrawingWorld {
                 }
                 // CRITICAL FIX: Load texture from materials library for restored boards
                 const materialName = meshData.material.name;
+                // console.log("🔍 Restoring texture for material:", materialName);
                 if (materialName && this.materialsLibrary) {
                     const materialId = materialName.split("_material_")[0];
+                    // console.log("🔍 Extracted material ID:", materialId);
                     const materialData = this.materialsLibrary.getMaterial(materialId);
                     if (materialData && materialData.visual_assets && materialData.visual_assets.texture_diffuse) {
                         const texturePath = materialData.visual_assets.texture_diffuse;
+                        // console.log("🔍 Found texture path:", texturePath);
                         
                         // Check texture cache first
                         let texture = this.textureCache ? this.textureCache.get(texturePath) : null;
@@ -9110,47 +9338,38 @@ class DrawingWorld {
                                     this.textureCache.set(texturePath, texture);
                                 }
                             } catch (error) {
-                                console.warn("Failed to load texture for restored mesh:", error);
+                                // console.warn("Failed to load texture for restored mesh:", error);
                             }
                         } else {
+                            // console.log("♻️ Using cached texture for restored board:", materialId);
                         }
                         
                         if (texture) {
                             material.diffuseTexture = texture;
                             material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1);
+                            // console.log("✅ Texture applied to restored board:", materialId);
                         }
                     } else {
+                        // console.log("⚠️ No texture data found for material:", materialId);
                     }
                 } else {
+                    // console.log("⚠️ MaterialsLibrary not available or no material name");
                 }
                 
                 mesh.material = material;
             }
             
+            // console.log('Restored mesh geometry from serialized data:', mesh);
             return mesh;
             
         } catch (error) {
-            console.error('Error restoring mesh geometry:', error);
+            // console.error('Error restoring mesh geometry:', error);
             return null;
         }
     }
 
     createWorkBenchMaterial(part, isRestoring = false) {
         // DON'T clear existing materials - allow multiple boards on work bench
-        
-        // CRITICAL: Ensure material properties exist
-        if (!part.materialId && part.material) {
-            part.materialId = part.material.id || part.material.materialId;
-        }
-        if (!part.materialName && part.material) {
-            part.materialName = part.material.name || part.material.materialName;
-        }
-        // Fallback to walnut if no material specified
-        if (!part.materialId) {
-            console.warn('No materialId found for part:', part.id, '- using default walnut');
-            part.materialId = 'walnut';
-            part.materialName = 'Black Walnut';
-        }
         
         let box;
         
@@ -9160,7 +9379,26 @@ class DrawingWorld {
             
             // CRITICAL FIX: Replace restored material with properly textured material
             if (box && box.material) {
-                box.material = this.getMaterialColor(part.materialId);
+                // console.log("🔧 Replacing restored material with textured material for:", part.materialName);
+                // Use BoardFactory material creation (same as cutting system uses)
+                const materialId = part.materialId || part.material?.id;
+                if (materialId && this.boardFactory) {
+                    try {
+                        // Use BoardFactory to create material - same method that works in cutting
+                        const material = this.boardFactory.createMaterial(materialId, part.materialName || "Restored Board");
+                        if (material) {
+                            box.material = material;
+                            // console.log("✅ Applied BoardFactory material for:", part.materialName);
+                        } else {
+                            box.material = this.getMaterialColor(materialId);
+                        }
+                    } catch (error) {
+                        // console.warn("Failed to create BoardFactory material:", error);
+                        box.material = this.getMaterialColor(materialId);
+                    }
+                } else {
+                    box.material = this.getMaterialColor(part.materialId);
+                }
             }
         }
         
@@ -9181,7 +9419,25 @@ class DrawingWorld {
             
             // Create material-specific appearance for new boxes
         // Apply material with texture
-            box.material = this.getMaterialColor(part.materialId);
+            // Use BoardFactory material creation (same as cutting system uses)
+                const materialId = part.materialId || part.material?.id;
+                if (materialId && this.boardFactory) {
+                    try {
+                        // Use BoardFactory to create material - same method that works in cutting
+                        const material = this.boardFactory.createMaterial(materialId, part.materialName || "Restored Board");
+                        if (material) {
+                            box.material = material;
+                            // console.log("✅ Applied BoardFactory material for:", part.materialName);
+                        } else {
+                            box.material = this.getMaterialColor(materialId);
+                        }
+                    } catch (error) {
+                        // console.warn("Failed to create BoardFactory material:", error);
+                        box.material = this.getMaterialColor(materialId);
+                    }
+                } else {
+                    box.material = this.getMaterialColor(part.materialId);
+                }
 
         }
 
@@ -9193,6 +9449,7 @@ class DrawingWorld {
                 part.meshGeometry.position.y,
                 part.meshGeometry.position.z
             );
+            // console.log('Restored saved position for', part.materialName, ':', box.position);
             
             // CRITICAL: Also restore rotation if saved
             if (part.meshGeometry.rotation) {
@@ -9201,6 +9458,7 @@ class DrawingWorld {
                     part.meshGeometry.rotation.y,
                     part.meshGeometry.rotation.z
                 );
+                // console.log('Restored saved rotation for', part.materialName, ':', box.rotation);
             }
         } else {
             // Use spawn position for new parts or when not restoring
@@ -9210,10 +9468,33 @@ class DrawingWorld {
             
             const spawnPosition = this.findOptimalSpawnPosition(lengthCm, widthCm, thicknessCm);
             box.position = spawnPosition;
+            // console.log('Using spawn position for', isRestoring ? 'restored part without saved position' : 'new part', part.materialName, ':', box.position);
         }
 
-        // Always apply material with texture for consistency
-        box.material = this.getMaterialColor(part.materialId || part.material?.id);
+        // Only create material if it doesn't already exist (restored geometry has its own material)
+        if (!box.material) {
+        // Apply material with texture
+            // Use BoardFactory material creation (same as cutting system uses)
+                const materialId = part.materialId || part.material?.id;
+                if (materialId && this.boardFactory) {
+                    try {
+                        // Use BoardFactory to create material - same method that works in cutting
+                        const material = this.boardFactory.createMaterial(materialId, part.materialName || "Restored Board");
+                        if (material) {
+                            box.material = material;
+                            // console.log("✅ Applied BoardFactory material for:", part.materialName);
+                        } else {
+                            box.material = this.getMaterialColor(materialId);
+                        }
+                    } catch (error) {
+                        // console.warn("Failed to create BoardFactory material:", error);
+                        box.material = this.getMaterialColor(materialId);
+                    }
+                } else {
+                    box.material = this.getMaterialColor(part.materialId);
+                }
+
+        }
 
         // Store reference
         box.partData = part;
@@ -9227,6 +9508,7 @@ class DrawingWorld {
                 partInstance = Part.fromPlainObject(part, this);
             }
             this.partInstances.set(partInstance.id, partInstance);
+            // console.log('Created Part instance for:', partInstance.id);
         }
         
         // Link mesh to Part instance
@@ -9244,6 +9526,7 @@ class DrawingWorld {
         box.computeWorldMatrix(true);
         box.getBoundingInfo();
 
+        // console.log(`Created work bench material for ${part.materialName}:`, box);
         
         // DEBUG: Check board properties for cutting system
         
@@ -9258,7 +9541,6 @@ class DrawingWorld {
         }
         
 
-        // 🔍 BOARD INTEGRITY AUDIT - Validate this board is ready for any operation
         const auditContext = isRestoring ? "RESTORE" : "CREATE";
         this.auditBoardIntegrity(box, part, auditContext);
 
@@ -9266,7 +9548,6 @@ class DrawingWorld {
         return box;
     }
     /**
-     * 🔍 BOARD INTEGRITY AUDIT SYSTEM
      * Validates that every created board has complete characteristics
      * and is ready for any operation like a library-added board
      */
@@ -9327,11 +9608,13 @@ class DrawingWorld {
         
         // AUDIT RESULTS
         if (issues.length === 0) {
+            // console.log("✅ " + context.toUpperCase() + " AUDIT PASSED: " + partData.materialName + " is fully operational");
+            // console.log("   🎨 Material: " + partData.materialId + " (" + partData.grade + ")");
             return true;
         } else {
-            console.error("❌ " + context.toUpperCase() + " AUDIT FAILED: " + partData.materialName);
+            // console.error("❌ " + context.toUpperCase() + " AUDIT FAILED: " + partData.materialName);
             issues.forEach(function(issue) { console.error("   " + issue); });
-            console.error("   🚨 This board may not be ready for all operations!");
+            // console.error("   🚨 This board may not be ready for all operations!");
             return false;
         }
     }
@@ -9343,6 +9626,8 @@ class DrawingWorld {
      * Smooth, professional animation that showcases the workpiece dramatically
      */
     animateCameraToShowcaseMaterial(mesh, part) {
+        // console.log(`🎬 DRAMATIC CAMERA SWOOP - Approaching ${part.materialName} perpendicular to long dimension`);
+        // console.log(`🎥 Swooping to 28-degree cinematic angle for ${part.materialName} - dramatic and professional`);
         
         // Calculate optimal camera position for dramatic reveal
         const meshBounds = mesh.getBoundingInfo();
@@ -9353,16 +9638,20 @@ class DrawingWorld {
         const maxDimension = Math.max(meshSize.x, meshSize.y, meshSize.z);
         
         // DEBUG: Log the mesh dimensions to understand the scale
+        // console.log(`🔍 Mesh dimensions: ${meshSize.x.toFixed(1)} x ${meshSize.y.toFixed(1)} x ${meshSize.z.toFixed(1)} cm`);
+        // console.log(`🔍 Max dimension: ${maxDimension.toFixed(1)} cm`);
         
         // DRAMATIC SWOOP: Calculate distances for cinematic approach
         const startDistance = Math.max(maxDimension * 1.8, 90); // 50% further away for dramatic start
         const finalDistance = Math.max(maxDimension * 0.9, 45); // Closer to edges of display
         
+        // console.log(`🎬 Start distance: ${startDistance.toFixed(1)} cm, Final distance: ${finalDistance.toFixed(1)} cm`);
         
         // Determine the long dimension to approach perpendicular to it
         const isLengthLonger = meshSize.x > meshSize.z;
         const longDimension = isLengthLonger ? meshSize.x : meshSize.z;
         
+        // console.log(`🔍 Long dimension: ${longDimension.toFixed(1)} cm (${isLengthLonger ? 'X' : 'Z'} axis)`);
         
         // Position camera perpendicular to long dimension at 28-degree angle
         const angleRad = (28 * Math.PI) / 180; // 28 degrees - perfect cinematic angle
@@ -9394,10 +9683,13 @@ class DrawingWorld {
         const currentTarget = this.camera.getTarget().clone();
         
         // DEBUG: Log camera positions
+        // console.log(`🔍 Mesh center: (${meshCenter.x.toFixed(1)}, ${meshCenter.y.toFixed(1)}, ${meshCenter.z.toFixed(1)})`);
+        // console.log(`🔍 Camera journey: Start (${startCameraPosition.x.toFixed(1)}, ${startCameraPosition.y.toFixed(1)}, ${startCameraPosition.z.toFixed(1)}) → Final (${finalCameraPosition.x.toFixed(1)}, ${finalCameraPosition.y.toFixed(1)}, ${finalCameraPosition.z.toFixed(1)})`);
         
         // Calculate distances
         const startDistanceToMesh = BABYLON.Vector3.Distance(startCameraPosition, meshCenter);
         const finalDistanceToMesh = BABYLON.Vector3.Distance(finalCameraPosition, meshCenter);
+        // console.log(`🔍 Distance journey: ${startDistanceToMesh.toFixed(1)} cm → ${finalDistanceToMesh.toFixed(1)} cm`);
         
         // DRAMATIC SWOOP with custom slow-fast-slow curve (10-60-30)
         const animationDuration = 120; // 2 seconds at 60fps for more dramatic effect
@@ -9437,6 +9729,7 @@ class DrawingWorld {
             BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT,
             new BABYLON.BezierCurveEase(0.1, 0, 0.9, 1), // Custom dramatic curve
             () => {
+                // console.log(`🎬 Dramatic swoop complete for ${part.materialName} - cinematic perfection!`);
             }
         );
     }
@@ -9496,12 +9789,14 @@ class DrawingWorld {
                 });
                 
                 if (isPositionClear) {
+                    // console.log(`DrawingWorld: Found optimal spawn position at (${searchPos.x.toFixed(1)}, ${searchPos.y.toFixed(1)}, ${searchPos.z.toFixed(1)})`);
                     return searchPos;
                 }
             }
         }
         
         // Fallback: use old method if no clear position found
+        // console.log('DrawingWorld: No clear position found, using fallback positioning');
         const existingWorkBenchParts = this.scene.meshes.filter(m => m.isWorkBenchPart);
         const xOffset = existingWorkBenchParts.length * (lengthCm + 10);
         return new BABYLON.Vector3(xOffset, thicknessCm / 2, 0);
@@ -9557,11 +9852,13 @@ class DrawingWorld {
             });
             
             if (isPositionClear) {
+                // console.log(`Assembly: Found optimal position at (${searchPos.x.toFixed(1)}, ${searchPos.y.toFixed(1)}, ${searchPos.z.toFixed(1)})`);
                 return searchPos;
             }
         }
         
         // Fallback: use original linear arrangement if no clear position found
+        // console.log('Assembly: Using fallback linear positioning');
         const xPosition = partIndex * (lengthCm + 10);
         return new BABYLON.Vector3(xPosition, thicknessCm / 2, 0);
     }
@@ -9608,9 +9905,11 @@ class DrawingWorld {
     animateCameraForBench(benchType) {
         // Skip camera animation during project loading
         if (this.isLoadingProject) {
+            // console.log(`Skipping camera animation for ${benchType} bench (project loading)`);
             return;
         }
         
+        // console.log(`Animating camera for ${benchType} bench`);
         
         let targetParts = [];
         let mostRecentPart = null;
@@ -9642,6 +9941,7 @@ class DrawingWorld {
             // Find mesh for most recent part
             const recentMesh = targetParts.find(m => m.partData && m.partData.id === mostRecentPart.id);
             if (recentMesh) {
+                // console.log(`Focusing camera on most recent part: ${mostRecentPart.materialName}`);
                 this.animateCameraToFocusPart(recentMesh);
                 return;
             }
@@ -9655,6 +9955,7 @@ class DrawingWorld {
      * Animate camera to origin position
      */
     animateCameraToOrigin() {
+        // console.log('Animating camera to origin');
         
         const targetPosition = new BABYLON.Vector3(200, 150, 200); // Good overview position
         const targetTarget = new BABYLON.Vector3(0, 0, 0); // Look at origin
@@ -9688,10 +9989,12 @@ class DrawingWorld {
                 this.camera.setTarget(targetTarget);
                 const distance = BABYLON.Vector3.Distance(this.camera.position, targetTarget);
                 this.camera.radius = Math.max(200, distance); // Ensure minimum radius of 200
+                // console.log('animateCameraToOrigin: Animation complete, radius set to:', this.camera.radius);
                 
                 // Force grid update after camera change
                 if (this.grid && this.grid.updateDynamicGrid) {
                     this.grid.updateDynamicGrid();
+                    // console.log('animateCameraToOrigin: Forced grid update');
                 }
             }
         );
@@ -9706,6 +10009,7 @@ class DrawingWorld {
             return;
         }
         
+        // console.log(`Animating camera to show ${parts.length} parts optimally`);
         
         // Calculate bounding box of all parts
         let minX = Infinity, maxX = -Infinity;
@@ -9807,6 +10111,7 @@ class DrawingWorld {
     includeCurrentPartInProject() {
         // Use selectedPart instead of currentWorkPart for user's actual selection
         if (!this.selectedPart) {
+            // console.log('No part selected - please select a part to send to assembly');
             // TODO: Show user message about selecting a part first
             return;
         }
@@ -9817,6 +10122,7 @@ class DrawingWorld {
         );
         
         if (!selectedMesh || !selectedMesh.isWorkBenchPart) {
+            // console.log('Selected part is not a work bench part');
             return;
         }
 
@@ -9826,12 +10132,14 @@ class DrawingWorld {
         // CLEANUP: Clear router previews before serialization to prevent them from being preserved
         if (this.routerBitSystem) {
             this.routerBitSystem.clearAll();
+            // console.log('Cleared router previews before geometry serialization');
         }
         
         // Capture current mesh geometry data
         if (selectedMesh) {
             const meshData = this.serializeMeshGeometry(selectedMesh);
             part.meshGeometry = meshData;
+            // console.log('Captured mesh geometry for transfer:', meshData);
         }
         
         // Keep original status if it's already processed, otherwise mark as assembly-ready
@@ -9850,6 +10158,7 @@ class DrawingWorld {
         // Remove ONLY the selected part's mesh from the scene, not all parts
         if (selectedMesh) {
             selectedMesh.dispose();
+            // console.log(`Removed selected part from work bench: ${part.materialName}`);
         }
 
         // Clear selection since the part is now moved
@@ -9876,6 +10185,7 @@ class DrawingWorld {
 
         // Note: Part has been moved to assembly but user stays on current bench
 
+        // console.log('Selected part moved to assembly:', part);
     }
 
     /**
@@ -9884,6 +10194,7 @@ class DrawingWorld {
     sendPartBackToWorkBench() {
         // Use selectedPart for user's actual selection
         if (!this.selectedPart) {
+            // console.log('No part selected - please select a part to send back to work bench');
             return;
         }
 
@@ -9893,6 +10204,7 @@ class DrawingWorld {
         );
         
         if (!selectedMesh || !selectedMesh.isProjectPart) {
+            // console.log('Selected part is not an assembly part');
             return;
         }
 
@@ -9902,12 +10214,14 @@ class DrawingWorld {
         // CLEANUP: Clear router previews before serialization to prevent them from being preserved
         if (this.routerBitSystem) {
             this.routerBitSystem.clearAll();
+            // console.log('Cleared router previews before geometry serialization');
         }
         
         // Capture current mesh geometry data
         if (selectedMesh) {
             const meshData = this.serializeMeshGeometry(selectedMesh);
             part.meshGeometry = meshData;
+            // console.log('Captured mesh geometry for transfer:', meshData);
         }
         
         // Preserve the processing history - don't change status back to raw if it was processed
@@ -9921,10 +10235,12 @@ class DrawingWorld {
             this.createWorkBenchMaterial(part);
             // Close modal
 
+            // console.log('✅ Material added to work bench using Part system:', part);
 
         // Remove ONLY the selected part's mesh from assembly scene, not all parts
         if (selectedMesh) {
             selectedMesh.dispose();
+            // console.log(`Removed selected part from assembly: ${part.materialName}`);
         }
 
         // Clear selection since the part is now moved
@@ -9951,6 +10267,7 @@ class DrawingWorld {
 
         // Note: Part has been moved to work bench but user stays on current bench
 
+        // console.log('Selected part moved back to work bench:', part);
     }
 
     clearWorkBenchScene() {
@@ -9998,11 +10315,13 @@ class DrawingWorld {
             
             // CRITICAL: Check if part has preserved geometry from previous modifications
             if (part.meshGeometry && part.meshGeometry.hasCustomGeometry) {
+                // console.log('Restoring preserved geometry for assembly part:', part.materialName);
                 box = this.restoreMeshGeometry(part.meshGeometry, part.id);
             }
             
             // If no preserved geometry or restoration failed, create default box
             if (!box) {
+                // console.log('Creating default box geometry for assembly part:', part.materialName);
                 
                 const lengthCm = part.dimensions.length * 2.54;
                 const widthCm = part.dimensions.width * 2.54;
@@ -10016,7 +10335,25 @@ class DrawingWorld {
 
                 // Create material-specific appearance for new boxes
         // Apply material with texture
-                box.material = this.getMaterialColor(part.materialId);
+                // Use BoardFactory material creation (same as cutting system uses)
+                const materialId = part.materialId || part.material?.id;
+                if (materialId && this.boardFactory) {
+                    try {
+                        // Use BoardFactory to create material - same method that works in cutting
+                        const material = this.boardFactory.createMaterial(materialId, part.materialName || "Restored Board");
+                        if (material) {
+                            box.material = material;
+                            // console.log("✅ Applied BoardFactory material for:", part.materialName);
+                        } else {
+                            box.material = this.getMaterialColor(materialId);
+                        }
+                    } catch (error) {
+                        // console.warn("Failed to create BoardFactory material:", error);
+                        box.material = this.getMaterialColor(materialId);
+                    }
+                } else {
+                    box.material = this.getMaterialColor(part.materialId);
+                }
     
             }
 
@@ -10028,6 +10365,7 @@ class DrawingWorld {
                     part.meshGeometry.position.y,
                     part.meshGeometry.position.z
                 );
+                // console.log('Restored saved position for assembly part', part.materialName, ':', box.position);
             
             // CRITICAL: Also restore rotation if saved
             if (part.meshGeometry.rotation) {
@@ -10036,6 +10374,7 @@ class DrawingWorld {
                     part.meshGeometry.rotation.y,
                     part.meshGeometry.rotation.z
                 );
+                // console.log('Restored saved rotation for assembly part', part.materialName, ':', box.rotation);
             }
             } else {
                 // Use assembly position for new parts
@@ -10045,12 +10384,31 @@ class DrawingWorld {
                 
                 const position = this.findOptimalAssemblyPosition(lengthCm, widthCm, thicknessCm, index);
                 box.position = position;
+                // console.log('Using assembly position for new part', part.materialName, ':', box.position);
             }
 
             // Only create material if it doesn't already exist (restored geometry has its own material)
             if (!box.material) {
         // Apply material with texture
-                box.material = this.getMaterialColor(part.materialId);
+                // Use BoardFactory material creation (same as cutting system uses)
+                const materialId = part.materialId || part.material?.id;
+                if (materialId && this.boardFactory) {
+                    try {
+                        // Use BoardFactory to create material - same method that works in cutting
+                        const material = this.boardFactory.createMaterial(materialId, part.materialName || "Restored Board");
+                        if (material) {
+                            box.material = material;
+                            // console.log("✅ Applied BoardFactory material for:", part.materialName);
+                        } else {
+                            box.material = this.getMaterialColor(materialId);
+                        }
+                    } catch (error) {
+                        // console.warn("Failed to create BoardFactory material:", error);
+                        box.material = this.getMaterialColor(materialId);
+                    }
+                } else {
+                    box.material = this.getMaterialColor(part.materialId);
+                }
     
             }
 
@@ -10065,6 +10423,7 @@ class DrawingWorld {
             box.getBoundingInfo();
         });
 
+        // console.log('Assembly project view created with', this.projectParts.length, 'parts');
     }
 
     /**
@@ -10087,7 +10446,9 @@ class DrawingWorld {
             !mesh.name.includes('gizmo') // Keep any gizmos
         );
         
+        // console.log(`Clearing ${allMeshesToClear.length} meshes from scene (keeping essential meshes)`);
         allMeshesToClear.forEach(mesh => {
+            // console.log(`Disposing mesh: ${mesh.name}`);
             mesh.dispose();
         });
         
@@ -10095,31 +10456,50 @@ class DrawingWorld {
         this.workBenchParts = [];
         this.projectParts = [];
         
+        // console.log('All parts cleared from scene and arrays');
     }
 
     /**
      * Rebuild work bench parts from loaded data
      */
     rebuildWorkBenchParts() {
+        // console.log('=== REBUILD WORKBENCH DEBUG ===');
+        // console.log('WorkBench parts to rebuild:', this.workBenchParts);
+        // console.log('WorkBench parts count:', this.workBenchParts ? this.workBenchParts.length : 0);
         
         // Clear ALL existing work bench parts (including any orphans)
         const workBenchMeshes = this.scene.meshes.filter(mesh => mesh.isWorkBenchPart);
+        // console.log('Scene meshes before clearing:', this.scene.meshes.map(m => m.name));
+        // console.log('Clearing', workBenchMeshes.length, 'existing work bench meshes');
         workBenchMeshes.forEach(mesh => mesh.dispose());
         
         // Recreate all work bench parts
         this.workBenchParts.forEach((part, index) => {
+            // console.log(`Creating work bench part ${index + 1}:`, part.id, part.materialName);
             this.createWorkBenchMaterial(part, true); // Pass isRestoring = true
+            // console.log('Created mesh for part:', part.id);
+            // console.log('Total scene meshes now:', this.scene.meshes.filter(m => m.isWorkBenchPart).length);
+            // console.log('Created mesh for part:', part.id);
+            // console.log('Total scene meshes now:', this.scene.meshes.filter(m => m.isWorkBenchPart).length);
         });
         
+        // console.log('Rebuilt', this.workBenchParts.length, 'work bench parts');
+        // console.log('Final workBenchParts array length:', this.workBenchParts.length);
+        // console.log('Final scene workBench meshes:', this.scene.meshes.filter(m => m.isWorkBenchPart).length);
+        // console.log('Mesh names:', this.scene.meshes.filter(m => m.isWorkBenchPart).map(m => m.name));
         
         // Update project explorer to match actual scene meshes
         this.updateWorkBenchDisplay();
+        // console.log('Final workBenchParts array length:', this.workBenchParts.length);
+        // console.log('Final scene workBench meshes:', this.scene.meshes.filter(m => m.isWorkBenchPart).length);
+        // console.log('Mesh names:', this.scene.meshes.filter(m => m.isWorkBenchPart).map(m => m.name));
         
         // Update project explorer to match actual scene meshes
         this.updateWorkBenchDisplay();
         
         // Wait for scene to be ready with all textures loaded
         this.scene.executeWhenReady(() => {
+            // console.log('Scene ready with all textures - hiding spinner');
             // Spinner hiding moved to rebuild functions
         });
     }
@@ -10135,15 +10515,18 @@ class DrawingWorld {
         // Recreate all assembly parts
         this.createAssemblyProjectView();
         
+        // console.log('Rebuilt', this.projectParts.length, 'assembly parts');
         
         // Wait for scene to be ready with all assembly parts
         this.scene.executeWhenReady(() => {
+            // console.log('Assembly scene ready - hiding spinner');
             // Spinner hiding moved to rebuild functions
         });
     }
 
     // === 3D PART MANIPULATION SYSTEM ===
     selectPart(part) {
+        // console.log('Selecting part:', part);
         
         // Deselect current part if different
         if (this.selectedPart && this.selectedPart !== part) {
@@ -10166,6 +10549,14 @@ class DrawingWorld {
         
         // Find the mesh for this part
         const mesh = this.scene.meshes.find(m => m.partData === part);
+        // console.log('SELECT DEBUG: Looking for mesh with partData === part');
+        // console.log('SELECT DEBUG: part:', part);
+        // console.log('SELECT DEBUG: found mesh:', mesh);
+        // console.log('SELECT DEBUG: mesh.name:', mesh?.name);
+        // console.log('SELECT DEBUG: mesh.id:', mesh?.id);
+        // console.log('SELECT DEBUG: mesh.dimensions:', mesh?.dimensions);
+        // console.log('SELECT DEBUG: mesh.partData:', mesh?.partData);
+        // console.log('SELECT DEBUG: mesh.partData?.dimensions:', mesh?.partData?.dimensions);
         
         if (mesh) {
             this.setPartSelection(mesh, true);
@@ -10200,10 +10591,11 @@ class DrawingWorld {
 
     deselectPart() {
         if (!this.selectedPart) {
-            console.error("❌ No selectedPart!");
+            // console.error("❌ No selectedPart!");
             return;
         }
         
+        // console.log('Deselecting part:', this.selectedPart);
         
         // Find the mesh for this part
         const mesh = this.scene.meshes.find(m => m.partData === this.selectedPart);
@@ -10234,6 +10626,7 @@ class DrawingWorld {
     setPartSelection(mesh, isSelected) {
         // DEBUG: Track position before/after selection
         const positionBefore = mesh.position.clone();
+        // console.log(`MESH POSITION BEFORE selection (${isSelected}):`, positionBefore);
         
         if (isSelected) {
             // Store original material
@@ -10274,11 +10667,12 @@ class DrawingWorld {
         
         // DEBUG: Track position after selection
         const positionAfter = mesh.position.clone();
+        // console.log(`MESH POSITION AFTER selection (${isSelected}):`, positionAfter);
         
         // DEBUG: Check if position changed
         const positionDelta = positionAfter.subtract(positionBefore);
         if (positionDelta.length() > 0.001) {
-            console.error(`❌ MESH POSITION CHANGED during selection! Delta:`, positionDelta);
+            // console.error(`❌ MESH POSITION CHANGED during selection! Delta:`, positionDelta);
         }
     }
 
@@ -10349,8 +10743,9 @@ class DrawingWorld {
         try {
             // Use properties panel instead of popup
             this.showManipulationInPropertiesPanel(mesh);
+            // console.log('Created manipulation buttons in properties panel');
         } catch (error) {
-            console.error('Error creating manipulation buttons:', error);
+            // console.error('Error creating manipulation buttons:', error);
             // Fallback: Show manipulation info in selection panel
             this.showManipulationInstructions();
         }
@@ -10509,8 +10904,9 @@ class DrawingWorld {
             // Add to GUI
             advancedTexture.addControl(mainContainer);
             
+            // console.log('Created manipulation buttons for part');
         } catch (error) {
-            console.error('Error creating manipulation buttons:', error);
+            // console.error('Error creating manipulation buttons:', error);
             // Fallback: Show manipulation info in selection panel
             this.showManipulationInstructions();
         }
@@ -10650,16 +11046,18 @@ class DrawingWorld {
 
     setupGizmoPartSaving(mesh) {
         if (!mesh || !mesh.partInstance) {
-            console.warn('setupGizmoPartSaving: No Part instance on mesh');
+            // console.warn('setupGizmoPartSaving: No Part instance on mesh');
             return;
         }
 
         // Check if gizmo manager is ready
         if (!this.gizmoManager || !this.gizmoManager.gizmos) {
+            // console.log('GizmoManager not ready yet, will setup gizmos when selected');
             return;
         }
 
         const part = mesh.partInstance;
+        // console.log(`Setting up Part saving for gizmos on ${part.id}`);
 
         // Remove existing observers to prevent duplicates
         if (this.partGizmoObservers) {
@@ -10674,6 +11072,7 @@ class DrawingWorld {
         // Position gizmo observer
         if (this.gizmoManager.gizmos.positionGizmo) {
             const positionObserver = this.gizmoManager.gizmos.positionGizmo.onDragEndObservable.add(() => {
+                // console.log('Position gizmo drag ended - updating Part instance');
                 part.setPosition(mesh.position.x, mesh.position.y, mesh.position.z);
             });
             this.partGizmoObservers.push({
@@ -10685,6 +11084,7 @@ class DrawingWorld {
         // Rotation gizmo observer
         if (this.gizmoManager.gizmos.rotationGizmo) {
             const rotationObserver = this.gizmoManager.gizmos.rotationGizmo.onDragEndObservable.add(() => {
+                // console.log('Rotation gizmo drag ended - updating Part instance');
                 part.setRotation(mesh.rotation.x, mesh.rotation.y, mesh.rotation.z);
             });
             this.partGizmoObservers.push({
@@ -10696,6 +11096,7 @@ class DrawingWorld {
         // Scale gizmo observer
         if (this.gizmoManager.gizmos.scaleGizmo) {
             const scaleObserver = this.gizmoManager.gizmos.scaleGizmo.onDragEndObservable.add(() => {
+                // console.log('Scale gizmo drag ended - updating Part dimensions');
                 // Calculate new dimensions based on scale
                 const newLength = part.dimensions.length * mesh.scaling.z;
                 const newWidth = part.dimensions.width * mesh.scaling.x; 
@@ -10711,10 +11112,14 @@ class DrawingWorld {
             });
         }
 
+        // console.log(`Setup ${this.partGizmoObservers.length} gizmo observers for Part ${part.id}`);
     }
 
 
         createDragHandles(mesh) {
+        // console.log("🎯 createDragHandles called with mesh:", mesh?.name, "Tool:", this.activeTool);
+        // console.log("GizmoManager exists?", !!this.gizmoManager);
+        // console.log('GIZMO DEBUG: createDragHandles FUNCTION CALLED with mesh:', mesh?.name);
         // Initialize transform precision tracking
         this.transformStartPosition = null;
         this.transformStartRotation = null;
@@ -10729,7 +11134,7 @@ class DrawingWorld {
         
         // Check if mesh is valid
         if (!mesh) {
-            console.warn('createDragHandles called with invalid mesh');
+            // console.warn('createDragHandles called with invalid mesh');
             return;
         }
         
@@ -10740,6 +11145,7 @@ class DrawingWorld {
         // Use GizmoManager - it handles everything!
         // Create utility layer first so GizmoManager can use it
         if (!this.gizmoUtilityLayer) {
+            // console.log('Creating utility layer for gizmos');
             this.gizmoUtilityLayer = new BABYLON.UtilityLayerRenderer(this.scene);
             this.gizmoUtilityLayer.utilityLayerScene.autoClearDepthAndStencil = true;
             this.gizmoUtilityLayer.shouldRender = true;
@@ -10751,6 +11157,7 @@ class DrawingWorld {
             this.gizmoManager.rotationGizmoEnabled = false;
             this.gizmoManager.scaleGizmoEnabled = false;
             this.gizmoManager.boundingBoxGizmoEnabled = false;
+            // console.log('Created GizmoManager');
             
             // Configure gizmo visibility and size
             this.gizmoManager.scaleRatio = 1.0; // Will be set dynamically per mesh
@@ -10773,6 +11180,7 @@ class DrawingWorld {
             if (this.gizmoManager.gizmos.rotationGizmo) {
                 this.gizmoManager.gizmos.rotationGizmo.updateGizmoRotationToMatchAttachedMesh = true;
                 // Scale will be set after attachment
+                // console.log('Configured rotation gizmo - FIXED: Now follows mesh orientation');
             }
         } else if (this.activeTool === 'scale') {
             this.gizmoManager.positionGizmoEnabled = false;
@@ -10877,6 +11285,7 @@ class DrawingWorld {
             }
             
             if (hasChanged) {
+                // console.log('Transform changed\! Showing display...');
                 
                 // CRITICAL: Update cut preview if cut tool is active
                 if (this.activeTool === 'cut' && this.cutToolSystem && this.cutToolSystem.isActive) {
@@ -10909,6 +11318,7 @@ class DrawingWorld {
                     this.isDraggingGizmo = false;
                     this.noChangeFrames = 0;
                     if (this.transformDisplay && this.transformDisplay.style.display !== 'none') {
+                        // console.log('Auto-converting to editable after drag stop');
                         this.convertToEditableField();
                     }
                 }
@@ -10926,9 +11336,20 @@ class DrawingWorld {
         });
 
         // Debug: Check if gizmos exist
+        // console.log('🔍 GIZMO DEBUG:');
+        // console.log('  - GizmoManager exists:', !!this.gizmoManager);
+        // console.log('  - Attached mesh:', this.gizmoManager.attachedMesh?.name);
+        // console.log('  - Position gizmo exists:', !!this.gizmoManager.gizmos.positionGizmo);
+        // console.log('  - Rotation gizmo exists:', !!this.gizmoManager.gizmos.rotationGizmo);
+        // console.log('  - Scale gizmo exists:', !!this.gizmoManager.gizmos.scaleGizmo);
+        // console.log("📎 Attached to mesh:", this.gizmoManager.attachedMesh?.name);
+        // console.log("Position enabled:", this.gizmoManager.positionGizmoEnabled);
+        // console.log("Rotation enabled:", this.gizmoManager.rotationGizmoEnabled);
+        // console.log("Scale enabled:", this.gizmoManager.scaleGizmoEnabled);
         
         // Gizmo already enabled before attach
         
+        // console.log('Gizmo setup complete for tool:', this.activeTool);
     }
         clearDragHandles() {
         // Clean up transform display and observers
@@ -10961,10 +11382,12 @@ class DrawingWorld {
             this.gizmoManager.attachToMesh(null);
         }
         
+        // console.log('Cleared all drag handles and gizmos');
     }
 // Transform display functions to add to DrawingWorld class
 
     createTransformDisplay() {
+        // console.log('createTransformDisplay called');
         // Remove old display if exists
         if (this.transformDisplay) {
             this.transformDisplay.remove();
@@ -11020,8 +11443,10 @@ class DrawingWorld {
             });
             
             this.positionGizmoObserver = this.gizmoManager.gizmos.positionGizmo.onDragEndObservable.add(() => {
+                // console.log('Position gizmo drag ended - saving to partData AND Part instance');
                 if (mesh.partData) {
                     mesh.partData.position = mesh.position.asArray();
+                    // console.log('Saved position to partData:', mesh.partData.position);
                     
                     // Also save to meshGeometry for compatibility with existing code
                     if (!mesh.partData.meshGeometry) {
@@ -11032,6 +11457,13 @@ class DrawingWorld {
                         y: mesh.position.y,
                         z: mesh.position.z
                     };
+                    
+                    // CRITICAL FIX: Update Part instance position for A Board Is A Board 
+                    if (mesh.partInstance) {
+                        mesh.partInstance.setPosition(mesh.position.x, mesh.position.y, mesh.position.z);
+                        // console.log('✅ Updated Part instance position:', mesh.position.x, mesh.position.y, mesh.position.z);
+                    }
+                    
                     if (this.autosave) {
                         this.autosave();
                     }
@@ -11049,8 +11481,10 @@ class DrawingWorld {
             });
             
             this.rotationGizmoObserver = this.gizmoManager.gizmos.rotationGizmo.onDragEndObservable.add(() => {
+                // console.log('Rotation gizmo drag ended - saving to partData AND Part instance');
                 if (mesh.partData) {
                     mesh.partData.rotation = mesh.rotation.asArray();
+                    // console.log('Saved rotation to partData:', mesh.partData.rotation);
                     
                     // Also save to meshGeometry for compatibility with existing code
                     if (!mesh.partData.meshGeometry) {
@@ -11061,6 +11495,13 @@ class DrawingWorld {
                         y: mesh.rotation.y,
                         z: mesh.rotation.z
                     };
+                    
+                    // CRITICAL FIX: Update Part instance rotation for A Board Is A Board
+                    if (mesh.partInstance) {
+                        mesh.partInstance.setRotation(mesh.rotation.x, mesh.rotation.y, mesh.rotation.z);
+                        // console.log('✅ Updated Part instance rotation:', mesh.rotation.x, mesh.rotation.y, mesh.rotation.z);
+                    }
+                    
                     if (this.autosave) {
                         this.autosave();
                     }
@@ -11078,8 +11519,10 @@ class DrawingWorld {
             });
             
             this.scaleGizmoObserver = this.gizmoManager.gizmos.scaleGizmo.onDragEndObservable.add(() => {
+                // console.log('Scale gizmo drag ended - saving to partData');
                 if (mesh.partData) {
                     mesh.partData.scaling = mesh.scaling.asArray();
+                    // console.log('Saved scaling to partData:', mesh.partData.scaling);
                     if (this.autosave) {
                         this.autosave();
                     }
@@ -11127,6 +11570,7 @@ class DrawingWorld {
 
 
     updateTransformDisplay(pointerInfo) {
+        // console.log('updateTransformDisplay called - SHOWING DISPLAY');
         if (!this.transformDisplay || !this.gizmoManager.attachedMesh) return;
         
         const mesh = this.gizmoManager.attachedMesh;
@@ -11136,6 +11580,7 @@ class DrawingWorld {
         // Get cumulative tracking data
         const trackingData = this.cumulativeTransforms?.[boardId]?.[this.activeTool];
         if (!trackingData) {
+            // console.log('No tracking data for board/tool combo');
             return;
         }
         
@@ -11337,17 +11782,21 @@ class DrawingWorld {
             mesh.scaling = new BABYLON.Vector3(value, value, value);
         }
         
+        // console.log('Applied precision transform:', value);
     }
 
     rotatePart(degrees, axis) {
+        // console.log("🔧 rotatePart called:", degrees, axis);
+        // console.log("selectedPart:", this.selectedPart);
         if (!this.selectedPart) {
-            console.error("❌ No selectedPart!");
+            // console.error("❌ No selectedPart!");
             return;
         }
         
         const mesh = this.scene.meshes.find(m => m.partData === this.selectedPart);
         if (!mesh) return;
         
+        // console.log(`Rotating part ${degrees}° around ${axis} axis`);
         
         const radians = degrees * (Math.PI / 180);
         
@@ -11420,13 +11869,14 @@ class DrawingWorld {
 
     flipPart(axis) {
         if (!this.selectedPart) {
-            console.error("❌ No selectedPart!");
+            // console.error("❌ No selectedPart!");
             return;
         }
         
         const mesh = this.scene.meshes.find(m => m.partData === this.selectedPart);
         if (!mesh) return;
         
+        // console.log(`Flipping part along ${axis} axis`);
         
         switch(axis) {
             case 'X':
@@ -11461,13 +11911,14 @@ class DrawingWorld {
 
     flattenBoard() {
         if (!this.selectedPart) {
-            console.error("❌ No selectedPart!");
+            // console.error("❌ No selectedPart!");
             return;
         }
         
         const mesh = this.scene.meshes.find(m => m.partData === this.selectedPart);
         if (!mesh) return;
         
+        // console.log('Flattening board (3/4" on top/bottom)');
         
         // Reset rotation to lay flat
         mesh.rotation.x = 0;
@@ -11485,13 +11936,14 @@ class DrawingWorld {
 
     dropPart() {
         if (!this.selectedPart) {
-            console.error("❌ No selectedPart!");
+            // console.error("❌ No selectedPart!");
             return;
         }
         
         const mesh = this.scene.meshes.find(m => m.partData === this.selectedPart);
         if (!mesh) return;
         
+        // console.log('Dropping part to flat surface below');
         
         // Reset rotation to lay flat (like flattenBoard)
         mesh.rotation.x = 0;
@@ -11511,13 +11963,14 @@ class DrawingWorld {
 
     standOnEndEdge() {
         if (!this.selectedPart) {
-            console.error("❌ No selectedPart!");
+            // console.error("❌ No selectedPart!");
             return;
         }
         
         const mesh = this.scene.meshes.find(m => m.partData === this.selectedPart);
         if (!mesh) return;
         
+        // console.log('Standing board on end edge (3/4" as width)');
         
         // Rotate 90 degrees around X to stand on end edge
         mesh.rotation.x = Math.PI / 2;
@@ -11534,13 +11987,14 @@ class DrawingWorld {
 
     standOnSideEdge() {
         if (!this.selectedPart) {
-            console.error("❌ No selectedPart!");
+            // console.error("❌ No selectedPart!");
             return;
         }
         
         const mesh = this.scene.meshes.find(m => m.partData === this.selectedPart);
         if (!mesh) return;
         
+        // console.log('Standing board on side edge (3/4" as height)');
         
         // Rotate 90 degrees around Z to stand on side edge
         mesh.rotation.x = 0;
@@ -11600,6 +12054,7 @@ class DrawingWorld {
             }
         });
         
+        // console.log('Drag handle interaction enabled');
     }
 
     onDragStart(pointerInfo) {
@@ -11623,6 +12078,7 @@ class DrawingWorld {
             const handleInfo = pickedMesh.handleType === 'plane' ? 
                 `${pickedMesh.axes} plane (${pickedMesh.lockedAxis} locked)` : 
                 `${pickedMesh.axis} axis`;
+            // console.log(`Started dragging ${handleInfo} handle - Camera controls DISABLED`);
         } else if (pickedMesh && pickedMesh.partData && this.selectedPart) {
             // PREPARE for potential dragging but don't start yet
             // Only start dragging if mouse actually moves
@@ -11638,6 +12094,7 @@ class DrawingWorld {
             this.dragStartMouseX = pointerInfo.event.offsetX;
             this.dragStartMouseY = pointerInfo.event.offsetY;
             
+            // console.log('Part clicked - prepared for potential dragging');
         }
     }
 
@@ -11658,6 +12115,7 @@ class DrawingWorld {
                 // DISABLE camera controls during drag operations
                 this.camera.detachControl(this.canvas);
                 
+                // console.log('Started dragging part directly - Camera controls DISABLED');
             }
         }
         
@@ -11682,6 +12140,7 @@ class DrawingWorld {
         // Clear potential drag state if mouse was released without dragging
         if (this.potentialDragPart && !this.isDragging) {
             this.potentialDragPart = null;
+            // console.log('Selection completed - no drag occurred');
             return;
         }
         
@@ -11710,6 +12169,7 @@ class DrawingWorld {
             const handleInfo = this.dragHandle.handleType === 'plane' ? 
                 `${this.dragHandle.axes} plane` : 
                 `${this.dragHandle.axis} axis`;
+            // console.log(`Finished dragging ${handleInfo} handle - Camera controls RE-ENABLED`);
         } else if (this.draggedPart) {
             // Snap free drag to grid
             this.draggedPart.position = this.snapPosition(this.draggedPart.position);
@@ -11722,6 +12182,7 @@ class DrawingWorld {
                 this.createManipulationButtons(this.draggedPart);
             }
             
+            // console.log('Finished free dragging part - Camera controls RE-ENABLED');
         }
         
         this.isDragging = false;
@@ -11967,7 +12428,9 @@ class DrawingWorld {
         if (lowestY < 0) {
             const adjustment = Math.abs(lowestY) + 0.1; // Add small buffer
             mesh.position.y += adjustment;
+            // console.log(`AUTO-LIFTED part by ${adjustment.toFixed(2)} units to keep on bench surface`);
         } else {
+            // console.log(`Part already on bench surface (lowest Y: ${lowestY.toFixed(2)})`);
         }
     }
 
@@ -12187,7 +12650,7 @@ class DrawingWorld {
     showTransformConfirmationModal(mesh, transformData, type) {
         // Ensure we have axis tracking
         if (!this.currentDragAxis) {
-            console.warn('No axis tracked, defaulting to x');
+            // console.warn('No axis tracked, defaulting to x');
             this.currentDragAxis = 'x';
         }
         
@@ -12265,6 +12728,7 @@ class DrawingWorld {
                 if (e.key === 'Enter' || e.keyCode === 13) {
                     e.preventDefault();
                     e.stopPropagation();
+                    // console.log('Enter key pressed');
                     const confirmBtn = document.getElementById('transform-confirm');
                     if (confirmBtn) {
                         confirmBtn.click();
@@ -12278,8 +12742,10 @@ class DrawingWorld {
         
         // Handle confirm
         document.getElementById('transform-confirm').onclick = function() {
+            // console.log('Confirm button clicked');
             const inputValue = document.getElementById('transform-value').value;
             const newValue = parseFloat(inputValue);
+            // console.log('Parsed value:', newValue);
             
             try {
                 if (type === 'position') {
@@ -12306,17 +12772,19 @@ class DrawingWorld {
                     try {
                         self.removeGhostMesh();
                     } catch (e) {
-                        console.error('Ghost mesh error:', e);
+                        // console.error('Ghost mesh error:', e);
                     }
                 }
                 self.currentDragAxis = null;
                 
             } catch (error) {
-                console.error('Error in confirm handler:', error);
+                // console.error('Error in confirm handler:', error);
             }
             
             // Always remove modal
+            // console.log('About to remove modal');
             modal.parentNode.removeChild(modal);
+            // console.log('Modal removed');
         };
         
         // Handle cancel
@@ -12334,7 +12802,7 @@ class DrawingWorld {
                     self.removeGhostMesh();
                 }
             } catch (e) {
-                console.error('Error removing ghost mesh:', e);
+                // console.error('Error removing ghost mesh:', e);
             }
             self.currentDragAxis = null;
             modal.remove();
@@ -12372,15 +12840,28 @@ document.addEventListener('DOMContentLoaded', () => {
     window.world = drawingWorld;  // Expose world object
     
     window.debugGizmos = () => {
+        // console.log('=== GIZMO DEBUG ===');
+        // console.log('gizmoManager exists?', !!drawingWorld.gizmoManager);
         if (drawingWorld.gizmoManager) {
+            // console.log('attachedMesh:', drawingWorld.gizmoManager.attachedMesh?.name);
+            // console.log('positionGizmoEnabled:', drawingWorld.gizmoManager.positionGizmoEnabled);
+            // console.log('rotationGizmoEnabled:', drawingWorld.gizmoManager.rotationGizmoEnabled);
+            // console.log('scaleGizmoEnabled:', drawingWorld.gizmoManager.scaleGizmoEnabled);
+            // console.log('gizmos object:', drawingWorld.gizmoManager.gizmos);
+            // console.log('utilityLayer:', drawingWorld.gizmoManager.utilityLayer);
             if (drawingWorld.gizmoManager.gizmos.positionGizmo) {
                 const pg = drawingWorld.gizmoManager.gizmos.positionGizmo;
+                // console.log('Position gizmo root:', pg._rootMesh);
+                // console.log('Position gizmo visible?', pg._rootMesh?.isVisible);
+                // console.log('X arrow:', pg.xGizmo);
+                // console.log('X arrow enabled?', pg.xGizmo.isEnabled);
             }
         }
         return drawingWorld.gizmoManager;
     };
     
     window.createTestGizmo = () => {
+        // console.log('Creating test gizmo...');
         if (!drawingWorld.testGizmoManager) {
             drawingWorld.testGizmoManager = new BABYLON.GizmoManager(drawingWorld.scene);
         }
@@ -12391,6 +12872,7 @@ document.addEventListener('DOMContentLoaded', () => {
         drawingWorld.testGizmoManager.attachToMesh(testBox);
         drawingWorld.testGizmoManager.positionGizmoEnabled = true;
         
+        // console.log('Test gizmo created on testBox at (0, 10, 0)');
         return drawingWorld.testGizmoManager;
     };
     
@@ -12399,38 +12881,65 @@ document.addEventListener('DOMContentLoaded', () => {
             drawingWorld.gizmoManager.positionGizmoEnabled = true;
             drawingWorld.gizmoManager.rotationGizmoEnabled = false;
             drawingWorld.gizmoManager.scaleGizmoEnabled = false;
+            // console.log('Forced position gizmo ON');
         }
     };
     
     window.getSelectedMesh = () => {
         const mesh = drawingWorld.scene.meshes.find(m => m.partData === drawingWorld.selectedPart);
+        // console.log('Selected mesh:', mesh);
         return mesh;
     };
     
+    // console.log('🔧 GIZMO DEBUG FUNCTIONS LOADED:');
+    // console.log('   debugGizmos() - Show gizmo state');
+    // console.log('   createTestGizmo() - Create test box with gizmo');
+    // console.log('   showGizmo() - Force position gizmo on');
+    // console.log('   getSelectedMesh() - Get selected mesh');
+    // console.log('   world - Access DrawingWorld instance');
     window.inspectDirectGizmo = () => {
+        // console.log('=== GIZMO INSPECTION ===');
         
         if (this.gizmoUtilityLayer) {
+            // console.log('Utility Layer exists:', this.gizmoUtilityLayer);
+            // console.log('Utility Layer Scene:', this.gizmoUtilityLayer.utilityLayerScene);
+            // console.log('Utility Layer Camera:', this.gizmoUtilityLayer.utilityLayerScene.activeCamera);
         } else {
+            // console.log('No utility layer found!');
         }
         
         if (this.positionGizmo) {
+            // console.log('Position Gizmo:', this.positionGizmo);
+            // console.log('- Attached Mesh:', this.positionGizmo.attachedMesh?.name);
+            // console.log('- Scale Ratio:', this.positionGizmo.scaleRatio);
+            // console.log('- Gizmo Layer:', this.positionGizmo.gizmoLayer);
             
             if (this.positionGizmo.attachedMesh) {
                 const mesh = this.positionGizmo.attachedMesh;
+                // console.log('- Mesh Position:', mesh.position);
+                // console.log('- Mesh Bounding Box:', mesh.getBoundingInfo().boundingBox);
             }
         } else {
+            // console.log('No position gizmo found!');
         }
         
         if (this.rotationGizmo) {
+            // console.log('Rotation Gizmo:', this.rotationGizmo);
+            // console.log('- Attached Mesh:', this.rotationGizmo.attachedMesh?.name);
         }
         
         if (this.scaleGizmo) {
+            // console.log('Scale Gizmo:', this.scaleGizmo);
+            // console.log('- Attached Mesh:', this.scaleGizmo.attachedMesh?.name);
         }
         
+        // console.log('Active Tool:', this.activeTool);
+        // console.log('Selected Part:', this.selectedPart?.name);
     };
 
     window.syncUtilityCamera = () => {
         if (!drawingWorld.gizmoManager || !drawingWorld.gizmoManager.utilityLayer) {
+            // console.log('No utility layer');
             return;
         }
         
@@ -12438,6 +12947,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const utilCamera = utilityLayer.utilityLayerScene.activeCamera;
         const mainCamera = drawingWorld.camera;
         
+        // console.log('Syncing utility camera with main camera...');
         
         // Copy main camera properties to utility camera
         utilCamera.position = mainCamera.position.clone();
@@ -12450,6 +12960,9 @@ document.addEventListener('DOMContentLoaded', () => {
             utilCamera.radius = mainCamera.radius;
         }
         
+        // console.log('Utility camera synced!');
+        // console.log('New utility camera position:', utilCamera.position);
+        // console.log('New utility camera target:', utilCamera.target);
         
         return utilCamera;
     };
@@ -12472,26 +12985,40 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
             });
+            // console.log('Auto-sync enabled! Utility camera will follow main camera.');
         }
     };
 
     window.checkUtilityLayer = () => {
         if (!drawingWorld.gizmoManager) {
+            // console.log('No gizmo manager');
             return;
         }
         
         const utilityLayer = drawingWorld.gizmoManager.utilityLayer;
+        // console.log('=== UTILITY LAYER CHECK ===');
+        // console.log('Utility layer exists:', !!utilityLayer);
         
         if (utilityLayer) {
             const utilScene = utilityLayer.utilityLayerScene;
+            // console.log('Utility scene:', utilScene);
+            // console.log('Utility camera:', utilScene.activeCamera);
+            // console.log('Main camera:', drawingWorld.camera);
+            // console.log('Are cameras same?', utilScene.activeCamera === drawingWorld.camera);
             
             // Check camera positions
             if (utilScene.activeCamera) {
+                // console.log('Utility camera position:', utilScene.activeCamera.position);
+                // console.log('Utility camera target:', utilScene.activeCamera.target);
             }
+            // console.log('Main camera position:', drawingWorld.camera.position);
+            // console.log('Main camera target:', drawingWorld.camera.target);
             
             // List all meshes in utility layer
+            // console.log('Meshes in utility layer:', utilScene.meshes.length);
             utilScene.meshes.forEach((m, i) => {
                 if (i < 10) { // Just first 10
+                    // console.log('  -', m.name, 'visible:', m.isVisible, 'position:', m.position);
                 }
             });
         }
@@ -12502,11 +13029,28 @@ document.addEventListener('DOMContentLoaded', () => {
     window.diagnosePartMesh = () => {
         const mesh = drawingWorld.scene.meshes.find(m => m.partData === drawingWorld.selectedPart);
         if (!mesh) {
+            // console.log('No selected part');
             return;
         }
         
+        // console.log('=== MESH DIAGNOSIS ===');
+        // console.log('Mesh name:', mesh.name);
+        // console.log('Is pickable:', mesh.isPickable);
+        // console.log('Is visible:', mesh.isVisible);
+        // console.log('Visibility:', mesh.visibility);
+        // console.log('Rendering group:', mesh.renderingGroupId);
+        // console.log('Layer mask:', mesh.layerMask);
+        // console.log('Material:', mesh.material?.name);
+        // console.log('Has vertex data:', mesh.getTotalVertices() > 0);
+        // console.log('Bounding box:', mesh.getBoundingInfo());
+        // console.log('World matrix:', mesh.getWorldMatrix());
+        // console.log('Absolute position:', mesh.getAbsolutePosition());
+        // console.log('Is mesh enabled:', mesh.isEnabled());
+        // console.log('Parent:', mesh.parent);
+        // console.log('Children:', mesh.getChildren());
         
         // Try attaching gizmo directly
+        // console.log('=== ATTEMPTING DIRECT GIZMO ATTACHMENT ===');
         if (drawingWorld.directTestGizmo) {
             drawingWorld.directTestGizmo.dispose();
         }
@@ -12515,6 +13059,9 @@ document.addEventListener('DOMContentLoaded', () => {
         drawingWorld.directTestGizmo.positionGizmoEnabled = true;
         drawingWorld.directTestGizmo.gizmos.positionGizmo.scaleRatio = 5; // Make it big
         
+        // console.log('Direct gizmo attached');
+        // console.log('Gizmo attached to:', drawingWorld.directTestGizmo.attachedMesh?.name);
+        // console.log('Position gizmo enabled:', drawingWorld.directTestGizmo.positionGizmoEnabled);
         
         return mesh;
     };
@@ -12523,9 +13070,11 @@ document.addEventListener('DOMContentLoaded', () => {
         // Get selected part position
         const mesh = drawingWorld.scene.meshes.find(m => m.partData === drawingWorld.selectedPart);
         if (!mesh) {
+            // console.log('No selected part');
             return;
         }
         
+        // console.log('Creating test box at same position as part:', mesh.position);
         
         // Create test box at exact same position
         const testBox2 = BABYLON.MeshBuilder.CreateBox('testBox2', {size: 5}, drawingWorld.scene);
@@ -12540,18 +13089,23 @@ document.addEventListener('DOMContentLoaded', () => {
         drawingWorld.testGizmo2.attachToMesh(testBox2);
         drawingWorld.testGizmo2.positionGizmoEnabled = true;
         
+        // console.log('Test box created at:', testBox2.position);
+        // console.log('Can you see this gizmo?');
         
         return testBox2;
     };
 
     window.recreateGizmo = () => {
+        // console.log('Recreating gizmo from scratch...');
         
         // Get the selected mesh
         const mesh = drawingWorld.scene.meshes.find(m => m.partData === drawingWorld.selectedPart);
         if (!mesh) {
+            // console.log('No selected mesh found');
             return;
         }
         
+        // console.log('Found mesh:', mesh.name, 'at position:', mesh.position);
         
         // Kill any existing gizmo manager
         if (drawingWorld.gizmoManager) {
@@ -12573,6 +13127,9 @@ document.addEventListener('DOMContentLoaded', () => {
             drawingWorld.gizmoManager.gizmos.positionGizmo.scaleRatio = 3;
         }
         
+        // console.log('New gizmo created and attached to:', mesh.name);
+        // console.log('Gizmo manager:', drawingWorld.gizmoManager);
+        // console.log('Position gizmo:', drawingWorld.gizmoManager.gizmos.positionGizmo);
         
         return drawingWorld.gizmoManager;
     };
@@ -12584,17 +13141,21 @@ document.addEventListener('DOMContentLoaded', () => {
             // Make each arrow huge
             if (pg.xGizmo && pg.xGizmo.attachedMesh) {
                 pg.xGizmo.attachedMesh.scaling = new BABYLON.Vector3(10, 10, 10);
+                // console.log('X arrow scaled to 10x');
             }
             if (pg.yGizmo && pg.yGizmo.attachedMesh) {
                 pg.yGizmo.attachedMesh.scaling = new BABYLON.Vector3(10, 10, 10);
+                // console.log('Y arrow scaled to 10x');
             }
             if (pg.zGizmo && pg.zGizmo.attachedMesh) {
                 pg.zGizmo.attachedMesh.scaling = new BABYLON.Vector3(10, 10, 10);
+                // console.log('Z arrow scaled to 10x');
             }
             
             // Make root huge
             if (pg._rootMesh) {
                 pg._rootMesh.scaling = new BABYLON.Vector3(10, 10, 10);
+                // console.log('Root scaled to 10x');
             }
         }
     };
@@ -12615,6 +13176,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 pg._rootMesh.scaling = new BABYLON.Vector3(1, 1, 1);
             }
             
+            // console.log('Forced gizmo to normal size');
             return pg;
         }
         
@@ -12624,27 +13186,42 @@ document.addEventListener('DOMContentLoaded', () => {
             if (rg._rootMesh) {
                 rg._rootMesh.scaling = new BABYLON.Vector3(1, 1, 1);
             }
+            // console.log('Forced rotation gizmo to normal size');
             return rg;
         }
     };
 
     window.inspectGizmo = () => {
         if (!drawingWorld.gizmoManager || !drawingWorld.gizmoManager.gizmos.positionGizmo) {
+            // console.log('No position gizmo found');
             return;
         }
         
         const pg = drawingWorld.gizmoManager.gizmos.positionGizmo;
         const root = pg._rootMesh;
         
+        // console.log('=== GIZMO INSPECTION ===');
+        // console.log('Root mesh position:', root.position);
+        // console.log('Root mesh scaling:', root.scaling);
+        // console.log('Root mesh visibility:', root.visibility);
+        // console.log('Root mesh isVisible:', root.isVisible);
+        // console.log('Root mesh isEnabled:', root.isEnabled());
+        // console.log('Root mesh parent:', root.parent);
         
         // Check arrow positions
+        // console.log('X arrow position:', pg.xGizmo.attachedMesh?.position);
+        // console.log('Y arrow position:', pg.yGizmo.attachedMesh?.position);
+        // console.log('Z arrow position:', pg.zGizmo.attachedMesh?.position);
         
         // Check utility layer
         const utilityScene = drawingWorld.gizmoManager.utilityLayer.utilityLayerScene;
+        // console.log('Utility layer scene meshes:', utilityScene.meshes.length);
+        // console.log('Utility layer camera:', utilityScene.activeCamera);
         
         // Try to make it REALLY visible
         root.visibility = 1;
         root.scaling = new BABYLON.Vector3(1, 1, 1);
+        // console.log('Forced visibility and scale to 1');
         
         return pg;
     };
@@ -12655,40 +13232,58 @@ document.addEventListener('DOMContentLoaded', () => {
             drawingWorld.gizmoManager.gizmos.positionGizmo.scaleRatio = 1;
             drawingWorld.gizmoManager.gizmos.rotationGizmo.scaleRatio = 1;
             drawingWorld.gizmoManager.gizmos.scaleGizmo.scaleRatio = 1;
+            // console.log('Reset all gizmo scale ratios to 1');
         }
     };
 
     
     // Removed auto-spawning chamfered primitive
-// DEBUG FUNCTIONS FOR LOADED VS FRESH BOARD INVESTIGATION
 window.debugBoardComparison = function() {
+    // console.log('📊 Total workbench parts:', drawingWorld.workBenchParts.length);
     
     drawingWorld.workBenchParts.forEach((part, index) => {
-        if (part.cutHistory) console.log(`   ✂️ Cut History: `, part.cutHistory);
-        if (part.meshGeometry) console.log(`   🧊 Geometry: `, part.meshGeometry);
+        // console.log(`
+        // if (part.cutHistory) console.log(part.cutHistory);
+        // if (part.meshGeometry) console.log(part.meshGeometry);
     });
     
     const workbenchMeshes = drawingWorld.scene.meshes.filter(m => m.isWorkBenchPart);
+    // console.log(`
+🎭 MESH OBJECTS (${workbenchMeshes.length}):`);
     workbenchMeshes.forEach((mesh, index) => {
-        if (mesh.partData) console.log(`   🏷️ Part Data: `, mesh.partData);
+        // console.log(`
+🎭 MESH ${index}:`, mesh);
+        // console.log(`   🎨 Material: `, mesh.material);
+        // console.log(`   📍 Position: `, mesh.position);
+        // console.log(`   📐 Scaling: `, mesh.scaling);
     });
 };
 
 window.testLoadedBoardCutting = function() {
     const workbenchMeshes = drawingWorld.scene.meshes.filter(m => m.isWorkBenchPart);
     if (workbenchMeshes.length === 0) {
-        console.error('❌ No workbench parts found for cutting test');
+        // console.error('❌ No workbench parts found for cutting test');
         return;
     }
     
+    // console.log(`🎯 Found ${workbenchMeshes.length} workbench part(s) for cutting test`);
     workbenchMeshes.forEach((mesh, index) => {
+        // console.log(`
+🎯 TESTING MESH ${index} (ID: ${mesh.id})`);
+        // console.log('   🎨 Material:', mesh.material);
+        // console.log('   📊 Properties:', {
+            position: mesh.position,
+            scaling: mesh.scaling,
+            isWorkBenchPart: mesh.isWorkBenchPart
+        });
     });
     
+    // console.log('🚨 Ready for manual cutting test - select a cutting tool and try cutting the loaded board');
 };
 
 window.identifyBoardDifferences = function() {
     if (drawingWorld.workBenchParts.length < 2) {
-        console.error('❌ Need at least 2 boards to compare');
+        // console.error('❌ Need at least 2 boards to compare');
         return;
     }
     
@@ -12701,10 +13296,14 @@ window.identifyBoardDifferences = function() {
         const val1 = board1[prop];
         const val2 = board2[prop];
         const match = JSON.stringify(val1) === JSON.stringify(val2);
+        // console.log(`   ${match ? '✅' : '❌'} ${prop}: ${match ? 'MATCH' : 'DIFFERENT'}`);
         if (!match) {
+            // console.log(`      🔹 Board 1: `, val1);
+            // console.log(`      🔹 Board 2: `, val2);
         }
     });
     
+    // console.log('🎭 COMPARING MESH OBJECTS:');
     const meshes = drawingWorld.scene.meshes.filter(m => m.isWorkBenchPart);
     if (meshes.length >= 2) {
         const mesh1 = meshes[0];
@@ -12715,22 +13314,32 @@ window.identifyBoardDifferences = function() {
             const val1 = prop.includes('.') ? mesh1[prop.split('.')[0]][prop.split('.')[1]] : mesh1[prop];
             const val2 = prop.includes('.') ? mesh2[prop.split('.')[0]][prop.split('.')[1]] : mesh2[prop];
             const match = JSON.stringify(val1) === JSON.stringify(val2);
+            // console.log(`   ${match ? '✅' : '❌'} ${prop}: ${match ? 'MATCH' : 'DIFFERENT'}`);
             if (!match) {
+                // console.log(`      🔹 Mesh 1: `, val1);
+                // console.log(`      🔹 Mesh 2: `, val2);
             }
         });
     }
 };
 
+// console.log('🛠️ DEBUG FUNCTIONS LOADED:');
+// console.log('   debugBoardComparison() - Compare all boards');
+// console.log('   testLoadedBoardCutting() - Test cutting loaded boards');
+// console.log('   identifyBoardDifferences() - Find differences between boards');
 });
 // DIRECT GIZMO TEST
 window.testGizmoDirectly = () => {
+    // console.log('===== DIRECT GIZMO TEST =====');
     
     // Get the first workbench part mesh
     const mesh = drawingWorld.scene.meshes.find(m => m.isWorkBenchPart);
     if (!mesh) {
+        // console.log('No workbench part found to test with');
         return;
     }
     
+    // console.log('Testing with mesh:', mesh.name);
     
     // Create a brand new GizmoManager
     if (drawingWorld.testGM) {
@@ -12746,19 +13355,26 @@ window.testGizmoDirectly = () => {
     // THEN attach to mesh
     drawingWorld.testGM.attachToMesh(mesh);
     
+    // console.log('GizmoManager created and attached');
+    // console.log('Position gizmo enabled:', drawingWorld.testGM.positionGizmoEnabled);
+    // console.log('Attached mesh:', drawingWorld.testGM.attachedMesh?.name);
+    // console.log('Position gizmo object:', drawingWorld.testGM.gizmos.positionGizmo);
     
     return drawingWorld.testGM;
 };
 
 // TEST WITH MANUAL GIZMO CREATION
 window.testManualGizmo = () => {
+    // console.log('===== MANUAL GIZMO TEST =====');
     
     // Get the first workbench part mesh
     const mesh = drawingWorld.scene.meshes.find(m => m.isWorkBenchPart);
     if (!mesh) {
+        // console.log('No workbench part found to test with');
         return;
     }
     
+    // console.log('Testing with mesh:', mesh.name);
     
     // Dispose old gizmo if exists
     if (drawingWorld.manualGizmo) {
@@ -12774,23 +13390,30 @@ window.testManualGizmo = () => {
     drawingWorld.manualGizmo.updateGizmoRotationToMatchAttachedMesh = true;
     drawingWorld.manualGizmo.updateGizmoPositionToMatchAttachedMesh = true;
     
+    // console.log('Manual PositionGizmo created and attached');
+    // console.log('Gizmo:', drawingWorld.manualGizmo);
+    // console.log('Attached to:', mesh.name);
     
     return drawingWorld.manualGizmo;
 };
 
 // TEST GIZMO WITH UTILITY LAYER
 window.testGizmoWithLayer = () => {
+    // console.log('===== GIZMO WITH UTILITY LAYER TEST =====');
     
     // Get the first workbench part mesh
     const mesh = drawingWorld.scene.meshes.find(m => m.isWorkBenchPart);
     if (!mesh) {
+        // console.log('No workbench part found to test with');
         return;
     }
     
+    // console.log('Testing with mesh:', mesh.name);
     
     // Create utility layer if it doesn't exist
     if (!drawingWorld.utilityLayer) {
         drawingWorld.utilityLayer = new BABYLON.UtilityLayerRenderer(drawingWorld.scene);
+        // console.log('Created utility layer');
     }
     
     // Dispose old gizmo if exists
@@ -12807,9 +13430,16 @@ window.testGizmoWithLayer = () => {
     drawingWorld.testGizmoWL.updateGizmoRotationToMatchAttachedMesh = true;
     drawingWorld.testGizmoWL.updateGizmoPositionToMatchAttachedMesh = true;
     
+    // console.log('PositionGizmo with utility layer created');
+    // console.log('Gizmo:', drawingWorld.testGizmoWL);
+    // console.log('Utility layer:', drawingWorld.utilityLayer);
+    // console.log('Attached to:', mesh.name);
     
     // Also check visibility
+    // console.log('Gizmo root mesh:', drawingWorld.testGizmoWL._rootMesh);
     if (drawingWorld.testGizmoWL._rootMesh) {
+        // console.log('Root mesh visible:', drawingWorld.testGizmoWL._rootMesh.isVisible);
+        // console.log('Root mesh enabled:', drawingWorld.testGizmoWL._rootMesh.isEnabled());
     }
     
     return drawingWorld.testGizmoWL;
@@ -12817,9 +13447,11 @@ window.testGizmoWithLayer = () => {
 
 // WORKING GIZMO IMPLEMENTATION
 window.createWorkingGizmo = () => {
+    // console.log('===== CREATING WORKING GIZMO =====');
     
     const mesh = drawingWorld.scene.meshes.find(m => m.isWorkBenchPart);
     if (!mesh) {
+        // console.log('No workbench part found');
         return;
     }
     
@@ -12844,11 +13476,15 @@ window.createWorkingGizmo = () => {
     drawingWorld.workingGizmo.updateGizmoRotationToMatchAttachedMesh = true;
     drawingWorld.workingGizmo.updateGizmoPositionToMatchAttachedMesh = true;
     
+    // console.log('Created working gizmo');
+    // console.log('Attached to:', mesh.name);
+    // console.log('Position:', mesh.position);
     
     // Force visibility
     const gizmoMeshes = utilityLayer.utilityLayerScene.meshes;
     gizmoMeshes.forEach(m => {
         m.isVisible = true;
+        // console.log('Gizmo mesh:', m.name, 'visible:', m.isVisible);
     });
     
     return drawingWorld.workingGizmo;
@@ -12856,24 +13492,44 @@ window.createWorkingGizmo = () => {
 
 // DEBUG ROTATION GIZMO
 window.debugRotationGizmo = () => {
+    // console.log('===== ROTATION GIZMO DEBUG =====');
     
     if (!drawingWorld.gizmoManager) {
+        // console.log('No gizmoManager exists');
         return;
     }
     
+    // console.log('GizmoManager:', drawingWorld.gizmoManager);
+    // console.log('Rotation enabled:', drawingWorld.gizmoManager.rotationGizmoEnabled);
+    // console.log('Position enabled:', drawingWorld.gizmoManager.positionGizmoEnabled);
+    // console.log('Scale enabled:', drawingWorld.gizmoManager.scaleGizmoEnabled);
+    // console.log('Attached mesh:', drawingWorld.gizmoManager.attachedMesh?.name);
     
+    // console.log('Gizmos object:', drawingWorld.gizmoManager.gizmos);
+    // console.log('Rotation gizmo:', drawingWorld.gizmoManager.gizmos.rotationGizmo);
     
     if (drawingWorld.gizmoManager.gizmos.rotationGizmo) {
         const rg = drawingWorld.gizmoManager.gizmos.rotationGizmo;
+        // console.log('Rotation gizmo exists!');
+        // console.log('Attached mesh:', rg.attachedMesh?.name);
+        // console.log('Attached node:', rg.attachedNode?.name);
+        // console.log('Scale ratio:', rg.scaleRatio);
         
         // Check individual axis gizmos
+        // console.log('X gizmo:', rg.xGizmo);
+        // console.log('Y gizmo:', rg.yGizmo);
+        // console.log('Z gizmo:', rg.zGizmo);
         
         if (rg.xGizmo) {
+            // console.log('X gizmo isEnabled:', rg.xGizmo.isEnabled);
+            // console.log('X gizmo attachedMesh:', rg.xGizmo.attachedMesh?.name);
         }
     } else {
+        // console.log('No rotation gizmo created!');
     }
     
     // Try to manually create one
+    // console.log('\nAttempting manual rotation gizmo creation...');
     const mesh = drawingWorld.scene.meshes.find(m => m.isWorkBenchPart);
     if (mesh) {
         drawingWorld.gizmoManager.attachToMesh(null); // Detach first
@@ -12882,11 +13538,14 @@ window.debugRotationGizmo = () => {
         drawingWorld.gizmoManager.rotationGizmoEnabled = true;
         drawingWorld.gizmoManager.attachToMesh(mesh);
         
+        // console.log('After manual attempt:');
+        // console.log('Rotation gizmo:', drawingWorld.gizmoManager.gizmos.rotationGizmo);
     }
 };
 
 // DEBUG: Test transform display directly
 window.testTransformDisplay = () => {
+    // console.log('Testing transform display...');
     
     // Create display manually
     if (drawingWorld.transformDisplay) {
@@ -12906,27 +13565,36 @@ window.testTransformDisplay = () => {
     drawingWorld.transformDisplay.textContent = '12.5"';
     document.body.appendChild(drawingWorld.transformDisplay);
     
+    // console.log('Display created at 200,200 with text: 12.5"');
+    // console.log('Display element:', drawingWorld.transformDisplay);
 };
 
 // DEBUG: Check gizmo drag state
 window.checkGizmoDrag = () => {
     if (!drawingWorld.gizmoManager) {
+        // console.log('No gizmoManager');
         return;
     }
     
+    // console.log('Active tool:', drawingWorld.activeTool);
     
     if (drawingWorld.gizmoManager.gizmos.positionGizmo) {
+        // console.log('Position gizmo isDragging:', drawingWorld.gizmoManager.gizmos.positionGizmo.isDragging);
     }
     if (drawingWorld.gizmoManager.gizmos.rotationGizmo) {
+        // console.log('Rotation gizmo isDragging:', drawingWorld.gizmoManager.gizmos.rotationGizmo.isDragging);
     }
     if (drawingWorld.gizmoManager.gizmos.scaleGizmo) {
+        // console.log('Scale gizmo isDragging:', drawingWorld.gizmoManager.gizmos.scaleGizmo.isDragging);
     }
 };
 
 // DIRECT TEST: Force display to show
 window.forceShowDisplay = () => {
+    // console.log('Forcing display to show...');
     
     if (!drawingWorld.transformDisplay) {
+        // console.log('Creating display element...');
         drawingWorld.createTransformDisplay();
     }
     
@@ -12935,13 +13603,22 @@ window.forceShowDisplay = () => {
         drawingWorld.transformDisplay.style.display = 'block';
         drawingWorld.transformDisplay.style.left = (window.event ? window.event.clientX + 5 : 500) + 'px';
         drawingWorld.transformDisplay.style.top = (window.event ? window.event.clientY - 25 : 300) + 'px';
+        // console.log('Display should be visible at 500,300');
+        // console.log('Element:', drawingWorld.transformDisplay);
+        // console.log('Parent:', drawingWorld.transformDisplay.parentElement);
     } else {
-        console.log('Failed to create display!');
+        // console.log('Failed to create display!');
     }
 };
 
 // Check if observers are running
 window.checkObservers = () => {
+    // console.log('transformCheckObserver:', !!drawingWorld.transformCheckObserver);
+    // console.log('transformPointerUpObserver:', !!drawingWorld.transformPointerUpObserver);
+    // console.log('isDraggingGizmo:', drawingWorld.isDraggingGizmo);
+    // console.log('transformDisplay:', drawingWorld.transformDisplay);
+    // console.log('Active tool:', drawingWorld.activeTool);
+    // console.log('Attached mesh:', drawingWorld.gizmoManager?.attachedMesh?.name);
 };
 
 // Debug mouse position
@@ -12972,20 +13649,32 @@ window.debugMousePosition = () => {
     
     document.addEventListener('click', function nextPos() {
         index++;
+        // console.log('Switched to position:', positions[index % positions.length].label);
     });
     
+    // console.log('Move mouse to see display. Click to switch positions.');
 };
 
 
 // Add debug command to check board state
 window.debugBoards = function() {
+    // console.log('WorkBenchParts:', world.workBenchParts.length);
     world.workBenchParts.forEach(part => {
+        // console.log('Part:', part.id, 'has mesh:', !!part.mesh);
         if (part.mesh) {
+            // console.log('  - Mesh ID:', part.mesh.id);
+            // console.log('  - Pickable:', part.mesh.isPickable);
+            // console.log('  - isWorkBenchPart:', part.mesh.isWorkBenchPart);
+            // console.log('  - partData:', !!part.mesh.partData);
+            // console.log('  - Position:', part.mesh.position);
+            // console.log('  - In scene:', world.scene.meshes.includes(part.mesh));
         }
     });
     
+    // console.log('\nScene meshes with isWorkBenchPart:');
     world.scene.meshes.forEach(mesh => {
         if (mesh.isWorkBenchPart) {
+            // console.log('Mesh:', mesh.id, 'pickable:', mesh.isPickable);
         }
     });
 };

@@ -885,6 +885,13 @@ export class CutToolSystem {
         this.clearCutPreview();
         this.hideMeasurementDisplay();
         
+        // CRITICAL: Reset hover tracking
+        this.hoveredPart = null;
+        this.isMouseOverPart = false;
+        
+        // Clear any stored cut data
+        this.currentCutLine = null;
+        this.storedCutLine = null;
     }
     
     /**
@@ -965,8 +972,14 @@ export class CutToolSystem {
      */
         onMouseEnterPart(mesh, partData, pickInfo) {
         // Check if we're entering a different part or the same one
-        if (this.hoveredPart !== mesh) {
-            // Entering a new part - create fresh preview
+        // Compare by part ID instead of mesh reference since mesh can change after rotation
+        const currentPartId = partData ? partData.id : null;
+        const hoveredPartId = this.hoveredPart && this.hoveredPart.partInstance ? 
+                             this.hoveredPart.partInstance.id : 
+                             (this.hoveredPart ? this.hoveredPart.name : null);
+        
+        if (!this.hoveredPart || currentPartId !== hoveredPartId) {
+            // Entering a new part or mesh was recreated - create fresh preview
             this.hoveredPart = mesh;
             this.isMouseOverPart = true;
             this.createCutPreview(mesh, partData, pickInfo);

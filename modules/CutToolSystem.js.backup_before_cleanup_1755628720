@@ -553,7 +553,7 @@ export class CutToolSystem {
      */
     setupCutPreviewMaterial() {
         this.cutPreviewMaterial = new BABYLON.StandardMaterial("cutPreviewMaterial", this.scene);
-        this.cutPreviewMaterial.diffuseColor = new BABYLON.Color3(1, 0.1, 0.1); // Bright red
+        this.cutPreviewMaterial.diffuseColor = new BABYLON.Color3(0, 1, 0); // BRIGHT GREEN TEST
         this.cutPreviewMaterial.emissiveColor = new BABYLON.Color3(0.9, 0.0, 0.0); // Bright glowing red
         this.cutPreviewMaterial.backFaceCulling = false;
         this.cutPreviewMaterial.wireframe = false;
@@ -569,8 +569,13 @@ export class CutToolSystem {
      * Setup mouse tracking for cut preview
      */
     setupMouseTracking() {
+        console.log("Setting up mouse tracking for CutToolSystem");
         // Mouse move event for cut preview
         this.pointerObserver = this.scene.onPointerObservable.add((pointerInfo) => {
+            // Log every pointer move to verify observer is working
+            if (pointerInfo.type === BABYLON.PointerEventTypes.POINTERMOVE) {
+                console.log("Pointer move detected. cutPreviewActive:", this.cutPreviewActive);
+            }
             if (!this.cutPreviewActive) return;
             
             if (pointerInfo.type === BABYLON.PointerEventTypes.POINTERMOVE) {
@@ -865,8 +870,10 @@ export class CutToolSystem {
      * Activate cut tool with specified direction
      */
     activate(cutDirection) {
+        console.log("CutToolSystem.activate called with:", cutDirection);
         this.activeCutDirection = cutDirection; // 'rip' or 'cross'
         this.cutPreviewActive = true;
+        console.log("Cut tool activated. cutPreviewActive:", this.cutPreviewActive);
         
         
         // Animate camera to optimal cutting position
@@ -898,8 +905,10 @@ export class CutToolSystem {
         }
         
         if (!this.cutPreviewActive) {
+            console.log("Cut preview not active, skipping hover detection");
             return;
         }
+        console.log("Mouse move with cut preview active");
         
         // Get pick info
         const pickInfo = this.scene.pick(this.scene.pointerX, this.scene.pointerY);
@@ -921,6 +930,7 @@ export class CutToolSystem {
             const partData = this.getPartData(mesh);
             
             if (partData && this.isLumberPart(partData)) {
+                console.log("Hovering over lumber:", mesh.name);
                 this.onMouseEnterPart(mesh, partData, pickInfo);
             } else if (!this.hoveredPart) {
                 // Only call leave if we don'''t have a hovered part
@@ -980,6 +990,7 @@ export class CutToolSystem {
      * Handle mouse leaving a lumber part
      */
     onMouseLeavePart() {
+        console.log("onMouseLeavePart called. isMouseOverPart:", this.isMouseOverPart, "cutPreviewActive:", this.cutPreviewActive);
         if (this.isMouseOverPart) {
             this.isMouseOverPart = false;
             // Don't clear hoveredPart in cut mode - keep tracking the board
@@ -1009,15 +1020,19 @@ export class CutToolSystem {
         this.currentCutLine = cutLine;
         
         // Create visual cut line
+        console.log("Creating blade with dimensions:", {width: cutLine.width, height: cutLine.height, depth: cutLine.depth});
         this.cutPreviewLine = BABYLON.MeshBuilder.CreateBox("cutPreviewLine", {
             width: cutLine.width,
             height: cutLine.height, 
             depth: cutLine.depth
         }, this.scene);
+        console.log("Blade created:", this.cutPreviewLine ? "YES" : "NO");
         
         this.cutPreviewLine.parent = mesh;  // Parent blade to board
+        console.log("Blade parented to:", mesh.name);
         // Position is in local coordinates since blade is parented
         this.cutPreviewLine.position.copyFrom(cutLine.position);
+        console.log("Blade position set to:", this.cutPreviewLine.position);
         // No rotation needed - blade inherits parent's rotation automatically
         this.cutPreviewLine.material = this.cutPreviewMaterial;
         this.cutPreviewLine.isPickable = false;
@@ -1052,6 +1067,7 @@ export class CutToolSystem {
         // Update preview position
         // Since blade is parented to board, position is already in local coordinates
         this.cutPreviewLine.position.copyFrom(cutLine.position);
+        console.log("Setting blade LOCAL position to:", cutLine.position);
         // Don't modify Y after setting - it's already correct in local space
         this.cutPosition = cutLine.normalizedPosition;
         
@@ -1077,10 +1093,12 @@ export class CutToolSystem {
             meshCenter = new BABYLON.Vector3(part.position.x, part.position.y, part.position.z);
             meshBounds = mesh.getBoundingInfo();
             meshSize = meshBounds.maximum.subtract(meshBounds.minimum);
+            console.log('Using Part position for blade:', meshCenter);
         } else {
             meshBounds = mesh.getBoundingInfo();
             meshSize = meshBounds.maximum.subtract(meshBounds.minimum);
             meshCenter = mesh.position;
+            console.warn('Using mesh position (Part system not available)');
         }
         
         // Project mouse onto the mesh to get cut position
@@ -1141,7 +1159,12 @@ export class CutToolSystem {
             // Constrain to board bounds
             const localZ = Math.max(-boardWidth/2, Math.min(boardWidth/2, localHit.z));
             
-
+            console.log("Rip cut blade position:", {
+                localHit: {x: localHit.x, y: localHit.y, z: localHit.z},
+                localZ: localZ,
+                boardWidth: boardWidth,
+                boardRotation: mesh.rotation.y * 180/Math.PI
+            });
             
             // Position in LOCAL coordinates (blade is parented to board)
             // Board created with: length=X, thickness=Y, width=Z
@@ -1165,7 +1188,16 @@ export class CutToolSystem {
             // Constrain to board bounds
             const localX = Math.max(-boardLength/2, Math.min(boardLength/2, localHit.x));
             
-
+            // Debug the actual transformation
+            console.log("Cross cut debug:", {
+                worldHit: {x: hitPoint.x, y: hitPoint.y, z: hitPoint.z},
+                localHit: {x: localHit.x, y: localHit.y, z: localHit.z},
+                localX: localX,
+                boardPos: mesh.position,
+                boardRot: {x: mesh.rotation.x * 180/Math.PI, y: mesh.rotation.y * 180/Math.PI, z: mesh.rotation.z * 180/Math.PI},
+                boardLength: boardLength,
+                boardWidth: boardWidth
+            });
             
             // Position in LOCAL coordinates (blade is parented to board)
             // Board created with: length=X, thickness=Y, width=Z
@@ -2393,6 +2425,7 @@ export class CutToolSystem {
      * Clear cut preview visuals
      */
     clearCutPreview() {
+        console.log("clearCutPreview called! Stack trace:", new Error().stack);
         if (this.cutPreviewLine) {
             this.cutPreviewLine.dispose();
             this.cutPreviewLine = null;

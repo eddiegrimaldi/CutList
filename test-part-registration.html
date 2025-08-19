@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Part Registration Test</title>
+</head>
+<body>
+    <h1>Part Registration Test</h1>
+    <div id="result"></div>
+    
+    <script type="module">
+        import { Part } from './modules/Part.js';
+        
+        // Test if Part is available globally
+        const resultDiv = document.getElementById('result');
+        
+        if (window.Part) {
+            resultDiv.innerHTML += '<p style="color: green;">✓ window.Part is available</p>';
+            
+            if (window.Part === Part) {
+                resultDiv.innerHTML += '<p style="color: green;">✓ window.Part matches imported Part</p>';
+            } else {
+                resultDiv.innerHTML += '<p style="color: red;">✗ window.Part does not match imported Part</p>';
+            }
+        } else {
+            resultDiv.innerHTML += '<p style="color: red;">✗ window.Part is NOT available</p>';
+        }
+        
+        // Test Part.fromPlainObject
+        if (window.Part && window.Part.fromPlainObject) {
+            resultDiv.innerHTML += '<p style="color: green;">✓ Part.fromPlainObject method exists</p>';
+        } else {
+            resultDiv.innerHTML += '<p style="color: red;">✗ Part.fromPlainObject method NOT found</p>';
+        }
+    </script>
+</body>
+</html>

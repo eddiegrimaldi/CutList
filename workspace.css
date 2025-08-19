@@ -1548,3 +1548,117 @@ body {
     border-top: 1px solid #ecf0f1;
     background: #f8f9fa;
 }
+
+/* Dark Theme */
+body.dark-theme {
+    background-color: #1a1a1a;
+    color: #e0e0e0;
+}
+
+.dark-theme #main-canvas {
+    background: #0a0a0a;
+}
+
+.dark-theme .toolbar {
+    background-color: #2a2a2a;
+    border-color: #3a3a3a;
+}
+
+.dark-theme .tool-btn {
+    background-color: #3a3a3a;
+    color: #e0e0e0;
+    border-color: #4a4a4a;
+}
+
+.dark-theme .tool-btn:hover {
+    background-color: #4a4a4a;
+}
+
+.dark-theme .tool-btn.active {
+    background-color: #0066cc;
+}
+
+.dark-theme .panel {
+    background-color: #2a2a2a;
+    border-color: #3a3a3a;
+}
+
+.dark-theme .properties-panel,
+.dark-theme .project-explorer {
+    background-color: #2a2a2a;
+    border-color: #3a3a3a;
+}
+
+.dark-theme input,
+.dark-theme select,
+.dark-theme textarea {
+    background-color: #1a1a1a;
+    color: #e0e0e0;
+    border-color: #3a3a3a;
+}
+
+.dark-theme .modal-content {
+    background-color: #2a2a2a;
+    color: #e0e0e0;
+}
+
+.dark-theme .close {
+    color: #e0e0e0;
+}
+
+/* Theme Toggle Switch */
+.toggle-container {
+    display: inline-block;
+}
+
+.theme-checkbox {
+    display: none;
+}
+
+.theme-switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 24px;
+    background-color: #ccc;
+    border-radius: 24px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.theme-switch .slider {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 20px;
+    height: 20px;
+    background-color: white;
+    border-radius: 50%;
+    transition: transform 0.3s;
+}
+
+.theme-checkbox:checked + .theme-switch {
+    background-color: #27ae60;
+}
+
+.theme-checkbox:checked + .theme-switch .slider {
+    transform: translateX(26px);
+}
+
+/* Dark theme preferences modal adjustments */
+body.dark-theme .preferences-modal {
+    background-color: #2c3e50;
+    color: #ecf0f1;
+}
+
+body.dark-theme .preference-section h3 {
+    color: #3498db;
+}
+
+body.dark-theme .modal-header {
+    border-bottom-color: #34495e;
+}
+
+body.dark-theme .modal-footer {
+    border-top-color: #34495e;
+}

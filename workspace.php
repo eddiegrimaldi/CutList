@@ -1337,6 +1337,97 @@
         document.addEventListener('DOMContentLoaded', function() {
             NotificationSystem.init();
             SaveLoadSystem.init();
+            
+            // Dark Theme System
+            const ThemeSystem = {
+                init() {
+                    // Load saved theme preference
+                    const savedTheme = localStorage.getItem('theme') || 'light';
+                    if (savedTheme === 'dark') {
+                        document.body.classList.add('dark-theme');
+                        const themeToggle = document.getElementById('theme-toggle');
+                        if (themeToggle) themeToggle.checked = true;
+                    }
+                    
+                    this.setupEventListeners();
+                },
+                
+                setupEventListeners() {
+                    // Theme toggle in preferences
+                    const themeToggle = document.getElementById('theme-toggle');
+                    if (themeToggle) {
+                        themeToggle.addEventListener('change', (e) => {
+                            if (e.target.checked) {
+                                document.body.classList.add('dark-theme');
+                                localStorage.setItem('theme', 'dark');
+                            } else {
+                                document.body.classList.remove('dark-theme');
+                                localStorage.setItem('theme', 'light');
+                            }
+                        });
+                    }
+                    
+                    // Preferences button
+                    const prefsBtn = document.getElementById('preferences-btn');
+                    const prefsModal = document.getElementById('preferences-modal');
+                    const closePrefsBtn = document.getElementById('close-preferences-modal');
+                    
+                    if (prefsBtn && prefsModal) {
+                        prefsBtn.addEventListener('click', () => {
+                            prefsModal.style.display = 'flex';
+                        });
+                    }
+                    
+                    if (closePrefsBtn && prefsModal) {
+                        closePrefsBtn.addEventListener('click', () => {
+                            prefsModal.style.display = 'none';
+                        });
+                    }
+                    
+                    // Apply preferences button
+                    const applyBtn = document.getElementById('apply-preferences');
+                    if (applyBtn) {
+                        applyBtn.addEventListener('click', () => {
+                            prefsModal.style.display = 'none';
+                        });
+                    }
+                    
+                    // Reset preferences button
+                    const resetBtn = document.getElementById('reset-preferences');
+                    if (resetBtn) {
+                        resetBtn.addEventListener('click', () => {
+                            // Reset theme to light
+                            document.body.classList.remove('dark-theme');
+                            localStorage.setItem('theme', 'light');
+                            const themeToggle = document.getElementById('theme-toggle');
+                            if (themeToggle) themeToggle.checked = false;
+                            
+                            // Reset camera controls to defaults
+                            document.getElementById('pan-speed').value = 0.3;
+                            document.getElementById('rotate-speed').value = 0.003;
+                            document.getElementById('zoom-speed').value = 12;
+                            
+                            // Update displayed values
+                            document.getElementById('pan-speed-value').textContent = 0.3;
+                            document.getElementById('rotate-speed-value').textContent = 0.003;
+                            document.getElementById('zoom-speed-value').textContent = 12;
+                        });
+                    }
+                }
+            };
+            
+            ThemeSystem.init();
+            // Update slider values on change
+            const sliders = document.querySelectorAll('.slider-container input[type="range"]');
+            sliders.forEach(slider => {
+                slider.addEventListener('input', (e) => {
+                    const valueSpan = e.target.parentElement.querySelector('.slider-value');
+                    if (valueSpan) {
+                        valueSpan.textContent = e.target.value;
+                    }
+                });
+            });
+
             ContextMenuSystem.init();
             
             // Make systems globally available for DrawingWorld
@@ -1362,47 +1453,63 @@
                 <button id="close-preferences-modal" class="close-btn">&times;</button>
             </div>
             <div class="modal-body">
-                <div class="preferences-content">
-                    <div class="preference-section">
-                    <div class="preference-section">
+                <div class=preferences-content>
+                    <div class=preference-section>
                         <h3>Units</h3>
-                        <div class="preference-group">
-                            <label for="unit-system">Unit System</label>
-                            <select id="unit-system">
-                                <option value="imperial">Imperial (inches)</option>
-                                <option value="metric">Metric (centimeters)</option>
+                        <div class=preference-group>
+                            <label for=unit-system>Unit System</label>
+                            <select id=unit-system>
+                                <option value=imperial>Imperial (inches)</option>
+                                <option value=metric>Metric (centimeters)</option>
                             </select>
                         </div>
                     </div>
+                    <div class=preference-section>
                         <h3>Camera Controls</h3>
-                        <div class="preference-group">
-                            <label for="pan-speed">Pan Speed</label>
-                            <div class="slider-container">
-                                <input type="range" id="pan-speed" min="0.1" max="1.0" step="0.1" value="0.3">
-                                <span id="pan-speed-value" class="slider-value">0.3</span>
+                        <div class=preference-group>
+                            <label for=pan-speed>Pan Speed</label>
+                            <div class=slider-container>
+                                <input type=range id=pan-speed min=0.1 max=1.0 step=0.1 value=0.3>
+                                <span id=pan-speed-value class=slider-value>0.3</span>
                             </div>
                         </div>
-                        <div class="preference-group">
-                            <label for="rotate-speed">Rotate Speed</label>
-                            <div class="slider-container">
-                                <input type="range" id="rotate-speed" min="0.001" max="0.01" step="0.001" value="0.003">
-                                <span id="rotate-speed-value" class="slider-value">0.003</span>
+                        <div class=preference-group>
+                            <label for=rotate-speed>Rotate Speed</label>
+                            <div class=slider-container>
+                                <input type=range id=rotate-speed min=0.001 max=0.01 step=0.001 value=0.003>
+                                <span id=rotate-speed-value class=slider-value>0.003</span>
                             </div>
                         </div>
-                        <div class="preference-group">
-                            <label for="zoom-speed">Zoom Speed</label>
-                            <div class="slider-container">
-                                <input type="range" id="zoom-speed" min="5" max="30" step="1" value="12">
-                                <span id="zoom-speed-value" class="slider-value">12</span>
+                        <div class=preference-group>
+                            <label for=zoom-speed>Zoom Speed</label>
+                            <div class=slider-container>
+                                <input type=range id=zoom-speed min=5 max=30 step=1 value=12>
+                                <span id=zoom-speed-value class=slider-value>12</span>
                             </div>
                         </div>
                     </div>
+                    <div class=preference-section>
+                        <h3>Appearance</h3>
+                        <div class=preference-group>
+                            <label for=theme-toggle>Dark Theme</label>
+                            <div class=toggle-container>
+                                <input type=checkbox id=theme-toggle class=theme-checkbox>
+                                <label for=theme-toggle class=theme-switch>
+                                    <span class=slider></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 </div>
             </div>
             <div class="modal-footer">
                 <button id="reset-preferences" class="btn-secondary">Reset to Defaults</button>
                 <button id="apply-preferences" class="btn-primary">Apply Changes</button>
             </div>
+        </div>
+    </div>
+    
     <!-- QUICK TOOLS AND ALL ROUTER FUNCTIONS COMMENTED OUT - REMOVE FRUSTRATION SOURCE
     <div id="quick-tools" style="position: absolute; top: 100px; left: 10px; background: rgba(0,0,0,0.8); color: white; padding: 10px; border-radius: 5px; z-index: 1000; display: none;">
         <h4>Quick Tools (Router Functions Disabled)</h4>

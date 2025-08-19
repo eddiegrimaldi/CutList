@@ -553,7 +553,7 @@ export class CutToolSystem {
      */
     setupCutPreviewMaterial() {
         this.cutPreviewMaterial = new BABYLON.StandardMaterial("cutPreviewMaterial", this.scene);
-        this.cutPreviewMaterial.diffuseColor = new BABYLON.Color3(0, 1, 0); // BRIGHT GREEN TEST
+        this.cutPreviewMaterial.diffuseColor = new BABYLON.Color3(1, 0.1, 0.1); // Bright red
         this.cutPreviewMaterial.emissiveColor = new BABYLON.Color3(0.9, 0.0, 0.0); // Bright glowing red
         this.cutPreviewMaterial.backFaceCulling = false;
         this.cutPreviewMaterial.wireframe = false;
@@ -569,13 +569,8 @@ export class CutToolSystem {
      * Setup mouse tracking for cut preview
      */
     setupMouseTracking() {
-        console.log("Setting up mouse tracking for CutToolSystem");
         // Mouse move event for cut preview
         this.pointerObserver = this.scene.onPointerObservable.add((pointerInfo) => {
-            // Log every pointer move to verify observer is working
-            if (pointerInfo.type === BABYLON.PointerEventTypes.POINTERMOVE) {
-                console.log("Pointer move detected. cutPreviewActive:", this.cutPreviewActive);
-            }
             if (!this.cutPreviewActive) return;
             
             if (pointerInfo.type === BABYLON.PointerEventTypes.POINTERMOVE) {
@@ -870,10 +865,8 @@ export class CutToolSystem {
      * Activate cut tool with specified direction
      */
     activate(cutDirection) {
-        console.log("CutToolSystem.activate called with:", cutDirection);
         this.activeCutDirection = cutDirection; // 'rip' or 'cross'
         this.cutPreviewActive = true;
-        console.log("Cut tool activated. cutPreviewActive:", this.cutPreviewActive);
         
         
         // Animate camera to optimal cutting position
@@ -898,82 +891,45 @@ export class CutToolSystem {
      * Handle mouse movement for cut preview
      */
     onMouseMove(pointerInfo) {
+
         // Handle waste selection mode first
         if (this.wasteSelectionActive) {
             this.handleWasteSelectionHover(pointerInfo);
             return;
         }
         
-        if (!this.cutPreviewActive) {
-            console.log("Cut preview not active, skipping hover detection");
-            return;
-        }
-        console.log("Mouse move with cut preview active");
+        if (!this.cutPreviewActive) return;
         
-        // Get pick info
+        // If we have a hovered part from before, keep tracking it
+        // If we have a hovered part from before, keep tracking it        if (this.hoveredPart) {            const mesh = this.hoveredPart;            const partData = this.getPartData(mesh);                        // Create a ray from the camera through the mouse position            const ray = this.scene.createPickingRay(                this.scene.pointerX,                this.scene.pointerY,                BABYLON.Matrix.Identity(),                this.drawingWorld.camera            );                        // Get the board's world matrix to understand its orientation            const worldMatrix = mesh.getWorldMatrix();            const boardPos = mesh.getAbsolutePosition();                        // For cross-cuts, we want movement along the board's length (local Z)            // For rip-cuts, we want movement along the board's width (local X)            let planeNormal;                        if (this.activeCutDirection === 'cross') {                // Cross-cut: blade moves along length, so we need a plane perpendicular to width                // The plane should contain the length axis and be visible to the camera                planeNormal = BABYLON.Vector3.TransformNormal(                    new BABYLON.Vector3(1, 0, 0),  // Local X axis (width direction)                    worldMatrix                );            } else {                // Rip-cut: blade moves along width, so we need a plane perpendicular to length                planeNormal = BABYLON.Vector3.TransformNormal(                    new BABYLON.Vector3(0, 0, 1),  // Local Z axis (length direction)                    worldMatrix                );            }                        // Make sure the plane faces the camera (dot product with ray direction)            if (BABYLON.Vector3.Dot(planeNormal, ray.direction) > 0) {                planeNormal = planeNormal.scale(-1);            }                        // Create the plane at the board's position            const plane = BABYLON.Plane.FromPositionAndNormal(boardPos, planeNormal);                        // Find where the ray intersects the plane            const distance = ray.intersectsPlane(plane);            if (distance && distance > 0) {                const hitPoint = ray.origin.add(ray.direction.scale(distance));                                // Create a fake pickInfo with the calculated hit point                const fakePickInfo = {                    hit: true,                    pickedMesh: mesh,                    pickedPoint: hitPoint,                    distance: distance                };                                // Update blade position with the projected point                this.updateCutPosition(mesh, partData, fakePickInfo);            }            return;        }        }
+        
+        // Original picking logic for when not tracking a board
         const pickInfo = this.scene.pick(this.scene.pointerX, this.scene.pointerY);
+        this.lastMousePosition = { x: pointerInfo.event.offsetX, y: pointerInfo.event.offsetY };
         
         // Check if mouse is over a lumber part
         if (pickInfo.hit && pickInfo.pickedMesh) {
             const mesh = pickInfo.pickedMesh;
-            
-            // Ignore the blade itself
-            if (mesh === this.cutPreviewLine) {
-                // Continue tracking the current hovered part if we have one
-                if (this.hoveredPart) {
-                    const partData = this.getPartData(this.hoveredPart);
-                    this.updateCutPosition(this.hoveredPart, partData, pickInfo);
-                }
-                return;
-            }
-            
             const partData = this.getPartData(mesh);
-            
-            if (partData && this.isLumberPart(partData)) {
-                console.log("Hovering over lumber:", mesh.name);
-                this.onMouseEnterPart(mesh, partData, pickInfo);
-            } else if (!this.hoveredPart) {
-                // Only call leave if we don'''t have a hovered part
-                this.onMouseLeavePart();
+            console.log("Mouse over:", mesh.name, "Same as hovered?", mesh === this.hoveredPart);
+        
+        
+        if (partData && this.isLumberPart(partData)) {
+        
+        this.onMouseEnterPart(mesh, partData, pickInfo);
+            } else {
+        
+        this.onMouseLeavePart();
             }
         } else {
-            // When mouse is not over anything, keep tracking if we have a hovered part
-            if (this.hoveredPart && this.cutPreviewActive) {
-                // Project mouse ray onto the board plane to continue tracking
-                const ray = this.scene.createPickingRay(
-                    this.scene.pointerX, 
-                    this.scene.pointerY,
-                    BABYLON.Matrix.Identity(),
-                    this.scene.activeCamera
-                );
-                
-                // Create a plane at the board position
-                const boardPos = this.hoveredPart.getAbsolutePosition();
-                const boardNormal = new BABYLON.Vector3(0, 1, 0); // Horizontal plane
-                const plane = BABYLON.Plane.FromPositionAndNormal(boardPos, boardNormal);
-                
-                // Find where ray hits the plane
-                const distance = ray.intersectsPlane(plane);
-                if (distance) {
-                    const hitPoint = ray.origin.add(ray.direction.scale(distance));
-                    const fakePickInfo = {
-                        hit: true,
-                        pickedMesh: this.hoveredPart,
-                        pickedPoint: hitPoint
-                    };
-                    const partData = this.getPartData(this.hoveredPart);
-                    this.updateCutPosition(this.hoveredPart, partData, fakePickInfo);
-                }
-            } else {
-                this.onMouseLeavePart();
-            }
-        }
-    }
+            this.onMouseLeavePart();
     
+    }
+    }    
     /**
      * Handle mouse entering a lumber part
      */
-        onMouseEnterPart(mesh, partData, pickInfo) {
+    onMouseEnterPart(mesh, partData, pickInfo) {
         // Check if we're entering a different part or the same one
         if (this.hoveredPart !== mesh) {
             // Entering a new part - create fresh preview
@@ -990,7 +946,6 @@ export class CutToolSystem {
      * Handle mouse leaving a lumber part
      */
     onMouseLeavePart() {
-        console.log("onMouseLeavePart called. isMouseOverPart:", this.isMouseOverPart, "cutPreviewActive:", this.cutPreviewActive);
         if (this.isMouseOverPart) {
             this.isMouseOverPart = false;
             // Don't clear hoveredPart in cut mode - keep tracking the board
@@ -1020,24 +975,20 @@ export class CutToolSystem {
         this.currentCutLine = cutLine;
         
         // Create visual cut line
-        console.log("Creating blade with dimensions:", {width: cutLine.width, height: cutLine.height, depth: cutLine.depth});
         this.cutPreviewLine = BABYLON.MeshBuilder.CreateBox("cutPreviewLine", {
             width: cutLine.width,
             height: cutLine.height, 
             depth: cutLine.depth
         }, this.scene);
-        console.log("Blade created:", this.cutPreviewLine ? "YES" : "NO");
         
         this.cutPreviewLine.parent = mesh;  // Parent blade to board
-        console.log("Blade parented to:", mesh.name);
-        // Position is in local coordinates since blade is parented
-        this.cutPreviewLine.position.copyFrom(cutLine.position);
-        console.log("Blade position set to:", this.cutPreviewLine.position);
-        // No rotation needed - blade inherits parent's rotation automatically
+        this.cutPreviewLine.position = cutLine.position.clone();
+        this.cutPreviewLine.rotation = cutLine.rotation;
         this.cutPreviewLine.material = this.cutPreviewMaterial;
         this.cutPreviewLine.isPickable = false;
         
-        // Z-fighting offset is already included in calculateCutLine
+        // Slightly offset cut line above surface to avoid z-fighting
+        this.cutPreviewLine.position.y += 0.05;
         
         // Show and update real-time measurement display
         this.showMeasurementDisplay();
@@ -1066,10 +1017,9 @@ export class CutToolSystem {
         if (!cutLine) return;
         
         // Update preview position
-        // Since blade is parented to board, position is already in local coordinates
-        this.cutPreviewLine.position.copyFrom(cutLine.position);
-        console.log("Setting blade LOCAL position to:", cutLine.position);
-        // Don't modify Y after setting - it's already correct in local space
+        this.cutPreviewLine.position = cutLine.position.clone();
+        console.log("Setting blade position to:", cutLine.position);
+        this.cutPreviewLine.position.y += 0.05; // Keep offset to avoid z-fighting
         this.cutPosition = cutLine.normalizedPosition;
         
         // Update real-time measurements
@@ -1095,12 +1045,12 @@ export class CutToolSystem {
             meshCenter = new BABYLON.Vector3(part.position.x, part.position.y, part.position.z);
             meshBounds = mesh.getBoundingInfo();
             meshSize = meshBounds.maximum.subtract(meshBounds.minimum);
-            console.log('Using Part position for blade:', meshCenter);
+            console.log('Preview using Part position:', meshCenter);
         } else {
             meshBounds = mesh.getBoundingInfo();
             meshSize = meshBounds.maximum.subtract(meshBounds.minimum);
             meshCenter = mesh.position;
-            console.warn('Using mesh position (Part system not available)');
+            console.warn('Preview using mesh position (Part system not available)');
         }
         
         // Project mouse onto the mesh to get cut position
@@ -1110,7 +1060,7 @@ export class CutToolSystem {
         // Create completely fresh cut line object
         let cutLine = {
             position: meshCenter.clone(),
-            rotation: BABYLON.Vector3.Zero(), // No rotation needed - blade is parented to board
+            rotation: mesh.rotation.clone(),
             normalizedPosition: 0.5
         };
         
@@ -1122,97 +1072,100 @@ export class CutToolSystem {
         const widthInches = dimensions.width_inches;
         const thicknessInches = dimensions.thickness_inches;
         
+        
         // DETERMINE CUT DIRECTION BASED ON CURRENT BOARD DIMENSIONS
+        // Now that partData.dimensions are kept current, we can use them reliably
+        
         let cutDimension, cutAxis;
+        
+        // Get current mesh dimensions for axis mapping
+        const meshDimX = meshSize.x / 2.54;
+        const meshDimY = meshSize.y / 2.54;  
+        const meshDimZ = meshSize.z / 2.54;
         
         // Determine which physical dimension to cut based on tool selection
         if (this.activeCutDirection === 'rip') {
             // RIP CUT: Cut across the SHORTER dimension (width)
+            // This makes pieces shorter while maintaining the original width
             cutDimension = Math.min(lengthInches, widthInches);
-            cutAxis = 'x';  // Rip cuts use X axis
         } else {
             // CROSS CUT: Cut along the LONGER dimension (length)
+            // This makes pieces narrower while maintaining the original length
             cutDimension = Math.max(lengthInches, widthInches);
-            cutAxis = 'z';  // Cross cuts use Z axis
         }
         
-        // Transform the world hit point to the board's local space
-        // Since the blade is parented to the board, we need local coordinates
+        // For cross cuts, blade moves along the board's length        // Don't try to determine world axis - just use local coordinates        if (this.activeCutDirection === 'cross') {            cutAxis = 'z';  // Cross cuts always use Z axis        } else {            cutAxis = 'x';  // Rip cuts use X axis        }        // For rotated boards, don't try to match world axes - use local axes directly        if (this.activeCutDirection === 'cross') {            cutAxis = 'z';  // Cross cuts always move along local Z (length)        } else {            cutAxis = 'x';  // Rip cuts always move along local X (width)        }        }
+        
+        
+        // Get the object's local coordinate system
         const worldMatrix = mesh.getWorldMatrix();
-        const worldToLocal = worldMatrix.clone().invert();
+        const localToWorld = worldMatrix.clone();
+        const worldToLocal = localToWorld.clone().invert();
         
         // Transform hit point to local coordinates
-        const localHit = BABYLON.Vector3.TransformCoordinates(hitPoint, worldToLocal);
+        const localHitPoint = BABYLON.Vector3.TransformCoordinates(hitPoint, worldToLocal);
         
-        // Get board dimensions in cm
-        const boardWidth = widthInches * 2.54;
-        const boardThickness = thicknessInches * 2.54;
-        const boardLength = lengthInches * 2.54;
-        
-        // Create cut line based on cut type
-        if (cutAxis === 'x') {
-            // Rip cut - blade moves along the board's width
-            // Board created with width as Z-axis
-            cutLine.width = boardLength + 1;  // Blade spans the length (X axis)
+        // Create cut line perpendicular to cut axis (simplified - use hit point directly)
+        if (cutAxis === 'x') {            // Rip cut - blade moves along the board's width (local X axis)            const boardWidth = dimensions.width_inches * 2.54;            const boardThickness = dimensions.thickness_inches * 2.54;            const boardLength = dimensions.length_inches * 2.54;                        cutLine.width = 0.3;  // Thin blade            cutLine.height = boardThickness + 10;  // Blade height above board            cutLine.depth = boardLength + 1;  // Blade spans the length                        // Use LOCAL coordinates since blade is parented to board            const localX = Math.max(-boardWidth/2, Math.min(boardWidth/2, localHitPoint.x));                        // Position in LOCAL coordinates (blade is parented to board)            cutLine.position = new BABYLON.Vector3(                localX,  // Position along width (local X)                boardThickness/2 + 5,  // Above the board (local Y)                0  // Center on length (local Z)            );                        // Normalized position along the board (0 to 1)            cutLine.normalizedPosition = (localX + boardWidth/2) / boardWidth;                    if (cutAxis === 'x') {
+            cutLine.width = 0.3;
+            cutLine.height = meshSize.y + 1;
+            cutLine.depth = meshSize.z + 1;
+            
+            // Position blade at hit point but constrain to mesh bounds
+            const xPos = Math.max(meshCenter.x - meshSize.x/2, Math.min(meshCenter.x + meshSize.x/2, hitPoint.x));
+            cutLine.position = new BABYLON.Vector3(xPos, meshCenter.y, meshCenter.z);
+            cutLine.normalizedPosition = (xPos - (meshCenter.x - meshSize.x/2)) / meshSize.x;
+            
+        } else if (cutAxis === 'y') {
+            cutLine.width = meshSize.x + 1;
+            cutLine.height = 0.3;
+            cutLine.depth = meshSize.z + 1;
+            
+            // Position blade at hit point but constrain to mesh bounds
+            const yPos = Math.max(meshCenter.y - meshSize.y/2, Math.min(meshCenter.y + meshSize.y/2, hitPoint.y));
+            cutLine.position = new BABYLON.Vector3(meshCenter.x, yPos, meshCenter.z);
+            cutLine.normalizedPosition = (yPos - (meshCenter.y - meshSize.y/2)) / meshSize.y;
+            
+        } else { // z axis - Cross cut
+
+            // Cross cut - blade moves along the board's length (local Z axis)
+            const boardWidth = dimensions.width_inches * 2.54;
+            const boardThickness = dimensions.thickness_inches * 2.54;
+            const boardLength = dimensions.length_inches * 2.54;
+            
+            cutLine.width = boardWidth + 1;  // Blade spans the width
             cutLine.height = 5;  // Fixed blade height
             cutLine.depth = 0.3;  // Thin blade
             
-            // In local space, Z is along the board's width (not X!)
-            // Constrain to board bounds
-            const localZ = Math.max(-boardWidth/2, Math.min(boardWidth/2, localHit.z));
-            
-            console.log("Rip cut blade position:", {
-                localHit: {x: localHit.x, y: localHit.y, z: localHit.z},
-                localZ: localZ,
-                boardWidth: boardWidth,
-                boardRotation: mesh.rotation.y * 180/Math.PI
-            });
-            
-            // Position in LOCAL coordinates (blade is parented to board)
-            // Board created with: length=X, thickness=Y, width=Z
-            cutLine.position = new BABYLON.Vector3(
-                0,  // Center on length (local X)
-                boardThickness/2 + 5,  // Above the board (local Y)
-                localZ  // Position along width (local Z)
-            );
-            
-            // Normalized position along the board (0 to 1)
-            cutLine.normalizedPosition = (localZ + boardWidth/2) / boardWidth;
-            
-        } else { // z axis - Cross cut
-            // Cross cut - blade moves along the board's length
-            // CRITICAL: Board is created with length as X-axis, not Z!
-            cutLine.width = 0.3;  // Thin blade
-            cutLine.height = 5;  // Fixed blade height
-            cutLine.depth = boardWidth + 1;  // Blade spans the width (Z axis)
-            
-            // In local space, X is along the board's length (not Z!)
-            // Constrain to board bounds
-            const localX = Math.max(-boardLength/2, Math.min(boardLength/2, localHit.x));
-            
-            // Debug the actual transformation
-            console.log("Cross cut debug:", {
-                worldHit: {x: hitPoint.x, y: hitPoint.y, z: hitPoint.z},
-                localHit: {x: localHit.x, y: localHit.y, z: localHit.z},
-                localX: localX,
-                boardPos: mesh.position,
-                boardRot: {x: mesh.rotation.x * 180/Math.PI, y: mesh.rotation.y * 180/Math.PI, z: mesh.rotation.z * 180/Math.PI},
-                boardLength: boardLength,
-                boardWidth: boardWidth
-            });
+            // Use LOCAL coordinates since blade is parented to board
+            // Local Z ranges from -boardLength/2 to +boardLength/2
+            // Project mouse position onto board's length axis
+            // The hit point is on the surface, so we need to use X or Z of the world hit
+            // to determine position along the board's rotated length
+            // Get board's rotation to map mouse movement correctly
+            const boardRotation = mesh.rotation.y;
+            // Project mouse movement onto board's length axis
+            // For a rotated board, we need to transform the hit point
+            const relativeX = hitPoint.x - mesh.getAbsolutePosition().x;
+            const relativeZ = hitPoint.z - mesh.getAbsolutePosition().z;
+            // Rotate the relative position by negative board rotation to get local coords
+            const cos = Math.cos(-boardRotation);
+            const sin = Math.sin(-boardRotation);
+            const localPosZ = relativeX * sin + relativeZ * cos;
+            const localZ = Math.max(-boardLength/2, Math.min(boardLength/2, localPosZ));
+            console.log("Blade calc:", {localPosZ, localZ, boardLength, boardRotation: boardRotation * 180/Math.PI});
             
             // Position in LOCAL coordinates (blade is parented to board)
-            // Board created with: length=X, thickness=Y, width=Z
             cutLine.position = new BABYLON.Vector3(
-                localX,  // Position along length (local X)
+                0,  // Center on width (local X)
                 boardThickness/2 + 5,  // Above the board (local Y)
-                0  // Center on width (local Z)
+                localZ  // Position along length (local Z)
             );
+            // Debug removed
             
             // Normalized position along the board (0 to 1)
-            cutLine.normalizedPosition = (localX + boardLength/2) / boardLength;
+            cutLine.normalizedPosition = (localZ + boardLength/2) / boardLength;
         }
-        
         // Store cut info
         cutLine.cutAxis = cutAxis;
         cutLine.cutDimension = cutDimension;
@@ -2427,7 +2380,6 @@ export class CutToolSystem {
      * Clear cut preview visuals
      */
     clearCutPreview() {
-        console.log("clearCutPreview called! Stack trace:", new Error().stack);
         if (this.cutPreviewLine) {
             this.cutPreviewLine.dispose();
             this.cutPreviewLine = null;

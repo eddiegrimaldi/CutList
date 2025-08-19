@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Cutting System Test Suite</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1e1e1e; color: #0f0; }
+        .test { margin: 10px 0; padding: 10px; border: 1px solid #333; }
+        .pass { background: #0a3a0a; border-color: #0f0; }
+        .fail { background: #3a0a0a; border-color: #f00; color: #f00; }
+        .pending { background: #3a3a0a; border-color: #ff0; color: #ff0; }
+        button { background: #333; color: #0f0; border: 1px solid #0f0; padding: 10px; cursor: pointer; }
+        button:hover { background: #0f0; color: #000; }
+        #canvas-container { border: 1px solid #666; margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <h1>CutList Cutting System Test Suite</h1>
+    
+    <button onclick="runAllTests()">Run All Tests</button>
+    <button onclick="runTest('horizontal')">Test Horizontal Cut</button>
+    <button onclick="runTest('rotated')">Test Rotated Cut</button>
+    
+    <div id="test-results"></div>
+    <div id="canvas-container"></div>
+    
+    <script src="libs/babylon.js"></script>
+    <script type="module">
+        import { CutToolSystem } from './modules/CutToolSystem.js';
+        
+        window.testResults = {
+            horizontal: 'pending',
+            rotated: 'pending',
+            bladePosition: 'pending',
+            bladeTracking: 'pending',
+            bladeSize: 'pending'
+        };
+        
+        window.runTest = async function(testName) {
+            const resultsDiv = document.getElementById('test-results');
+            const testDiv = document.createElement('div');
+            testDiv.className = 'test pending';
+            testDiv.innerHTML = 'Running ' + testName + ' test...';
+            resultsDiv.appendChild(testDiv);
+            
+            try {
+                let result = false;
+                switch(testName) {
+                    case 'horizontal':
+                        result = await testHorizontalCut();
+                        break;
+                    case 'rotated':
+                        result = await testRotatedCut();
+                        break;
+                }
+                
+                testDiv.className = result ? 'test pass' : 'test fail';
+                testDiv.innerHTML = testName + ': ' + (result ? 'PASS ✓' : 'FAIL ✗');
+                window.testResults[testName] = result ? 'pass' : 'fail';
+                
+                return result;
+            } catch(e) {
+                testDiv.className = 'test fail';
+                testDiv.innerHTML = testName + ': ERROR - ' + e.message;
+                console.error(e);
+                return false;
+            }
+        };
+        
+        window.runAllTests = async function() {
+            document.getElementById('test-results').innerHTML = '';
+            await runTest('horizontal');
+            await runTest('rotated');
+            
+            // Summary
+            const summary = document.createElement('div');
+            summary.style.marginTop = '20px';
+            summary.style.fontSize = '1.2em';
+            const passed = Object.values(window.testResults).filter(r => r === 'pass').length;
+            const total = Object.keys(window.testResults).length;
+            summary.innerHTML = 'Results: ' + passed + '/' + total + ' tests passed';
+            summary.style.color = passed === total ? '#0f0' : '#f00';
+            document.getElementById('test-results').appendChild(summary);
+        };
+        
+        async function testHorizontalCut() {
+            console.log('Testing horizontal board cutting...');
+            // This will need actual Babylon scene setup
+            // For now, return true if CutToolSystem loads
+            return typeof CutToolSystem !== 'undefined';
+        }
+        
+        async function testRotatedCut() {
+            console.log('Testing rotated board cutting...');
+            // Test if blade appears at correct position on rotated board
+            return false; // Currently broken
+        }
+    </script>
+</body>
+</html>

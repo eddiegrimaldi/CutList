@@ -1043,8 +1043,7 @@ export class CutToolSystem {
         this.showMeasurementDisplay();
         this.updateMeasurementsFromCutLine(cutLine);
         
-        // Create colored preview pieces
-        this.createColoredPreviewPieces(mesh, cutLine);
+        // Preview boxes removed per user request
         
         // Store cut line for later use in execution
         this.storedCutLine = cutLine;
@@ -1075,8 +1074,7 @@ export class CutToolSystem {
         // Update real-time measurements
         this.updateMeasurementsFromCutLine(cutLine);
         
-        // Update colored preview pieces
-        this.createColoredPreviewPieces(mesh, cutLine);
+        // Preview boxes removed per user request
         
         // Store updated cut line
         this.storedCutLine = cutLine;
@@ -2437,8 +2435,7 @@ export class CutToolSystem {
         this.cutIndicators.forEach(indicator => indicator.dispose());
         this.cutIndicators = [];
         
-        // Clear colored preview pieces
-        this.clearColoredPreviewPieces();
+        // Preview boxes removed per user request
         
         // Hide measurement display
         this.hideMeasurementDisplay();

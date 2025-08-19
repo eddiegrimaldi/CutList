@@ -1748,12 +1748,12 @@ export class CutToolSystem {
         const piece1ThicknessCm = piece1Data.dimensions.thickness * 2.54;
         
         const mesh1 = this.drawingWorld.createWorkBenchMaterial(piece1Data);
-        if (!mesh1) {
-            console.error("Failed to create mesh1 for piece:", piece1Data);
-            return;
-        }
         // 🔍 BOARD INTEGRITY AUDIT for first cut piece
         this.drawingWorld.auditBoardIntegrity(mesh1, piece1Data, "CUT-PIECE-1");
+
+        if (!mesh1) {
+            return;
+        }
         // mesh1.position = originalPosition.clone(); // REMOVED - position already set by createWorkBenchMaterial
         mesh1.rotation = originalRotation.clone();
         
@@ -1781,26 +1781,22 @@ export class CutToolSystem {
         const piece1Center = originalStart + (piece1SizeCm / 2);
         const kerfOffsetCm = (this.kerfWidth / 2) * 2.54; // Half kerf width in cm for offset
         
-        // SIMPLE CORNER-BASED POSITIONING: Keep pieces in original footprint
-        // The cut happens at the blade position, pieces stay in place separated by kerf
-        const halfKerf = kerfWidth / 2;
-        
-        // Get the original board's bounds
+        // SIMPLE GEOMETRIC POSITIONING: Use cut line position directly
+        const actualCutPos = this.currentCutLine.position[cutAxis];
         const originalBounds = mesh.getBoundingInfo();
         const minPos = originalBounds.minimum;
         const maxPos = originalBounds.maximum;
         
-        if (cutAxis === 'z') {
-            // Cross cut - blade moves along Z (length), pieces split along X
-            // Blade position is in local coordinates, we need world position
-            const bladeLocalPos = this.currentCutLine.position.x; // Blade's X position in local space
-            const bladeWorldX = originalPosition.x + bladeLocalPos; // Convert to world
-            
-            // Piece 1 gets left side of cut
-            mesh1.position.x = (minPos.x + (bladeWorldX - halfKerf)) / 2;
+        if (cutAxis === 'x') {
+            // Piece 1: left side, piece 2: right side
+            const piece1Center = (minPos.x + actualCutPos) / 2;
+            const piece2Center = (actualCutPos + maxPos.x) / 2;
+            mesh1.position.x = piece1Center;
             mesh1.position.y = originalPosition.y;
             mesh1.position.z = originalPosition.z;
         } else if (cutAxis === 'y') {
+            const piece1Center = (minPos.y + actualCutPos) / 2;
+            const piece2Center = (actualCutPos + maxPos.y) / 2;
             mesh1.position.x = originalPosition.x;
             mesh1.position.y = piece1Center;
             mesh1.position.z = originalPosition.z;
@@ -1821,11 +1817,11 @@ export class CutToolSystem {
         
         const mesh2 = this.drawingWorld.createWorkBenchMaterial(piece2Data);
         if (!mesh2) {
-            console.error("Failed to create mesh2 for piece:", piece2Data);
-            return;
-        }
         // 🔍 BOARD INTEGRITY AUDIT for second cut piece
         this.drawingWorld.auditBoardIntegrity(mesh2, piece2Data, "CUT-PIECE-2");
+
+            return;
+        }
         // mesh2.position = originalPosition.clone(); // REMOVED - position already set by createWorkBenchMaterial
         mesh2.rotation = originalRotation.clone();
         
@@ -1842,27 +1838,14 @@ export class CutToolSystem {
         const piece2Start = originalStart + piece1SizeCm + kerfWidth;
         const piece2Center = piece2Start + (piece2SizeCm / 2);
         
-        // SIMPLE CORNER-BASED POSITIONING: Piece 2 stays in place too
-        if (cutAxis === 'z') {
-            // Cross cut - blade moves along Z, pieces split along X
-            // Piece 2 gets the right portion of the original board
-            const bladeLocalPos = this.currentCutLine.position.x;
-            const bladeWorldX = originalPosition.x + bladeLocalPos;
-            mesh2.position.x = ((bladeWorldX + halfKerf) + maxPos.x) / 2;
+        // SIMPLE GEOMETRIC POSITIONING: Piece 2 gets the other side
+        if (cutAxis === 'x') {
+            mesh2.position.x = piece2Center;  // Already calculated above
             mesh2.position.y = originalPosition.y;
             mesh2.position.z = originalPosition.z;
-        } else if (cutAxis === 'x') {
-            // Rip cut - blade moves along X, pieces split along Z
-            // Piece 2 gets the back portion of the original board
-            const bladeLocalPos = this.currentCutLine.position.z;
-            const bladeWorldZ = originalPosition.z + bladeLocalPos;
-            mesh2.position.x = originalPosition.x;
-            mesh2.position.y = originalPosition.y;
-            mesh2.position.z = ((bladeWorldZ + halfKerf) + maxPos.z) / 2;
         } else if (cutAxis === 'y') {
             mesh2.position.x = originalPosition.x;
-            const cutWorldY = this.currentCutLine.position.y;
-            mesh2.position.y = ((cutWorldY + halfKerf) + maxPos.y) / 2;
+            mesh2.position.y = piece2Center;  // Already calculated above
             mesh2.position.z = originalPosition.z;
         } else {
             mesh2.position.x = originalPosition.x;
@@ -1940,29 +1923,14 @@ export class CutToolSystem {
         // Find the selected object or first work bench part
         let targetMesh = this.drawingWorld.selectedPart;
         
-        // If selectedPart is a Part object, find its mesh by ID
+        // If selectedPart is a Part object, get its mesh
         if (targetMesh && targetMesh.constructor && targetMesh.constructor.name === "Part") {
-            const partId = targetMesh.id;
-            // Find the mesh with this part ID
-            targetMesh = this.scene.getMeshByName(partId);
-            if (!targetMesh) {
-                // Try to find by partInstance
-                targetMesh = this.scene.meshes.find(m => m.partInstance && m.partInstance.id === partId);
-            }
-        }
-        
-        // If it's just part data, find the mesh
-        if (targetMesh && !targetMesh.getBoundingInfo && targetMesh.id) {
-            const partId = targetMesh.id;
-            targetMesh = this.scene.getMeshByName(partId);
-            if (!targetMesh) {
-                targetMesh = this.scene.meshes.find(m => m.partInstance && m.partInstance.id === partId);
-            }
+            targetMesh = targetMesh.mesh;
         }
         
         if (!targetMesh) {
             // Find first work bench part
-            const workBenchParts = this.scene.meshes.filter(m => m.partInstance);
+        const workBenchParts = this.scene.meshes.filter(m => m.partInstance);
             if (workBenchParts.length > 0) {
                 targetMesh = workBenchParts[0];
             }

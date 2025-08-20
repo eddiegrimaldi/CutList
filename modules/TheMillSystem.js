@@ -427,6 +427,4 @@ class TheMillSystem {
 }
 
 // Export for use in drawing-world.js
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = TheMillSystem;
-}
+export { TheMillSystem };

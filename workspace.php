@@ -1051,8 +1051,9 @@
                 });
             },
             
-            showContextMenu(x, y, part) {
+            showContextMenu(x, y, part, mesh) {
                 this.selectedPart = part;
+                this.selectedMesh = mesh;
                 this.mousePosition = { x, y };
                 
                 // Show/hide appropriate menu items based on current bench
@@ -1286,10 +1287,21 @@
                 
                 console.log('Sending to The Mill:', this.selectedPart.materialName);
                 
-                // Get the selected part mesh
-                const partMesh = this.selectedPart.mesh || this.selectedPart;
+                // Get the actual Babylon mesh - try multiple sources
+                let partMesh = this.selectedMesh || this.selectedPart.mesh;
                 
-                // Open The Mill with the selected part
+                if (!partMesh) {
+                    // Try to find the mesh in the scene by part ID
+                    const scene = window.drawingWorld.scene;
+                    partMesh = scene.getMeshByName(this.selectedPart.id);
+                }
+                
+                if (!partMesh) {
+                    console.error('Could not find mesh for part:', this.selectedPart);
+                    return;
+                }
+                
+                // Open The Mill with the selected part mesh
                 if (window.drawingWorld.theMillSystem) {
                     window.drawingWorld.theMillSystem.openMill(partMesh, 'cut');
                 } else {

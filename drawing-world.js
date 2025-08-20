@@ -6224,7 +6224,7 @@ class DrawingWorld {
             
             // Show context menu using the workspace ContextMenuSystem
             if (window.ContextMenuSystem) {
-                window.ContextMenuSystem.showContextMenu(x, y, part);
+                window.ContextMenuSystem.showContextMenu(x, y, part, mesh);
             }
             
         }

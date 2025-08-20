@@ -230,8 +230,20 @@ class TheMillSystem {
         // Start in orthographic mode for top-down view
         this.millCamera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
         
-        // Attach camera controls
+        // Attach camera controls with custom mouse configuration
         this.millCamera.attachControl(this.millCanvas, true);
+        
+        // Configure mouse controls to match drawing world:
+        // Remove default controls first
+        this.millCamera.inputs.removeByType('ArcRotateCameraPointersInput');
+        
+        // Add back with custom configuration
+        const pointers = new BABYLON.ArcRotateCameraPointersInput();
+        pointers.buttons = [1, 2];  // Middle button (1) for pan, Right button (2) for rotate
+        pointers.angularSensibilityX = 1000;
+        pointers.angularSensibilityY = 1000;
+        pointers.panningSensibility = 100;
+        this.millCamera.inputs.add(pointers);
         
         // Force camera to update to ensure proper initial position
         this.millCamera.rebuildAnglesAndRadius();
@@ -351,18 +363,19 @@ class TheMillSystem {
     
     // Setup camera mode switching
     setupCameraControls() {
-        // Listen for right-click to switch to perspective (like main drawing world)
+        // Listen for pointer events
         this.millScene.onPointerObservable.add((pointerInfo) => {
+            // Handle right-click drag for camera rotation (which switches to perspective)
             if (pointerInfo.type === BABYLON.PointerEventTypes.POINTERDOWN && 
                 pointerInfo.event.button === 2) {
-                // Right-click switches to perspective mode
+                // Right-click switches to perspective mode for rotation
                 if (this.millCamera.mode === BABYLON.Camera.ORTHOGRAPHIC_CAMERA) {
                     this.millCamera.mode = BABYLON.Camera.PERSPECTIVE_CAMERA;
                     // Enable rotation gizmo in perspective
                     if (this.gizmoManager) {
                         this.gizmoManager.rotationGizmoEnabled = true;
                     }
-                    console.log('Switched to perspective mode for manipulation');
+                    console.log('Switched to perspective mode for camera rotation');
                 }
             }
         });

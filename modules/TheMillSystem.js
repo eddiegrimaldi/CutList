@@ -1,3 +1,5 @@
+import { ViewCube } from './ViewCube.js';
+
 // The Mill System - A 2D workspace for cutting operations
 // Simulates real workshop tools in an orthographic view
 
@@ -31,6 +33,9 @@ class TheMillSystem {
         
         // Transform gizmos for lumber
         this.gizmoManager = null;
+        
+        // ViewCube for navigation
+        this.viewCube = null;
     }
     
     // Open The Mill with a selected material
@@ -225,9 +230,13 @@ class TheMillSystem {
         // Start in orthographic mode for top-down view
         this.millCamera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
         
-        // Force camera to look straight down
-        this.millCamera.position = new BABYLON.Vector3(0, 100, 0.001);  // Slightly off-center to avoid gimbal lock
-        this.millCamera.setTarget(BABYLON.Vector3.Zero());
+        // Force camera to exact top-down position
+        this.millCamera.detachControl();
+        this.millCamera.position = new BABYLON.Vector3(0, 100, 0);
+        this.millCamera.setTarget(new BABYLON.Vector3(0, 0, 0));
+        this.millCamera.alpha = Math.PI * 1.5;
+        this.millCamera.beta = Math.PI * 0.0001;
+        this.millCamera.radius = 100;
         
         // Attach camera controls
         this.millCamera.attachControl(this.millCanvas, true);
@@ -329,6 +338,9 @@ class TheMillSystem {
         // Setup cutting line
         this.setupTurntableAndLaser();
         
+        // Add ViewCube for navigation
+        this.setupViewCube(millEngine);
+        
         // Start render loop
         millEngine.runRenderLoop(() => {
             this.millScene.render();
@@ -363,17 +375,57 @@ class TheMillSystem {
             if (e.key === 't' || e.key === 'T') {
                 // T for Top view - return to orthographic
                 this.millCamera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
-                // Force to top-down view
+                
+                // Detach and reattach controls to force update
+                this.millCamera.detachControl();
+                
+                // Set camera to exact top-down position
+                this.millCamera.position = new BABYLON.Vector3(0, 100, 0);
+                this.millCamera.setTarget(new BABYLON.Vector3(0, 0, 0));
+                
+                // For ArcRotateCamera, force the angles
                 this.millCamera.alpha = Math.PI * 1.5;
-                this.millCamera.beta = 0.001;
+                this.millCamera.beta = Math.PI * 0.0001;  // Very small angle from vertical
                 this.millCamera.radius = 100;
+                
+                // Reattach controls
+                this.millCamera.attachControl(this.millCanvas, true);
+                
                 // Hide rotation gizmo in ortho view
                 if (this.gizmoManager) {
                     this.gizmoManager.rotationGizmoEnabled = false;
                 }
-                console.log('Returned to top orthographic view');
+                
+                console.log('Forced to top orthographic view');
             }
         });
+    }
+    
+    // Setup ViewCube for navigation
+    setupViewCube(millEngine) {
+        // Create ViewCube container
+        const viewCubeContainer = document.createElement('div');
+        viewCubeContainer.id = 'mill-viewcube-container';
+        viewCubeContainer.style.position = 'absolute';
+        viewCubeContainer.style.top = '80px';
+        viewCubeContainer.style.right = '20px';
+        viewCubeContainer.style.width = '100px';
+        viewCubeContainer.style.height = '100px';
+        viewCubeContainer.style.zIndex = '100';
+        this.millUI.appendChild(viewCubeContainer);
+        
+        // Initialize ViewCube
+        this.viewCube = new ViewCube(
+            this.millScene,
+            this.millCamera,
+            viewCubeContainer,
+            {
+                size: 100,
+                backgroundColor: 'rgba(255, 255, 255, 0.1)'
+            }
+        );
+        
+        console.log('ViewCube added to The Mill');
     }
     
     // Setup transform gizmos for lumber manipulation

@@ -6182,10 +6182,21 @@ class DrawingWorld {
     }
     
     handleRightClickContextMenu(pointerInfo) {
-        // Prevent browser context menu
-        pointerInfo.event.preventDefault();
-        pointerInfo.event.stopPropagation();
+        // Prevent browser context menu with maximum force
+        if (pointerInfo.event) {
+            pointerInfo.event.preventDefault();
+            pointerInfo.event.stopPropagation();
+            pointerInfo.event.stopImmediatePropagation();
+        }
         
+        // Also prevent on the original DOM event if available
+        if (pointerInfo.event && pointerInfo.event.originalEvent) {
+            pointerInfo.event.originalEvent.preventDefault();
+            pointerInfo.event.originalEvent.stopPropagation();
+        }
+        
+        // Return false to stop any further processing
+                
         // Pick what's under the mouse
         const pickInfo = this.scene.pick(
             this.scene.pointerX, 

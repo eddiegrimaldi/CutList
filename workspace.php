@@ -1454,20 +1454,44 @@
                 });
             });
 
+            // Global context menu prevention for canvas area
+            window.addEventListener('contextmenu', function(e) {
+                // Always prevent on canvas
+                if (e.target && (e.target.id === 'renderCanvas' || e.target.tagName === 'CANVAS')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+                    return false;
+                }
+            }, true);
+            
             ContextMenuSystem.init();
             
             // Make systems globally available for DrawingWorld
             window.ContextMenuSystem = ContextMenuSystem;
             window.NotificationSystem = NotificationSystem;
             
-            // Prevent default browser context menu on canvas
+            // Prevent default browser context menu on canvas and document
             const canvas = document.getElementById('renderCanvas');
             if (canvas) {
                 canvas.addEventListener('contextmenu', function(e) {
                     e.preventDefault();
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
                     return false;
-                });
+                }, true);
             }
+            
+            // Also prevent on document level when over canvas
+            document.addEventListener('contextmenu', function(e) {
+                // Check if the event target is the canvas or a child of canvas container
+                if (e.target.id === 'renderCanvas' || e.target.closest('#renderCanvas')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+                    return false;
+                }
+            }, true);
         });
     </script>
     

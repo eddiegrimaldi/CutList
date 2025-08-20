@@ -215,8 +215,8 @@ class TheMillSystem {
         
         // Create arc rotate camera for proper manipulation
         this.millCamera = new BABYLON.ArcRotateCamera('millCamera',
-            0,             // Alpha - no rotation
-            0,             // Beta - exactly straight down (0 = looking straight down)
+            Math.PI * 1.5, // Alpha - rotation around Y (1.5 * PI for correct orientation)
+            0.001,         // Beta - nearly 0 for top-down view (0.001 to avoid gimbal lock)
             100,           // Radius - distance from target
             BABYLON.Vector3.Zero(),
             this.millScene
@@ -225,13 +225,17 @@ class TheMillSystem {
         // Start in orthographic mode for top-down view
         this.millCamera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
         
+        // Force camera to look straight down
+        this.millCamera.position = new BABYLON.Vector3(0, 100, 0.001);  // Slightly off-center to avoid gimbal lock
+        this.millCamera.setTarget(BABYLON.Vector3.Zero());
+        
         // Attach camera controls
         this.millCamera.attachControl(this.millCanvas, true);
         
         // Set camera limits similar to main drawing world
         this.millCamera.lowerRadiusLimit = 10;
         this.millCamera.upperRadiusLimit = 500;
-        this.millCamera.lowerBetaLimit = 0;  // Allow exactly straight down
+        this.millCamera.lowerBetaLimit = 0.001;  // Nearly straight down (avoid gimbal lock)
         this.millCamera.upperBetaLimit = Math.PI / 2 - 0.01;  // Not quite horizontal
         
         // Configure mouse controls
@@ -359,8 +363,10 @@ class TheMillSystem {
             if (e.key === 't' || e.key === 'T') {
                 // T for Top view - return to orthographic
                 this.millCamera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
-                this.millCamera.alpha = 0;
-                this.millCamera.beta = 0;  // Exactly straight down
+                // Force to top-down view
+                this.millCamera.alpha = Math.PI * 1.5;
+                this.millCamera.beta = 0.001;
+                this.millCamera.radius = 100;
                 // Hide rotation gizmo in ortho view
                 if (this.gizmoManager) {
                     this.gizmoManager.rotationGizmoEnabled = false;

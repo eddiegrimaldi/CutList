@@ -4,6 +4,7 @@ import { GridSystem } from './grid/GridSystem.js';
 import { Shape2D } from './modules/Shape2D.js?v=20250112001';
 import { CutToolSystem } from './modules/CutToolSystem.js';
 import { TheMillSystem } from './modules/TheMillSystem.js';
+import { ViewCube } from './modules/ViewCube.js';
 import { RouterBitSystem } from './modules/RouterBitSystem.js';
 import { ScrollCuttingSystem } from './modules/ScrollCuttingSystem.js';
 import { PlaneToolSystem } from './modules/PlaneToolSystem.js';

@@ -19,18 +19,15 @@ class TheMillSystem {
         this.millScene = null;
         this.millCamera = null;
         
-        // Turntable and laser elements
-        this.turntable = null;
-        this.laserLine = null;
+        // Cutting elements
+        this.cuttingLine = null;
         this.kerfWidth = 0.125 * 2.54; // 1/8 inch kerf in cm
-        this.bladeAngle = 0; // Angle of the blade in radians
+        this.cutDirection = null; // 'horizontal' or 'vertical'
         
-        // Turntable interaction
-        this.isDraggingTurntable = false;
-        this.dragStartAngle = 0;
-        
-        // Transform gizmos for lumber
-        this.gizmoManager = null;
+        // Mouse tracking
+        this.isDrawingCut = false;
+        this.cutStartPoint = null;
+        this.cutEndPoint = null;
     }
     
     // Open The Mill with a selected material
@@ -180,8 +177,7 @@ class TheMillSystem {
         instructions.style.flex = '1';
         instructions.style.color = '#666';
         const kerfInInches = (this.kerfWidth / 2.54).toFixed(3);
-        instructions.innerHTML = '<strong>Instructions:</strong> Click and drag the gray turntable to rotate the red laser cutting guide. ' +
-                                'Drag the lumber to position it. The laser will cut with a ' + kerfInInches + ' inch kerf.';
+        instructions.innerHTML = '<strong>Instructions:</strong> Click and drag to draw a cutting line. The material will be split along this line with a ' + kerfInInches + ' inch kerf.';
         toolbar.appendChild(instructions);
         
         // Add execute button
@@ -294,14 +290,11 @@ class TheMillSystem {
         
         console.log('Material created in Mill:', materialClone);
         
-        // Add transform gizmos for the lumber
-        this.setupGizmos(materialClone);
-        
         // Add grid for reference
         this.createGrid();
         
         // Setup cutting line
-        this.setupTurntableAndLaser();
+        this.setupCuttingLine();
         
         // Start render loop
         millEngine.runRenderLoop(() => {
@@ -312,26 +305,6 @@ class TheMillSystem {
         window.addEventListener('resize', () => {
             millEngine.resize();
         });
-    }
-    
-    // Setup transform gizmos for lumber manipulation
-    setupGizmos(mesh) {
-        // Create gizmo manager if not exists
-        if (!this.gizmoManager) {
-            this.gizmoManager = new BABYLON.GizmoManager(this.millScene);
-            this.gizmoManager.positionGizmoEnabled = true;
-            this.gizmoManager.rotationGizmoEnabled = false; // Disable rotation for 2D view
-            this.gizmoManager.scaleGizmoEnabled = false;
-            this.gizmoManager.boundingBoxGizmoEnabled = false;
-            
-            // Customize gizmo appearance
-            this.gizmoManager.gizmos.positionGizmo.xGizmo.dragBehavior.dragDeltaRatio = 1;
-            this.gizmoManager.gizmos.positionGizmo.yGizmo.isVisible = false; // Hide Y axis in top view
-            this.gizmoManager.gizmos.positionGizmo.zGizmo.dragBehavior.dragDeltaRatio = 1;
-        }
-        
-        // Attach gizmos to the lumber mesh
-        this.gizmoManager.attachToMesh(mesh);
     }
     
     // Create reference grid
@@ -362,58 +335,16 @@ class TheMillSystem {
         gridMesh.position.y = -0.1; // Slightly below material
     }
     
-    // Setup turntable and laser visualization
-    setupTurntableAndLaser() {
-        // Create turntable circle (radius = 30cm)
-        const turntableRadius = 30;
-        this.turntable = BABYLON.MeshBuilder.CreateDisc('turntable', {
-            radius: turntableRadius,
-            tessellation: 64
-        }, this.millScene);
-        
-        this.turntable.position.y = 0.01; // Slightly above grid
-        this.turntable.rotation.x = Math.PI / 2; // Lay flat
-        
-        // Create turntable material
-        const turntableMat = new BABYLON.StandardMaterial('turntableMat', this.millScene);
-        turntableMat.diffuseColor = new BABYLON.Color3(0.3, 0.3, 0.3);
-        turntableMat.alpha = 0.5;
-        this.turntable.material = turntableMat;
-        
-        // Create laser line - bright red, extends across entire table
-        const tableSize = 200; // Match grid size
-        this.laserLine = BABYLON.MeshBuilder.CreateLines('laserLine', {
-            points: [
-                new BABYLON.Vector3(-tableSize/2, 0.1, 0),
-                new BABYLON.Vector3(tableSize/2, 0.1, 0)
-            ],
+    // Setup cutting line visualization
+    setupCuttingLine() {
+        // Create cutting line mesh (initially hidden)
+        this.cuttingLine = BABYLON.MeshBuilder.CreateLines('cuttingLine', {
+            points: [BABYLON.Vector3.Zero(), BABYLON.Vector3.Zero()],
             updatable: true
         }, this.millScene);
         
-        // Bright red laser appearance
-        this.laserLine.color = new BABYLON.Color3(1, 0, 0);
-        this.laserLine.alpha = 1;
-        
-        // Make laser line thicker by using a tube instead
-        const laserPath = [
-            new BABYLON.Vector3(-tableSize/2, 0.1, 0),
-            new BABYLON.Vector3(tableSize/2, 0.1, 0)
-        ];
-        
-        const laserTube = BABYLON.MeshBuilder.CreateTube('laserTube', {
-            path: laserPath,
-            radius: 0.2, // 2mm thick laser
-            tessellation: 8,
-            updatable: true
-        }, this.millScene);
-        
-        const laserMat = new BABYLON.StandardMaterial('laserMat', this.millScene);
-        laserMat.emissiveColor = new BABYLON.Color3(1, 0, 0);
-        laserMat.diffuseColor = new BABYLON.Color3(1, 0, 0);
-        laserTube.material = laserMat;
-        
-        // Store reference for rotation
-        this.laserTube = laserTube;
+        this.cuttingLine.color = new BABYLON.Color3(1, 0, 0);
+        this.cuttingLine.isVisible = false;
     }
     
     // Setup event listeners for cutting
@@ -423,75 +354,77 @@ class TheMillSystem {
         this.millCanvas.addEventListener('mouseup', (e) => this.onMouseUp(e));
     }
     
-    // Mouse down - check if clicking on turntable
+    // Mouse down - start drawing cut line
     onMouseDown(e) {
         const pickResult = this.millScene.pick(e.clientX, e.clientY);
         
-        if (pickResult.hit && pickResult.pickedMesh.name === 'turntable') {
-            this.isDraggingTurntable = true;
+        if (pickResult.hit && pickResult.pickedMesh.name === 'millMaterial') {
+            this.isDrawingCut = true;
+            this.cutStartPoint = pickResult.pickedPoint.clone();
+            this.cutStartPoint.y = 0; // Keep on XZ plane
             
-            // Calculate starting angle from click position
-            const clickPoint = pickResult.pickedPoint;
-            this.dragStartAngle = Math.atan2(clickPoint.z, clickPoint.x);
-            
-            console.log('Started dragging turntable');
+            // Show cutting line
+            this.cuttingLine.isVisible = true;
         }
     }
     
-    // Mouse move - rotate turntable and laser if dragging
+    // Mouse move - update cut line
     onMouseMove(e) {
-        if (!this.isDraggingTurntable) return;
+        if (!this.isDrawingCut) return;
         
         const pickResult = this.millScene.pick(e.clientX, e.clientY);
         
         if (pickResult.hit) {
-            const currentPoint = pickResult.pickedPoint;
-            const currentAngle = Math.atan2(currentPoint.z, currentPoint.x);
+            this.cutEndPoint = pickResult.pickedPoint.clone();
+            this.cutEndPoint.y = 0; // Keep on XZ plane
             
-            // Calculate angle difference
-            const angleDiff = currentAngle - this.dragStartAngle;
-            this.bladeAngle += angleDiff;
+            // Update cutting line
+            this.cuttingLine = BABYLON.MeshBuilder.CreateLines('cuttingLine', {
+                points: [this.cutStartPoint, this.cutEndPoint],
+                instance: this.cuttingLine
+            }, this.millScene);
             
-            // Rotate the laser line
-            if (this.laserTube) {
-                this.laserTube.rotation.y = this.bladeAngle;
-            }
-            if (this.laserLine) {
-                this.laserLine.rotation.y = this.bladeAngle;
-            }
-            
-            // Update start angle for next frame
-            this.dragStartAngle = currentAngle;
-            
-            // Show angle in degrees for user feedback
-            const degrees = (this.bladeAngle * 180 / Math.PI) % 360;
-            console.log('Blade angle:', degrees.toFixed(1) + '°');
+            this.cuttingLine.color = new BABYLON.Color3(1, 0, 0);
         }
     }
     
-    // Mouse up - stop dragging turntable
+    // Mouse up - finish drawing cut line
     onMouseUp(e) {
-        if (this.isDraggingTurntable) {
-            this.isDraggingTurntable = false;
-            console.log('Stopped dragging turntable');
+        if (!this.isDrawingCut) return;
+        
+        this.isDrawingCut = false;
+        
+        // Determine cut direction
+        if (this.cutStartPoint && this.cutEndPoint) {
+            const deltaX = Math.abs(this.cutEndPoint.x - this.cutStartPoint.x);
+            const deltaZ = Math.abs(this.cutEndPoint.z - this.cutStartPoint.z);
+            
+            if (deltaX > deltaZ) {
+                this.cutDirection = 'horizontal';
+            } else {
+                this.cutDirection = 'vertical';
+            }
+            
+            console.log('Cut line drawn:', this.cutDirection);
         }
     }
     
     // Execute the cut
     executeCut() {
-        console.log('Executing cut in The Mill with blade angle:', this.bladeAngle);
-        
-        // Get the lumber position
-        const lumberMesh = this.millScene.getMeshByName('millMaterial');
-        if (!lumberMesh) {
-            alert('No material to cut');
+        if (!this.cutStartPoint || !this.cutEndPoint) {
+            alert('Please draw a cutting line first');
             return;
         }
         
-        // Calculate cut based on laser line intersection with lumber
+        console.log('Executing cut in The Mill');
+        
+        // Calculate cut position (middle of the line)
+        const cutPosition = BABYLON.Vector3.Center(this.cutStartPoint, this.cutEndPoint);
+        
+        // Return to 3D view with cut information
         const cutData = {
-            position: lumberMesh.position.clone(),
-            angle: this.bladeAngle,
+            position: cutPosition,
+            direction: this.cutDirection,
             kerf: this.kerfWidth
         };
         

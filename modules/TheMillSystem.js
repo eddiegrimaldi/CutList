@@ -180,8 +180,8 @@ class TheMillSystem {
         instructions.style.flex = '1';
         instructions.style.color = '#666';
         const kerfInInches = (this.kerfWidth / 2.54).toFixed(3);
-        instructions.innerHTML = '<strong>Instructions:</strong> Click and drag the gray turntable to rotate the red laser cutting guide. ' +
-                                'Drag the lumber to position it. The laser will cut with a ' + kerfInInches + ' inch kerf.';
+        instructions.innerHTML = '<strong>Instructions:</strong> Right-click to enter perspective mode for manipulation. Press T to return to top view. ' +
+                                'Drag turntable to rotate laser. Position lumber under laser. Kerf: ' + kerfInInches + ' inch.';
         toolbar.appendChild(instructions);
         
         // Add execute button
@@ -213,17 +213,33 @@ class TheMillSystem {
         this.millScene = new BABYLON.Scene(millEngine);
         this.millScene.clearColor = new BABYLON.Color3(0.98, 0.98, 0.98);
         
-        // Create orthographic camera - directly overhead
-        this.millCamera = new BABYLON.UniversalCamera('millCamera', 
-            new BABYLON.Vector3(0, 100, 0), this.millScene);
+        // Create arc rotate camera for proper manipulation
+        this.millCamera = new BABYLON.ArcRotateCamera('millCamera',
+            -Math.PI / 2,  // Alpha - rotate around Y axis
+            0.01,          // Beta - angle from vertical (nearly straight down)
+            100,           // Radius - distance from target
+            BABYLON.Vector3.Zero(),
+            this.millScene
+        );
+        
+        // Start in orthographic mode for top-down view
         this.millCamera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
-        this.millCamera.setTarget(new BABYLON.Vector3(0, 0, 0));
         
-        // Lock camera to prevent any rotation - pure top-down view
-        this.millCamera.inputs.clear();  // Remove all camera controls
+        // Attach camera controls
+        this.millCamera.attachControl(this.millCanvas, true);
         
-        // Set up vector for proper top-down orientation
-        this.millCamera.upVector = new BABYLON.Vector3(0, 0, -1);  // Z-axis points up in screen
+        // Set camera limits similar to main drawing world
+        this.millCamera.lowerRadiusLimit = 10;
+        this.millCamera.upperRadiusLimit = 500;
+        this.millCamera.lowerBetaLimit = 0.01;  // Almost straight down
+        this.millCamera.upperBetaLimit = Math.PI / 2 - 0.01;  // Not quite horizontal
+        
+        // Configure mouse controls
+        this.millCamera.wheelPrecision = 50;
+        this.millCamera.pinchPrecision = 50;
+        
+        // Allow switching between ortho and perspective
+        this.setupCameraControls();
         
         // Set orthographic size based on material
         const bounds = this.currentMaterial.getBoundingInfo().boundingBox;
@@ -320,13 +336,47 @@ class TheMillSystem {
         });
     }
     
+    // Setup camera mode switching
+    setupCameraControls() {
+        // Listen for right-click to switch to perspective (like main drawing world)
+        this.millScene.onPointerObservable.add((pointerInfo) => {
+            if (pointerInfo.type === BABYLON.PointerEventTypes.POINTERDOWN && 
+                pointerInfo.event.button === 2) {
+                // Right-click switches to perspective mode
+                if (this.millCamera.mode === BABYLON.Camera.ORTHOGRAPHIC_CAMERA) {
+                    this.millCamera.mode = BABYLON.Camera.PERSPECTIVE_CAMERA;
+                    // Enable rotation gizmo in perspective
+                    if (this.gizmoManager) {
+                        this.gizmoManager.rotationGizmoEnabled = true;
+                    }
+                    console.log('Switched to perspective mode for manipulation');
+                }
+            }
+        });
+        
+        // Add keyboard shortcut to return to ortho top view
+        this.millCanvas.addEventListener('keydown', (e) => {
+            if (e.key === 't' || e.key === 'T') {
+                // T for Top view - return to orthographic
+                this.millCamera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
+                this.millCamera.alpha = -Math.PI / 2;
+                this.millCamera.beta = 0.01;
+                // Hide rotation gizmo in ortho view
+                if (this.gizmoManager) {
+                    this.gizmoManager.rotationGizmoEnabled = false;
+                }
+                console.log('Returned to top orthographic view');
+            }
+        });
+    }
+    
     // Setup transform gizmos for lumber manipulation
     setupGizmos(mesh) {
         // Create gizmo manager if not exists
         if (!this.gizmoManager) {
             this.gizmoManager = new BABYLON.GizmoManager(this.millScene);
             this.gizmoManager.positionGizmoEnabled = true;
-            this.gizmoManager.rotationGizmoEnabled = false; // Disable rotation for 2D view
+            this.gizmoManager.rotationGizmoEnabled = true;  // Enable rotation for perspective mode
             this.gizmoManager.scaleGizmoEnabled = false;
             this.gizmoManager.boundingBoxGizmoEnabled = false;
             

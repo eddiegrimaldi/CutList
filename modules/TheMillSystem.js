@@ -231,14 +231,44 @@ class TheMillSystem {
             new BABYLON.Vector3(0, 1, 0), this.millScene);
         light.intensity = 1.2;
         
-        // Clone material to mill scene
-        const materialClone = this.currentMaterial.clone('millMaterial');
-        materialClone.parent = null;
+        // Clone material mesh to mill scene - create a box with same dimensions
+        console.log('Creating material in Mill scene:', this.currentMaterial.name);
+        
+        // Get dimensions from the original mesh (already calculated above)
+        const height = bounds.maximum.y - bounds.minimum.y;
+        
+        console.log('Material dimensions:', { width, height, depth });
+        
+        // Create a box in the Mill scene with the same dimensions
+        const materialClone = BABYLON.MeshBuilder.CreateBox('millMaterial', {
+            width: width,
+            height: height,
+            depth: depth
+        }, this.millScene);
+        
+        // Position at origin, viewed from top
         materialClone.position = BABYLON.Vector3.Zero();
         materialClone.rotation = BABYLON.Vector3.Zero();
         
-        // Ensure it's viewed from top
-        materialClone.rotation.y = 0;
+        // Create a simple material for visualization
+        const mat = new BABYLON.StandardMaterial('millMat', this.millScene);
+        
+        // Try to copy the color from the original material
+        if (this.currentMaterial.material && this.currentMaterial.material.diffuseColor) {
+            mat.diffuseColor = this.currentMaterial.material.diffuseColor.clone();
+        } else {
+            // Default wood color
+            mat.diffuseColor = new BABYLON.Color3(0.6, 0.4, 0.2);
+        }
+        
+        mat.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1);
+        materialClone.material = mat;
+        
+        // Make sure it's visible and pickable
+        materialClone.isVisible = true;
+        materialClone.isPickable = true;
+        
+        console.log('Material created in Mill:', materialClone);
         
         // Add grid for reference
         this.createGrid();

@@ -218,6 +218,11 @@ class TheMillSystem {
         this.millScene = new BABYLON.Scene(millEngine);
         this.millScene.clearColor = new BABYLON.Color3(0.98, 0.98, 0.98);
         
+        // Enable physics with gravity
+        const gravityVector = new BABYLON.Vector3(0, -9.81, 0);
+        const physicsPlugin = new BABYLON.CannonJSPlugin();
+        this.millScene.enablePhysics(gravityVector, physicsPlugin);
+        
         // Create arc rotate camera for proper manipulation
         this.millCamera = new BABYLON.ArcRotateCamera('millCamera',
             Math.PI * 1.5, // Alpha - rotation around Y (1.5 * PI for correct orientation)
@@ -238,8 +243,19 @@ class TheMillSystem {
         this.millCamera.beta = Math.PI * 0.0001;
         this.millCamera.radius = 100;
         
-        // Attach camera controls
-        this.millCamera.attachControl(this.millCanvas, true);
+        // Attach camera controls with custom mouse button configuration
+        this.millCamera.attachControl(this.millCanvas, false);
+        
+        // Configure mouse controls to match drawing world:
+        // Left button (0) = selection only (no camera control)
+        // Middle button (1) = pan
+        // Right button (2) = rotate/orbit
+        this.millCamera.inputs.attached.pointers.buttons = [1, 2]; // Only middle and right for camera
+        
+        // Set up proper mouse button mappings
+        this.millCamera.inputs.attached.pointers.angularSensibilityX = 1000;
+        this.millCamera.inputs.attached.pointers.angularSensibilityY = 1000;
+        this.millCamera.inputs.attached.pointers.panningSensibility = 100;
         
         // Set camera limits similar to main drawing world
         this.millCamera.lowerRadiusLimit = 10;
@@ -327,7 +343,15 @@ class TheMillSystem {
         materialClone.isVisible = true;
         materialClone.isPickable = true;
         
-        console.log('Material created in Mill:', materialClone);
+        // Add physics impostor for gravity
+        materialClone.physicsImpostor = new BABYLON.PhysicsImpostor(
+            materialClone, 
+            BABYLON.PhysicsImpostor.BoxImpostor, 
+            { mass: 1, restitution: 0.1, friction: 0.5 }, 
+            this.millScene
+        );
+        
+        console.log('Material created in Mill with physics:', materialClone);
         
         // Add transform gizmos for the lumber
         this.setupGizmos(materialClone);
@@ -451,10 +475,39 @@ class TheMillSystem {
         
         // Attach gizmos to the lumber mesh only
         this.gizmoManager.attachToMesh(mesh);
+        
+        // When gizmo releases, let physics take over
+        if (this.gizmoManager.gizmos.positionGizmo) {
+            this.gizmoManager.gizmos.positionGizmo.onDragEndObservable.add(() => {
+                // Wake up physics after gizmo drag
+                if (mesh.physicsImpostor) {
+                    mesh.physicsImpostor.setLinearVelocity(BABYLON.Vector3.Zero());
+                    mesh.physicsImpostor.setAngularVelocity(BABYLON.Vector3.Zero());
+                    // Let gravity take effect
+                    console.log('Released lumber - gravity active');
+                }
+            });
+        }
     }
     
     // Create reference grid
     createGrid() {
+        // Create invisible ground plane for physics
+        const ground = BABYLON.MeshBuilder.CreateGround('ground', {
+            width: 200,
+            height: 200
+        }, this.millScene);
+        ground.position.y = -0.5; // Slightly below visible surface
+        ground.isVisible = false; // Invisible but acts as physics floor
+        
+        // Add physics impostor to ground so lumber can rest on it
+        ground.physicsImpostor = new BABYLON.PhysicsImpostor(
+            ground,
+            BABYLON.PhysicsImpostor.BoxImpostor,
+            { mass: 0, restitution: 0.1, friction: 0.5 }, // mass: 0 makes it static
+            this.millScene
+        );
+        
         const gridSize = 200; // 200cm grid
         const gridStep = 10; // 10cm steps
         const gridLines = [];
@@ -543,8 +596,11 @@ class TheMillSystem {
         this.millCanvas.addEventListener('mouseup', (e) => this.onMouseUp(e));
     }
     
-    // Mouse down - check what was clicked
+    // Mouse down - handle based on button
     onMouseDown(e) {
+        // Only handle left click (button 0) for selection
+        if (e.button !== 0) return;
+        
         const pickResult = this.millScene.pick(e.clientX, e.clientY);
         
         if (!pickResult.hit) return;
@@ -556,7 +612,7 @@ class TheMillSystem {
             return;
         }
         
-        // Check if clicking on turntable
+        // Check if clicking on turntable (only with left button)
         if (pickResult.pickedMesh.name === 'turntable') {
             this.isDraggingTurntable = true;
             

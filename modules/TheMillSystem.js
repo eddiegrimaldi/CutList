@@ -233,6 +233,10 @@ class TheMillSystem {
         // Attach camera controls
         this.millCamera.attachControl(this.millCanvas, true);
         
+        // Force camera to update to ensure proper initial position
+        this.millCamera.rebuildAnglesAndRadius();
+        this.millScene.render();
+        
         // Set camera limits similar to main drawing world
         this.millCamera.lowerRadiusLimit = 10;
         this.millCamera.upperRadiusLimit = 500;
@@ -318,6 +322,7 @@ class TheMillSystem {
         // Make sure it's visible and pickable
         materialClone.isVisible = true;
         materialClone.isPickable = true;
+        materialClone.renderingGroupId = 1;  // Middle rendering group
         
         console.log('Material created in Mill:', materialClone);
         
@@ -479,6 +484,7 @@ class TheMillSystem {
         turntableMat.diffuseColor = new BABYLON.Color3(0.3, 0.3, 0.3);
         turntableMat.alpha = 0.5;
         this.turntable.material = turntableMat;
+        this.turntable.renderingGroupId = 0;  // Render below laser
         
         // Create laser line - bright red, extends across entire table
         const tableSize = 200; // Match grid size
@@ -496,13 +502,13 @@ class TheMillSystem {
         
         // Make laser line thicker by using a tube instead
         const laserPath = [
-            new BABYLON.Vector3(-tableSize/2, 0.1, 0),
-            new BABYLON.Vector3(tableSize/2, 0.1, 0)
+            new BABYLON.Vector3(-tableSize/2, 0.5, 0),  // Raised higher
+            new BABYLON.Vector3(tableSize/2, 0.5, 0)
         ];
         
         const laserTube = BABYLON.MeshBuilder.CreateTube('laserTube', {
             path: laserPath,
-            radius: 0.2, // 2mm thick laser
+            radius: 0.3, // 3mm thick laser for visibility
             tessellation: 8,
             updatable: true
         }, this.millScene);
@@ -510,7 +516,22 @@ class TheMillSystem {
         const laserMat = new BABYLON.StandardMaterial('laserMat', this.millScene);
         laserMat.emissiveColor = new BABYLON.Color3(1, 0, 0);
         laserMat.diffuseColor = new BABYLON.Color3(1, 0, 0);
+        laserMat.specularColor = new BABYLON.Color3(0, 0, 0);
+        
+        // Make laser always render on top
+        laserTube.renderingGroupId = 2;  // Higher rendering group
         laserTube.material = laserMat;
+        
+        // Also update the line to be higher
+        this.laserLine = BABYLON.MeshBuilder.CreateLines('laserLine', {
+            points: [
+                new BABYLON.Vector3(-tableSize/2, 0.5, 0),
+                new BABYLON.Vector3(tableSize/2, 0.5, 0)
+            ],
+            updatable: true,
+            instance: this.laserLine
+        }, this.millScene);
+        this.laserLine.renderingGroupId = 2;  // Also render on top
         
         // Store reference for rotation
         this.laserTube = laserTube;

@@ -220,9 +220,9 @@ class TheMillSystem {
         
         // Create arc rotate camera for proper manipulation
         this.millCamera = new BABYLON.ArcRotateCamera('millCamera',
-            Math.PI * 1.5, // Alpha - rotation around Y (1.5 * PI for correct orientation)
-            0.001,         // Beta - nearly 0 for top-down view (0.001 to avoid gimbal lock)
-            100,           // Radius - distance from target
+            -Math.PI / 2,  // Alpha
+            Math.PI / 2,   // Beta - 90 degrees from vertical (looking straight down)
+            100,           // Radius
             BABYLON.Vector3.Zero(),
             this.millScene
         );
@@ -230,27 +230,8 @@ class TheMillSystem {
         // Start in orthographic mode for top-down view
         this.millCamera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
         
-        // Force camera to exact top-down position
-        this.millCamera.detachControl();
-        this.millCamera.position = new BABYLON.Vector3(0, 100, 0);
-        this.millCamera.setTarget(new BABYLON.Vector3(0, 0, 0));
-        this.millCamera.alpha = Math.PI * 1.5;
-        this.millCamera.beta = Math.PI * 0.0001;
-        this.millCamera.radius = 100;
-        
-        // Attach camera controls with custom mouse button configuration
-        this.millCamera.attachControl(this.millCanvas, false);
-        
-        // Configure mouse controls to match drawing world:
-        // Left button (0) = selection only (no camera control)
-        // Middle button (1) = pan
-        // Right button (2) = rotate/orbit
-        this.millCamera.inputs.attached.pointers.buttons = [1, 2]; // Only middle and right for camera
-        
-        // Set up proper mouse button mappings
-        this.millCamera.inputs.attached.pointers.angularSensibilityX = 1000;
-        this.millCamera.inputs.attached.pointers.angularSensibilityY = 1000;
-        this.millCamera.inputs.attached.pointers.panningSensibility = 100;
+        // Attach camera controls
+        this.millCamera.attachControl(this.millCanvas, true);
         
         // Set camera limits similar to main drawing world
         this.millCamera.lowerRadiusLimit = 10;
@@ -386,28 +367,16 @@ class TheMillSystem {
             if (e.key === 't' || e.key === 'T') {
                 // T for Top view - return to orthographic
                 this.millCamera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
-                
-                // Detach and reattach controls to force update
-                this.millCamera.detachControl();
-                
-                // Set camera to exact top-down position
-                this.millCamera.position = new BABYLON.Vector3(0, 100, 0);
-                this.millCamera.setTarget(new BABYLON.Vector3(0, 0, 0));
-                
-                // For ArcRotateCamera, force the angles
-                this.millCamera.alpha = Math.PI * 1.5;
-                this.millCamera.beta = Math.PI * 0.0001;  // Very small angle from vertical
+                this.millCamera.alpha = -Math.PI / 2;
+                this.millCamera.beta = Math.PI / 2;  // 90 degrees = looking straight down
                 this.millCamera.radius = 100;
-                
-                // Reattach controls
-                this.millCamera.attachControl(this.millCanvas, true);
                 
                 // Hide rotation gizmo in ortho view
                 if (this.gizmoManager) {
                     this.gizmoManager.rotationGizmoEnabled = false;
                 }
                 
-                console.log('Forced to top orthographic view');
+                console.log('Returned to top orthographic view');
             }
         });
     }

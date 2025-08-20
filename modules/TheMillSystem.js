@@ -220,8 +220,8 @@ class TheMillSystem {
         
         // Create arc rotate camera for proper manipulation
         this.millCamera = new BABYLON.ArcRotateCamera('millCamera',
-            -Math.PI / 2,  // Alpha
-            Math.PI / 2,   // Beta - 90 degrees from vertical (looking straight down)
+            0,             // Alpha - no rotation
+            0.01,          // Beta - nearly 0 for top-down view (small value to avoid gimbal lock)
             100,           // Radius
             BABYLON.Vector3.Zero(),
             this.millScene
@@ -367,8 +367,8 @@ class TheMillSystem {
             if (e.key === 't' || e.key === 'T') {
                 // T for Top view - return to orthographic
                 this.millCamera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
-                this.millCamera.alpha = -Math.PI / 2;
-                this.millCamera.beta = Math.PI / 2;  // 90 degrees = looking straight down
+                this.millCamera.alpha = 0;
+                this.millCamera.beta = 0.01;  // Nearly 0 for top-down view
                 this.millCamera.radius = 100;
                 
                 // Hide rotation gizmo in ortho view

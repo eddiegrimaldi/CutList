@@ -215,8 +215,8 @@ class TheMillSystem {
         
         // Create arc rotate camera for proper manipulation
         this.millCamera = new BABYLON.ArcRotateCamera('millCamera',
-            -Math.PI / 2,  // Alpha - rotate around Y axis
-            0.01,          // Beta - angle from vertical (nearly straight down)
+            0,             // Alpha - no rotation
+            0,             // Beta - exactly straight down (0 = looking straight down)
             100,           // Radius - distance from target
             BABYLON.Vector3.Zero(),
             this.millScene
@@ -231,7 +231,7 @@ class TheMillSystem {
         // Set camera limits similar to main drawing world
         this.millCamera.lowerRadiusLimit = 10;
         this.millCamera.upperRadiusLimit = 500;
-        this.millCamera.lowerBetaLimit = 0.01;  // Almost straight down
+        this.millCamera.lowerBetaLimit = 0;  // Allow exactly straight down
         this.millCamera.upperBetaLimit = Math.PI / 2 - 0.01;  // Not quite horizontal
         
         // Configure mouse controls
@@ -359,8 +359,8 @@ class TheMillSystem {
             if (e.key === 't' || e.key === 'T') {
                 // T for Top view - return to orthographic
                 this.millCamera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
-                this.millCamera.alpha = -Math.PI / 2;
-                this.millCamera.beta = 0.01;
+                this.millCamera.alpha = 0;
+                this.millCamera.beta = 0;  // Exactly straight down
                 // Hide rotation gizmo in ortho view
                 if (this.gizmoManager) {
                     this.gizmoManager.rotationGizmoEnabled = false;

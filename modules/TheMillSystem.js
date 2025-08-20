@@ -213,11 +213,17 @@ class TheMillSystem {
         this.millScene = new BABYLON.Scene(millEngine);
         this.millScene.clearColor = new BABYLON.Color3(0.98, 0.98, 0.98);
         
-        // Create orthographic camera
+        // Create orthographic camera - directly overhead
         this.millCamera = new BABYLON.UniversalCamera('millCamera', 
             new BABYLON.Vector3(0, 100, 0), this.millScene);
         this.millCamera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
-        this.millCamera.setTarget(BABYLON.Vector3.Zero());
+        this.millCamera.setTarget(new BABYLON.Vector3(0, 0, 0));
+        
+        // Lock camera to prevent any rotation - pure top-down view
+        this.millCamera.inputs.clear();  // Remove all camera controls
+        
+        // Set up vector for proper top-down orientation
+        this.millCamera.upVector = new BABYLON.Vector3(0, 0, -1);  // Z-axis points up in screen
         
         // Set orthographic size based on material
         const bounds = this.currentMaterial.getBoundingInfo().boundingBox;
@@ -324,13 +330,18 @@ class TheMillSystem {
             this.gizmoManager.scaleGizmoEnabled = false;
             this.gizmoManager.boundingBoxGizmoEnabled = false;
             
+            // Ensure gizmos only attach to lumber, not turntable
+            this.gizmoManager.attachableMeshes = [mesh];
+            
             // Customize gizmo appearance
-            this.gizmoManager.gizmos.positionGizmo.xGizmo.dragBehavior.dragDeltaRatio = 1;
-            this.gizmoManager.gizmos.positionGizmo.yGizmo.isVisible = false; // Hide Y axis in top view
-            this.gizmoManager.gizmos.positionGizmo.zGizmo.dragBehavior.dragDeltaRatio = 1;
+            if (this.gizmoManager.gizmos.positionGizmo) {
+                this.gizmoManager.gizmos.positionGizmo.xGizmo.dragBehavior.dragDeltaRatio = 1;
+                this.gizmoManager.gizmos.positionGizmo.yGizmo.isVisible = false; // Hide Y axis in top view
+                this.gizmoManager.gizmos.positionGizmo.zGizmo.dragBehavior.dragDeltaRatio = 1;
+            }
         }
         
-        // Attach gizmos to the lumber mesh
+        // Attach gizmos to the lumber mesh only
         this.gizmoManager.attachToMesh(mesh);
     }
     
@@ -373,6 +384,7 @@ class TheMillSystem {
         
         this.turntable.position.y = 0.01; // Slightly above grid
         this.turntable.rotation.x = Math.PI / 2; // Lay flat
+        this.turntable.isPickable = true;  // For rotation interaction
         
         // Create turntable material
         const turntableMat = new BABYLON.StandardMaterial('turntableMat', this.millScene);
@@ -423,18 +435,28 @@ class TheMillSystem {
         this.millCanvas.addEventListener('mouseup', (e) => this.onMouseUp(e));
     }
     
-    // Mouse down - check if clicking on turntable
+    // Mouse down - check what was clicked
     onMouseDown(e) {
         const pickResult = this.millScene.pick(e.clientX, e.clientY);
         
-        if (pickResult.hit && pickResult.pickedMesh.name === 'turntable') {
+        if (!pickResult.hit) return;
+        
+        // Check if clicking on lumber first (priority over turntable)
+        if (pickResult.pickedMesh.name === 'millMaterial') {
+            // Let gizmo handle the lumber
+            console.log('Clicked on lumber - gizmo will handle movement');
+            return;
+        }
+        
+        // Check if clicking on turntable
+        if (pickResult.pickedMesh.name === 'turntable') {
             this.isDraggingTurntable = true;
             
             // Calculate starting angle from click position
             const clickPoint = pickResult.pickedPoint;
             this.dragStartAngle = Math.atan2(clickPoint.z, clickPoint.x);
             
-            console.log('Started dragging turntable');
+            console.log('Started dragging turntable for rotation');
         }
     }
     

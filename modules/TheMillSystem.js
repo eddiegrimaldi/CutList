@@ -240,9 +240,9 @@ class TheMillSystem {
         // Add back with custom configuration
         const pointers = new BABYLON.ArcRotateCameraPointersInput();
         // Babylon button mapping: [left action, middle action, right action]
-        // Actions: 0=rotate, 1=zoom, 2=pan, -1=nothing
-        // We want: Left=nothing(-1), Middle=pan(2), Right=rotate(0)
-        pointers.buttons = [-1, 2, 0];
+        // Actions: 0=rotate, 1=zoom, 2=pan, null=nothing
+        // We want: Left=nothing, Middle=pan, Right=rotate
+        pointers.buttons = [null, 2, 0];  // null for no action, 2 for pan, 0 for rotate
         pointers.angularSensibilityX = 1000;
         pointers.angularSensibilityY = 1000;
         pointers.panningSensibility = 100;

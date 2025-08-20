@@ -243,25 +243,45 @@ class TheMillSystem {
         const materialClone = BABYLON.MeshBuilder.CreateBox('millMaterial', {
             width: width,
             height: height,
-            depth: depth
+            depth: depth,
+            wrap: true  // Ensure proper UV mapping for textures
         }, this.millScene);
         
         // Position at origin, viewed from top
         materialClone.position = BABYLON.Vector3.Zero();
         materialClone.rotation = BABYLON.Vector3.Zero();
         
-        // Create a simple material for visualization
+        // Create a material with texture for visualization
         const mat = new BABYLON.StandardMaterial('millMat', this.millScene);
         
-        // Try to copy the color from the original material
+        // Try to copy the texture from the original material
+        if (this.currentMaterial.material && this.currentMaterial.material.diffuseTexture) {
+            // Clone the texture to the new scene
+            const originalTexture = this.currentMaterial.material.diffuseTexture;
+            if (originalTexture && originalTexture.url) {
+                console.log('Copying texture from original:', originalTexture.url);
+                const texture = new BABYLON.Texture(originalTexture.url, this.millScene);
+                
+                // Copy texture properties
+                texture.uScale = originalTexture.uScale || 1;
+                texture.vScale = originalTexture.vScale || 1;
+                texture.hasAlpha = originalTexture.hasAlpha || false;
+                
+                mat.diffuseTexture = texture;
+            }
+        }
+        
+        // Also try to copy the color
         if (this.currentMaterial.material && this.currentMaterial.material.diffuseColor) {
             mat.diffuseColor = this.currentMaterial.material.diffuseColor.clone();
-        } else {
-            // Default wood color
+        } else if (!mat.diffuseTexture) {
+            // Only use default color if no texture was found
             mat.diffuseColor = new BABYLON.Color3(0.6, 0.4, 0.2);
         }
         
+        // Set material properties for wood-like appearance
         mat.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1);
+        mat.ambientColor = new BABYLON.Color3(0.3, 0.3, 0.3);
         materialClone.material = mat;
         
         // Make sure it's visible and pickable

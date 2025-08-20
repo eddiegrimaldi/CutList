@@ -36,7 +36,7 @@
         console.log('Babylon.js version:', BABYLON.Engine.Version);
     </script>
 </head>
-<body>
+<body oncontextmenu="return false;">
 
     <\!-- Loading Spinner -->
     <div id="loadingSpinner" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10000; background: rgba(0,0,0,0.8); padding: 30px; border-radius: 10px;">
@@ -251,7 +251,7 @@
             </aside>
             
             <main class="drawing-world">
-                <canvas id="renderCanvas"></canvas>
+                <canvas id="renderCanvas" oncontextmenu="return false;"></canvas>
                 <div id="mode-indicator" class="mode-indicator">3D Modeling</div>
                 <div id="coordinates" class="coordinates">X: 0, Y: 0, Z: 0</div>
                 

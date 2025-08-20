@@ -397,11 +397,6 @@
             <span class="context-label">Send to Work Bench</span>
         </div>
         <div class="context-menu-separator" id="context-send-separator" style="display: none;"></div>
-        <div class="context-menu-item" id="context-send-to-mill">
-            <span class="context-icon">⚙</span>
-            <span class="context-label">Send to Mill</span>
-        </div>
-        <div class="context-menu-separator"></div>
         <div class="context-menu-item" id="context-properties">
             <span class="context-icon">📋</span>
             <span class="context-label">Properties</span>
@@ -1040,11 +1035,6 @@
                     this.hideContextMenu();
                 });
                 
-                document.getElementById('context-send-to-mill').addEventListener('click', () => {
-                    this.sendToMill();
-                    this.hideContextMenu();
-                });
-                
                 document.getElementById('context-properties').addEventListener('click', () => {
                     this.showProperties();
                     this.hideContextMenu();
@@ -1279,22 +1269,6 @@
                 
                 console.log('Sending to work bench:', this.selectedPart.materialName);
                 window.drawingWorld.sendPartBackToWorkBench();
-            },
-            
-            sendToMill() {
-                if (!this.selectedPart || !window.drawingWorld) return;
-                
-                console.log('Sending to The Mill:', this.selectedPart.materialName);
-                
-                // Get the selected part mesh
-                const partMesh = this.selectedPart.mesh || this.selectedPart;
-                
-                // Open The Mill with the selected part
-                if (window.drawingWorld.theMillSystem) {
-                    window.drawingWorld.theMillSystem.openMill(partMesh, 'cut');
-                } else {
-                    console.error('The Mill System not initialized');
-                }
             },
             
             showProperties() {

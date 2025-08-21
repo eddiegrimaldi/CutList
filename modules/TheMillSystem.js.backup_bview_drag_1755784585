@@ -546,16 +546,16 @@ class TheMillSystem {
     setupManualCameraControls() {
         // Mouse down
         this.millCanvas.addEventListener('pointerdown', (e) => {
-            
-            // B view board dragging (left mouse button)
+            console.log("Pointerdown event, button:", e.button, "B view enabled:", this.enableBViewDragging);
+            if (e.button === 1) {
+            // B view board dragging
             if (this.enableBViewDragging && e.button === 0 && this.currentBoard) {
+                console.log("Starting B view drag (pointer)");
                 this.isDraggingBoard = true;
                 this.lastMouseX = e.clientX;
                 e.preventDefault();
                 return;
             }
-            
-            if (e.button === 1) {
                 // Middle mouse - pan
                 this.cameraState.isPanning = true;
                 this.cameraState.lastX = e.clientX;
@@ -579,16 +579,15 @@ class TheMillSystem {
         
         // Mouse move
         this.millCanvas.addEventListener('pointermove', (e) => {
-            // B view board dragging - check FIRST before other conditions
+            if (this.cameraState.isPanning) {
+            // B view board dragging
             if (this.isDraggingBoard && this.currentBoard) {
                 const deltaX = e.clientX - this.lastMouseX;
-                // In B view, move along Z axis (forward/backward relative to blade)
-                this.currentBoard.position.z -= deltaX * 0.05;  // Negative for correct direction
+                this.currentBoard.position.x += deltaX * 0.1;
                 this.lastMouseX = e.clientX;
+                console.log("B view dragging, deltaX:", deltaX);
                 return;
             }
-            
-            if (this.cameraState.isPanning) {
                 const deltaX = e.clientX - this.cameraState.lastX;
                 const deltaY = e.clientY - this.cameraState.lastY;
                 
@@ -633,6 +632,7 @@ class TheMillSystem {
             // Stop B view dragging
             if (this.isDraggingBoard) {
                 this.isDraggingBoard = false;
+                console.log("Stopped B view drag");
             }
         });
         
@@ -708,7 +708,7 @@ class TheMillSystem {
         if (this.enableBViewDragging && this.isDraggingBoard && this.currentBoard) {
             const deltaX = e.clientX - this.lastMouseX;
             console.log("B view drag move, deltaX:", deltaX);
-            this.currentBoard.position.x += deltaX * 0.5; // Scale movement
+            this.currentBoard.position.x += deltaX * 0.1; // Scale movement
             this.lastMouseX = e.clientX;
             return;
         }
@@ -1460,7 +1460,10 @@ class TheMillSystem {
         
         // Enable simple left/right dragging in B view
         this.enableBViewDragging = true;
+        console.log("B view dragging enabled, currentBoard:", this.currentBoard);
         
+        console.log("Camera mode:", this.millCamera.mode === BABYLON.Camera.PERSPECTIVE_CAMERA ? "PERSPECTIVE" : "ORTHO");
+        console.log("Camera radius:", this.millCamera.radius);
         // Force immediate render to show board
         this.millCamera.getProjectionMatrix(true); // Force projection matrix update
         this.millScene.render();

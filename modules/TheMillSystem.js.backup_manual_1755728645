@@ -251,10 +251,6 @@ class TheMillSystem {
         this.millCamera.orthoTop = orthoSize;
         this.millCamera.orthoBottom = -orthoSize;
         
-        // Set clipping planes to ensure board visibility
-        this.millCamera.minZ = 0.1;
-        this.millCamera.maxZ = 1000;
-        
         // Attach camera to canvas
         this.millCamera.attachControl(this.millCanvas, false);
         
@@ -303,17 +299,7 @@ class TheMillSystem {
                     this.gizmoManager.rotationGizmoEnabled = false;
                 }
                 
-        // Hide table surface in top view
-        if (this.tableSurface) {
-            this.tableSurface.isVisible = false;
-        }
-        // Show transform toolbar in top view
-        const toolbar = document.getElementById("mill-transform-toolbar");
-        if (toolbar) toolbar.style.display = "flex";
                 console.log('Returned to top-down orthographic view');
-        
-        // Disable B view dragging
-        this.enableBViewDragging = false;
             } else if (e.key === 'b' || e.key === 'B') {
                 // Switch to blade profile view
                 this.switchToBladeProfileView();
@@ -388,7 +374,7 @@ class TheMillSystem {
         }, this.millScene);
         
         // Position at origin, flat on table
-        materialClone.position = new BABYLON.Vector3(0, boardThickness / 2, 0); // Position board ON TOP of grid
+        materialClone.position = new BABYLON.Vector3(0, 0, 0);
         materialClone.rotation = new BABYLON.Vector3(0, 0, 0);
         
         // Create a material with texture for visualization
@@ -431,17 +417,6 @@ class TheMillSystem {
         
         console.log('Material created in Mill:', materialClone);
         
-        
-        // Store the board reference
-        this.currentBoard = materialClone;
-        this.currentBoard.isPickable = true; // Ensure board is pickable for dragging
-        
-        // Force board to render in all camera modes
-        this.currentBoard.alwaysSelectAsActiveMesh = true;
-        // Fix for orthographic rendering
-        this.currentBoard.material.backFaceCulling = false;
-        this.currentBoard.material.needDepthPrePass = true;
-        this.currentBoard.layerMask = 0x0FFFFFFF; // All layers
         // Add transform gizmos for the lumber
         this.setupGizmos(materialClone);
         
@@ -457,9 +432,6 @@ class TheMillSystem {
         
         // Add grid for reference
         this.createGrid();
-        // Create transform toolbar (no perma-gizmos)
-        this.createTransformToolbar();
-        
         
 
         
@@ -546,15 +518,6 @@ class TheMillSystem {
     setupManualCameraControls() {
         // Mouse down
         this.millCanvas.addEventListener('pointerdown', (e) => {
-            
-            // B view board dragging (left mouse button)
-            if (this.enableBViewDragging && e.button === 0 && this.currentBoard) {
-                this.isDraggingBoard = true;
-                this.lastMouseX = e.clientX;
-                e.preventDefault();
-                return;
-            }
-            
             if (e.button === 1) {
                 // Middle mouse - pan
                 this.cameraState.isPanning = true;
@@ -579,15 +542,6 @@ class TheMillSystem {
         
         // Mouse move
         this.millCanvas.addEventListener('pointermove', (e) => {
-            // B view board dragging - check FIRST before other conditions
-            if (this.isDraggingBoard && this.currentBoard) {
-                const deltaX = e.clientX - this.lastMouseX;
-                // In B view, move along Z axis (forward/backward relative to blade)
-                this.currentBoard.position.z -= deltaX * 0.05;  // Negative for correct direction
-                this.lastMouseX = e.clientX;
-                return;
-            }
-            
             if (this.cameraState.isPanning) {
                 const deltaX = e.clientX - this.cameraState.lastX;
                 const deltaY = e.clientY - this.cameraState.lastY;
@@ -630,16 +584,12 @@ class TheMillSystem {
         this.millCanvas.addEventListener('pointerup', (e) => {
             this.cameraState.isPanning = false;
             this.cameraState.isRotating = false;
-            // Stop B view dragging
-            if (this.isDraggingBoard) {
-                this.isDraggingBoard = false;
-            }
         });
         
         // Mouse wheel - zoom
         this.millCanvas.addEventListener('wheel', (e) => {
-            const zoomSensitivity = window.userPreferences?.zoomSensitivity || 0.00005; // Very slow for precise control
-            const delta = e.deltaY * zoomSensitivity;
+            const delta = e.deltaY * 0.001;
+            
             if (this.millCamera.mode === BABYLON.Camera.ORTHOGRAPHIC_CAMERA) {
                 // Orthographic zoom - adjust ortho bounds
                 const zoomFactor = 1 + delta;
@@ -666,16 +616,8 @@ class TheMillSystem {
     
     // Mouse down - handle based on button
     onMouseDown(e) {
-        
-        console.log("onMouseDown called, button:", e.button);
-        // Check for B view board dragging
-        if (this.enableBViewDragging && e.button === 0 && this.currentBoard) { // Left click
-            console.log("Starting B view drag");
-            console.log("B view drag check - enabled:", this.enableBViewDragging, "button:", e.button, "board:", !!this.currentBoard);
-            this.lastMouseX = e.clientX;
-            e.preventDefault();
-            return;
-        }
+        // Only handle left click (button 0) for selection
+        if (e.button !== 0) return;
         
         const pickResult = this.millScene.pick(e.clientX, e.clientY);
         
@@ -703,15 +645,6 @@ class TheMillSystem {
     // Mouse move - rotate turntable and laser if dragging
     onMouseMove(e) {
         if (!this.isDraggingTurntable) return;
-        
-        // Handle B view board dragging (left/right only)
-        if (this.enableBViewDragging && this.isDraggingBoard && this.currentBoard) {
-            const deltaX = e.clientX - this.lastMouseX;
-            console.log("B view drag move, deltaX:", deltaX);
-            this.currentBoard.position.x += deltaX * 0.5; // Scale movement
-            this.lastMouseX = e.clientX;
-            return;
-        }
         
         const pickResult = this.millScene.pick(e.clientX, e.clientY);
         
@@ -743,11 +676,6 @@ class TheMillSystem {
     // Mouse up - stop dragging turntable
     onMouseUp(e) {
         if (this.isDraggingTurntable) {
-        
-        // Stop B view board dragging
-        if (this.isDraggingBoard) {
-            this.isDraggingBoard = false;
-        }
             this.isDraggingTurntable = false;
             console.log('Stopped dragging turntable');
         }
@@ -780,29 +708,10 @@ class TheMillSystem {
         
         gridSystem.color = new BABYLON.Color3(0.92, 0.92, 0.92);  // Extremely light grey
         gridSystem.renderingGroupId = 0; // Render below everything
-        
-        // Create table surface below grid for tablesaw bench appearance
-        const tableSurface = BABYLON.MeshBuilder.CreateBox("tableSurface", {
-            width: gridSize,
-            height: 5, // 5cm (2 inch) thick table for realistic profile
-            depth: gridSize
-        }, this.millScene);
-        
-        tableSurface.position = new BABYLON.Vector3(0, -2.5, 0); // Center of 5cm thick table
-        
-        const tableMat = new BABYLON.StandardMaterial("tableMat", this.millScene);
-        tableMat.diffuseColor = new BABYLON.Color3(0.4, 0.4, 0.4); // Dark grey
-        tableMat.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low shine
-        tableSurface.material = tableMat;
-        tableMat.backFaceCulling = false; // Fix for orthographic rendering
-        tableMat.needDepthPrePass = true;
-        tableSurface.renderingGroupId = 0; // Render with grid
-        tableSurface.isVisible = false; // Hidden by default (top view)
-        this.tableSurface = tableSurface; // Store reference for B view
     }
     
     setupGizmos(mesh) {
-        
+        // Create gizmo manager but no gizmos by default
         this.gizmoManager = new BABYLON.GizmoManager(this.millScene);
         this.gizmoManager.positionGizmoEnabled = false;
         this.gizmoManager.rotationGizmoEnabled = false;
@@ -814,7 +723,6 @@ class TheMillSystem {
         this.currentTransformMode = null;
         this.currentViewMode = "top"; // "top" or "side"
         this.bevelAngle = 90; // Default 90 degrees (straight cut)
-        this.bevelDirection = 1; // Default direction (positive/right)
         this.bevelDirection = 1; // 1 = right, -1 = left
         this.bladeVisual = null;
         this.cuttingPlane = null;
@@ -1315,19 +1223,20 @@ class TheMillSystem {
             const dy = centerY - e.clientY; // Inverted for hemisphere
             
             // Calculate angle for full hemisphere (-90 to +90 degrees)
-            let angle = Math.atan2(dy, Math.abs(dx)) * 180 / Math.PI;
+            let angle = Math.atan2(dy, dx) * 180 / Math.PI;
             
-            // Map to left (-90 to 0) or right (0 to +90)
-            if (dx < 0) angle = -angle; // Left side is negative
+            // Map to -90 to +90 range (left negative, right positive)
+            // Straight up is 0, left is negative, right is positive
+            if (angle > 90) angle = angle - 180;
             
-            
-            // Store direction and absolute angle
+            // Store the bevel angle (0 to 90) and direction
             this.bevelDirection = angle < 0 ? -1 : 1;
             this.bevelAngle = Math.abs(angle);
-            this.bevelAngle = Math.abs(angle);
-            const needleRotation = angle; // Direct angle for needle
+            
             // Update needle rotation (-90 to +90 from vertical)
+            const needleRotation = angle; // Direct angle for needle
             // Update needle rotation
+            const needleRotation = (90 - this.bevelAngle); // Rotate from vertical
             needle.style.transform = `translateX(-50%) rotate(${needleRotation}deg)`;
             
             // Update display
@@ -1390,80 +1299,62 @@ class TheMillSystem {
         // Tilt the blade on its Z axis (left/right when viewed from the side)
         // 90 degrees = vertical blade (no bevel)
         // Less than 90 = blade tilts to the right
-        const tiltRadians = (90 - this.bevelAngle) * Math.PI / 180;
-        const direction = this.bevelDirection || 1;
+        // The blade pivots at its bottom edge (where it meets the table)
         this.bladeVisual.rotation.x = tiltRadians * direction; // Match needle direction
+        // Apply tilt with direction (needle right = blade tilts right)
+        const direction = this.bevelDirection || 1;
+        this.bladeVisual.rotation.x = -tiltRadians * direction; // Negative to match needle // Negative for correct tilt direction
         
-        // Update cutting plane to match blade angle
+        // Also tilt the kerf line indicator
+        if (this.kerfLine) {
+            this.kerfLine.rotation.x = -tiltRadians * direction;
+        }
+        
+        // Update cutting plane if it exists
         if (this.cuttingPlane) {
-            this.cuttingPlane.rotation.x = tiltRadians * direction;
+            this.cuttingPlane.rotation.x = -tiltRadians * direction;
         }
     }
+    
     switchToBladeProfileView() {
-        
-        // Debug: Check if board exists and is visible
-        console.log("Board in B view:", this.currentBoard ? "exists" : "missing", this.currentBoard?.isVisible);
         this.currentViewMode = "side";
         
-        this.millCamera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA; // Back to ORTHO as intended
+        // Hide rotation control, show bevel control
         const rotationControl = document.getElementById('mill-rotation-control');
         const bevelControl = document.getElementById('mill-bevel-control');
         if (rotationControl) rotationControl.style.display = 'none';
         if (bevelControl) bevelControl.style.display = 'block';
         // Switch to orthographic view looking from the LEFT side (like view cube LEFT face)
+        this.millCamera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
         
         // LEFT view: Look from -X toward +X
         // Alpha = Math.PI means looking from negative X
         // Beta = Math.PI/2 means horizontal view
         this.millCamera.alpha = Math.PI; // 180 degrees - looking from -X
-        const viewSize = 15; // Frame the 6 inch board face nicely
-        // Move camera far enough to see the board
         this.millCamera.beta = Math.PI / 2; // 90 degrees - horizontal
         
         // Keep the same target
-        // Ensure camera looks at board center
-        this.millCamera.setTarget(BABYLON.Vector3.Zero());
+        // Don't change target to preserve board position
+        
+        // Maintain zoom level from current view
         const aspectRatio = this.millCanvas.width / this.millCanvas.height;
         const currentOrthoSize = Math.abs(this.millCamera.orthoRight - this.millCamera.orthoLeft) / aspectRatio;
+        const orthoSize = 30; // MUCH closer zoom for 6" board to fill screen
         
-        this.millCamera.orthoLeft = -viewSize;
-        this.millCamera.orthoRight = viewSize;
-        this.millCamera.orthoTop = viewSize / aspectRatio;
-        this.millCamera.orthoBottom = -viewSize / aspectRatio;
-        // Set orthographic bounds correctly for side view
+        this.millCamera.orthoLeft = -orthoSize * aspectRatio;
+        this.millCamera.orthoRight = orthoSize * aspectRatio;
+        this.millCamera.orthoTop = orthoSize;
+        this.millCamera.orthoBottom = -orthoSize;
         
         // Update radius for consistent zoom when switching modes
-        this.millCamera.radius = 50; // Position camera at reasonable distance
-        this.millCamera.radius = 30; // Close enough to see board face
-        // Force board visibility in ortho mode
-        if (this.currentBoard) {
-            this.currentBoard.isVisible = true;
-            this.millScene.render();
-        }
+        this.millCamera.radius = orthoSize;
         
         // Show cutting plane in profile view if it exists
         if (this.cuttingPlane) {
             this.cuttingPlane.isVisible = true;
         }
         
-        
-        // Show table surface in side view
-        if (this.tableSurface) {
-            this.tableSurface.isVisible = true;
-            console.log("Table surface visibility:", this.tableSurface.isVisible, "Position:", this.tableSurface.position);
-            this.tableSurface.renderingGroupId = 0; // Ensure proper rendering order
-        }
-        // Hide transform toolbar in B view (not needed)
-        const toolbar = document.getElementById("mill-transform-toolbar");
-        if (toolbar) toolbar.style.display = "none";
         console.log('Switched to LEFT side view (blade profile)');
-        
-        // Enable simple left/right dragging in B view
-        this.enableBViewDragging = true;
-        
-        // Force immediate render to show board
-        this.millCamera.getProjectionMatrix(true); // Force projection matrix update
-        this.millScene.render();
     }
     
 
@@ -1530,140 +1421,7 @@ class TheMillSystem {
             // this.drawingWorld.executeCutFromMill(this.currentMaterial, cutData);
         }
     }
-
-    createTransformToolbar() {
-        // Create toolbar container
-        const toolbar = document.createElement('div');
-        toolbar.id = 'mill-transform-toolbar';
-        toolbar.style.cssText = `
-            position: absolute;
-            top: 100px;
-            right: 20px;
-            background: rgba(50, 50, 50, 0.9);
-            border-radius: 8px;
-            padding: 10px;
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-            z-index: 1000;
-        `;
-        
-        // Move button
-        const moveBtn = this.createToolbarButton('Move', () => {
-            this.clearGizmos();
-            if (this.currentBoard) {
-                const gizmoManager = new BABYLON.GizmoManager(this.millScene);
-                gizmoManager.positionGizmoEnabled = true;
-                gizmoManager.attachToMesh(this.currentBoard);
-                this.currentGizmo = gizmoManager;
-            }
-        });
-        
-        // Rotate button with dropdown
-        const rotateContainer = document.createElement('div');
-        rotateContainer.style.position = 'relative';
-        
-        const rotateBtn = this.createToolbarButton('Rotate ▼', () => {
-            const dropdown = rotateContainer.querySelector('.rotate-dropdown');
-            if (dropdown) {
-                dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
-            }
-        });
-        
-        // Rotate dropdown menu
-        const dropdown = document.createElement('div');
-        dropdown.className = 'rotate-dropdown';
-        dropdown.style.cssText = `
-            position: absolute;
-            top: 100%;
-            left: 0;
-            background: rgba(40, 40, 40, 0.95);
-            border-radius: 4px;
-            padding: 5px;
-            display: none;
-            min-width: 120px;
-            margin-top: 2px;
-        `;
-        
-        // Rotate gizmo option
-        const rotateGizmoBtn = this.createToolbarButton('Rotate', () => {
-            this.clearGizmos();
-            if (this.currentBoard) {
-                const gizmoManager = new BABYLON.GizmoManager(this.millScene);
-                gizmoManager.rotationGizmoEnabled = true;
-                // Restrict to Y-axis rotation only
-                gizmoManager.gizmos.rotationGizmo.xGizmo.isEnabled = false;
-                gizmoManager.gizmos.rotationGizmo.zGizmo.isEnabled = false;
-                gizmoManager.attachToMesh(this.currentBoard);
-                this.currentGizmo = gizmoManager;
-            }
-            dropdown.style.display = 'none';
-        });
-        
-        // Flip 90 right
-        const flip90RightBtn = this.createToolbarButton('Flip 90° →', () => {
-            if (this.currentBoard) {
-                this.currentBoard.rotation.x += Math.PI / 2;
-            }
-            dropdown.style.display = 'none';
-        });
-        
-        // Flip 90 left  
-        const flip90LeftBtn = this.createToolbarButton('Flip 90° ←', () => {
-            if (this.currentBoard) {
-                this.currentBoard.rotation.x -= Math.PI / 2;
-            }
-            dropdown.style.display = 'none';
-        });
-        
-        dropdown.appendChild(rotateGizmoBtn);
-        dropdown.appendChild(flip90RightBtn);
-        dropdown.appendChild(flip90LeftBtn);
-        
-        rotateContainer.appendChild(rotateBtn);
-        rotateContainer.appendChild(dropdown);
-        
-        // Clear button (removes active gizmos)
-        const clearBtn = this.createToolbarButton('Clear', () => {
-            this.clearGizmos();
-        });
-        
-        toolbar.appendChild(moveBtn);
-        toolbar.appendChild(rotateContainer);
-        toolbar.appendChild(clearBtn);
-        
-        const container = document.getElementById('mill-container');
-        if (container) {
-            container.appendChild(toolbar);
-        }
-    }
-    
-    createToolbarButton(text, onClick) {
-        const btn = document.createElement('button');
-        btn.textContent = text;
-        btn.style.cssText = `
-            padding: 8px 16px;
-            background: rgba(70, 70, 70, 0.9);
-            color: white;
-            border: 1px solid rgba(100, 100, 100, 0.5);
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-            min-width: 100px;
-            text-align: left;
-        `;
-        btn.onmouseover = () => btn.style.background = 'rgba(90, 90, 90, 0.9)';
-        btn.onmouseout = () => btn.style.background = 'rgba(70, 70, 70, 0.9)';
-        btn.onclick = onClick;
-        return btn;
-    }
-    
-    clearGizmos() {
-        if (this.currentGizmo) {
-            this.currentGizmo.dispose();
-            this.currentGizmo = null;
-        }
-    }
 }
 
+// Export for use in drawing-world.js
 export { TheMillSystem };

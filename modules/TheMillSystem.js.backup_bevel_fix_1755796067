@@ -1279,7 +1279,7 @@ class TheMillSystem {
         needle.style.bottom = '0';
         needle.style.left = '50%';
         needle.style.transformOrigin = 'bottom center';
-        needle.style.transform = "translateX(-50%) rotate(0deg)"; // Start at 90 degrees (vertical)
+        needle.style.transform = "translateX(-50%) rotate(0deg)"; // Start vertical; // Start at 90 degrees
         needle.style.pointerEvents = 'none';
         control.appendChild(needle);
         
@@ -1312,46 +1312,26 @@ class TheMillSystem {
             const centerY = rect.bottom; // Bottom center for hemisphere
             
             const dx = e.clientX - centerX;
-            const dy = centerY - e.clientY; // Positive when above center
+            const dy = centerY - e.clientY; // Inverted for hemisphere
             
-            // Only update if mouse is in the upper hemisphere
-            if (dy < 0) return; // Don't allow below the base
+            // Calculate angle for full hemisphere (-90 to +90 degrees)
+            let angle = Math.atan2(dy, Math.abs(dx)) * 180 / Math.PI;
             
-            // Calculate angle from horizontal (0 to 180 degrees for the arc)
-            let arcAngle = Math.atan2(dy, dx) * 180 / Math.PI;
+            // Map to left (-90 to 0) or right (0 to +90)
+            if (dx < 0) angle = -angle; // Left side is negative
             
-            // Convert to bevel angle:
-            // arcAngle 0 (far right) = bevel 0
-            // arcAngle 90 (top) = bevel 90
-            // arcAngle 180 (far left) = bevel 0
-            let bevelAngle;
-            let direction;
             
-            if (arcAngle >= 0 && arcAngle <= 90) {
-                // Right side: 0 to 90 degrees
-                bevelAngle = arcAngle;
-                direction = 1;
-            } else if (arcAngle > 90 && arcAngle <= 180) {
-                // Left side: 90 to 0 degrees
-                bevelAngle = 180 - arcAngle;
-                direction = -1;
-            } else {
-                return; // Shouldn't happen
-            }
-            
-            // Store the values
-            this.bevelAngle = bevelAngle;
-            this.bevelDirection = direction;
-            
-            // Needle rotation: 0 degrees = vertical, positive = clockwise
-            // When bevel is 90, needle is vertical (0 rotation)
-            // When bevel is 0 on right, needle is 90 degrees clockwise
-            // When bevel is 0 on left, needle is -90 degrees
-            const needleRotation = (90 - bevelAngle) * direction;
+            // Store direction and absolute angle
+            this.bevelDirection = angle < 0 ? -1 : 1;
+            this.bevelAngle = Math.abs(angle);
+            this.bevelAngle = Math.abs(angle);
+            const needleRotation = angle; // Direct angle for needle
+            // Update needle rotation (-90 to +90 from vertical)
+            // Update needle rotation
             needle.style.transform = `translateX(-50%) rotate(${needleRotation}deg)`;
             
             // Update display
-            display.textContent = (direction < 0 ? 'L ' : 'R ') + bevelAngle.toFixed(1) + '°';
+            display.textContent = (this.bevelDirection < 0 ? '-' : '') + this.bevelAngle.toFixed(1) + '°';
             
             // Update blade tilt
             this.updateBladeTilt();
@@ -1405,34 +1385,18 @@ class TheMillSystem {
     }
     
     updateBladeTilt() {
-        if (!this.bladeVisual) {
-            return;
-        }
+        if (!this.bladeVisual) return;
         
-        // Blade tilt matches the bevel angle
-        // bevelAngle 90 = vertical blade (no tilt)
-        // bevelAngle 0 = blade tilted 90 degrees
-        // bevelDirection: 1 = right tilt, -1 = left tilt
-        
-        // The blade needs to rotate on X axis to tilt left/right in B view
-        // bevelAngle 90 = vertical blade (no tilt)
-        // bevelAngle < 90 = blade tilts
-        // direction: 1 = right, -1 = left
+        // Tilt the blade on its Z axis (left/right when viewed from the side)
+        // 90 degrees = vertical blade (no bevel)
+        // Less than 90 = blade tilts to the right
         const tiltRadians = (90 - this.bevelAngle) * Math.PI / 180;
         const direction = this.bevelDirection || 1;
-        
-        // Rotate on X axis - this was working before, just wrong direction
-        // Negate to match needle direction
-        this.bladeVisual.rotation.x = -tiltRadians * direction;
+        this.bladeVisual.rotation.x = tiltRadians * direction; // Match needle direction
         
         // Update cutting plane to match blade angle
         if (this.cuttingPlane) {
-            this.cuttingPlane.rotation.x = -tiltRadians * direction;
-        }
-        
-        // Force scene render
-        if (this.millScene) {
-            this.millScene.render();
+            this.cuttingPlane.rotation.x = tiltRadians * direction;
         }
     }
     switchToBladeProfileView() {

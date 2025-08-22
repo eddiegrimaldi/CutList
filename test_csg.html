@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="/libs/babylon.js"></script>
+</head>
+<body>
+    <script>
+        console.log("BABYLON.CSG exists:", typeof BABYLON.CSG !== 'undefined');
+        console.log("BABYLON.CSG2 exists:", typeof BABYLON.CSG2 !== 'undefined');
+        console.log("BABYLON.Mesh.CreateBox exists:", typeof BABYLON.Mesh.CreateBox !== 'undefined');
+        console.log("BABYLON.MeshBuilder exists:", typeof BABYLON.MeshBuilder !== 'undefined');
+        
+        // Check for CSG in Mesh prototype
+        if (BABYLON.Mesh.prototype) {
+            console.log("Mesh.toCSG exists:", typeof BABYLON.Mesh.prototype.toCSG === 'function');
+        }
+    </script>
+</body>
+</html>

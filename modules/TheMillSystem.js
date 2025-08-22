@@ -1197,15 +1197,9 @@ class TheMillSystem {
             }, this.millScene);
             
             // ALIGN BLADE WITH LASER LINE
-            // The blade must be positioned where the laser shows the cut
-            // The laser is at Z=0, extending left-right across the table
-            
-            // Position blade at origin (where laser crosses center)
+            // The blade is a box that cuts along the laser line
+            // Position at table center where laser crosses
             blade.position = new BABYLON.Vector3(0, 0, 0);
-            
-            // The blade is a cylinder that needs to cut along the laser line
-            // Default cylinder is vertical (Y axis), we need it horizontal
-            blade.rotation.x = Math.PI / 2; // Rotate to horizontal
             
             // Apply turntable rotation (miter angle)
             // This rotates the blade around Y axis with the turntable

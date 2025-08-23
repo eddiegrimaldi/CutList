@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mill Test</title>
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+</head>
+<body>
+    <div id="test"></div>
+    <script type="module">
+        import { TheMillSystem } from '/modules/TheMillSystem.js';
+        console.log('TheMillSystem loaded:', typeof TheMillSystem);
+        document.getElementById('test').innerHTML = 'TheMillSystem: ' + (typeof TheMillSystem);
+    </script>
+</body>
+</html>

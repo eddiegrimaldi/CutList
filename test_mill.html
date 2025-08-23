@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test TheMillSystem</title>
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+</head>
+<body>
+    <canvas id="testCanvas"></canvas>
+    <script type="module">
+        import { TheMillSystem } from '/modules/TheMillSystem.js';
+        console.log('TheMillSystem loaded successfully');
+        window.testResult = 'SUCCESS';
+    </script>
+    <script>
+        setTimeout(() => {
+            if (window.testResult === 'SUCCESS') {
+                document.body.innerHTML = '<h1>SUCCESS: Module loaded without errors</h1>';
+            } else {
+                document.body.innerHTML = '<h1>ERROR: Check console</h1>';
+            }
+        }, 1000);
+    </script>
+</body>
+</html>

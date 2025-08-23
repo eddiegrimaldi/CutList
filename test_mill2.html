@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+</head>
+<body>
+    <div id="result">Testing...</div>
+    <script type="module">
+        try {
+            const { TheMillSystem } = await import('/modules/TheMillSystem.js');
+            document.getElementById('result').innerHTML = 'SUCCESS: Module loaded';
+            console.log('SUCCESS');
+        } catch(e) {
+            document.getElementById('result').innerHTML = 'ERROR: ' + e.message;
+            console.error('ERROR:', e);
+        }
+    </script>
+</body>
+</html>

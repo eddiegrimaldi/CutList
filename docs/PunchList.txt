@@ -1,0 +1,8 @@
+1) Camera should never be able to drop below the grid.
+
+2) When in Bevel mode, the board should be movable left and right, nothing else. This is not a camera movement, but a board movement. While in Bevel mode, the camera should be locked onto the blade and note move
+
+3) The blade apparatus should not ve visible outside of Bevel mode.
+
+4) Pan should not work in Bevel mode.
+

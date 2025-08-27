@@ -231,7 +231,7 @@ class TheMillSystem {
         this.blade = BABYLON.MeshBuilder.CreateBox('blade', {
             width: 500,  // 500 inches long blade
             height: 12,     // Full 12 inch height
-            depth: 0.125  // 1/8 inch kerf
+            depth: 0.0078125  // 1/128 inch kerf - very thin realistic kerf
         }, this.millScene);
         this.blade.position.y = 0;  // Center at Y=0 so blade extends -6 to +6
         this.blade.position.z = 0;
@@ -1405,7 +1405,7 @@ class TheMillSystem {
             blade.material = new BABYLON.StandardMaterial('bladeMat', this.millScene);
             blade.material.diffuseColor = new BABYLON.Color3(0, 1, 0);  // Bright green for CSG blade
             blade.material.alpha = 0.8;  // More opaque to see clearly
-            // blade.isVisible = true; // KEEP VISIBLE to see actual cut position
+            blade.isVisible = true; // KEEP VISIBLE to see actual cut position
             
             console.log('Blade position:', blade.position);
             console.log('Board position:', this.currentBoard.position);

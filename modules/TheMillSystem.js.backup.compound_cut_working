@@ -43,16 +43,27 @@ class TheMillSystem {
         this.viewCube = null;
     }
     
-    // Open The Mill with a selected material
-    openMill(material, operation = 'cut') {
-        if (!material) {
-            console.error('No material provided to The Mill');
+    // Open The Mill with a selected Part instance
+    openMill(partOrMesh, operation = 'cut') {
+        if (!partOrMesh) {
+            console.error('No part/material provided to The Mill');
             return;
         }
         
-        console.log('Opening The Mill with material:', material.name);
+        // Handle both Part instances and raw meshes
+        let mesh;
+        if (partOrMesh.mesh) {
+            // It's a Part instance
+            mesh = partOrMesh.mesh;
+            console.log('Opening The Mill with Part:', partOrMesh.materialName);
+        } else {
+            // It's a raw mesh
+            mesh = partOrMesh;
+            console.log('Opening The Mill with mesh:', mesh.name);
+        }
         
-        this.currentMaterial = material;
+        this.currentMaterial = mesh;  // Store the mesh
+        this.originalMesh = mesh;  // Keep reference to original mesh
         this.currentOperation = operation;
         this.isActive = true;
         
@@ -231,7 +242,7 @@ class TheMillSystem {
         this.blade = BABYLON.MeshBuilder.CreateBox('blade', {
             width: 500,  // 500 inches long blade
             height: 12,     // Full 12 inch height
-            depth: 0.125  // 1/8 inch kerf
+            depth: 0.0078125  // 1/128 inch kerf - very thin realistic kerf
         }, this.millScene);
         this.blade.position.y = 0;  // Center at Y=0 so blade extends -6 to +6
         this.blade.position.z = 0;
@@ -435,16 +446,7 @@ class TheMillSystem {
         this.setupCameraControls();
         
         // Set orthographic size based on material
-        const bounds = this.currentMaterial.getBoundingInfo().boundingBox;
-        const boardLength = bounds.maximum.x - bounds.minimum.x;
-        const boardWidth = bounds.maximum.z - bounds.minimum.z;
-        const maxDim = Math.max(boardLength, boardWidth) * 1.5; // Add 50% padding for better view
-        
-        // Set orthographic bounds to fit board with padding
-        this.millCamera.orthoLeft = -maxDim / 2;
-        this.millCamera.orthoRight = maxDim / 2;
-        this.millCamera.orthoTop = maxDim / 2;
-        this.millCamera.orthoBottom = -maxDim / 2;
+        //         // Set orthographic bounds to fit board with padding
         
         // Create angled light to reduce direct reflection
         const light = new BABYLON.HemisphericLight('millLight', 
@@ -456,7 +458,10 @@ class TheMillSystem {
         console.log('Creating material in Mill scene:', this.currentMaterial.name);
         
         // Get dimensions from the original mesh
-        const boardThickness = bounds.maximum.y - bounds.minimum.y;
+        const origBounds = this.currentMaterial.getBoundingInfo().boundingBox;
+        const boardLength = origBounds.maximum.x - origBounds.minimum.x;
+        const boardWidth = origBounds.maximum.z - origBounds.minimum.z;
+        const boardThickness = origBounds.maximum.y - origBounds.minimum.y;
         
         console.log('Board dimensions:', { 
             length: boardLength, 
@@ -519,6 +524,16 @@ class TheMillSystem {
         
         // Store the board reference
         this.currentBoard = materialClone;
+
+        // Set orthographic size based on board (use existing dimensions)
+        const maxDim = Math.max(boardLength, boardWidth) * 1.5; // Add 50% padding for better view
+        
+        // Set orthographic bounds to fit board with padding
+        this.millCamera.orthoLeft = -maxDim / 2;
+        this.millCamera.orthoRight = maxDim / 2;
+        this.millCamera.orthoTop = maxDim / 2;
+        this.millCamera.orthoBottom = -maxDim / 2;
+
 
         // Blade already created earlier
         
@@ -1274,8 +1289,8 @@ class TheMillSystem {
                 this.laserAssembly.rotation.y = currentRotation * Math.PI / 180;
             if (this.blade) {
                 this.blade.rotation.y = currentRotation * Math.PI / 180;
-                this.bladeAngle = currentRotation * Math.PI / 180;  // CRITICAL: Keep bladeAngle in sync!
-            }
+                this.bladeAngle = currentRotation * Math.PI / 180;  // Keep bladeAngle in sync
+            }  // Natural direction
             }
             
             // Update HUD if exists
@@ -1371,31 +1386,36 @@ class TheMillSystem {
                 depth: 3  // Make it 3 inches thick for CSG to work better
             }, this.millScene);
             
-            // Position and rotate the CSG blade
             // Position the CSG blade
             blade.position = this.blade.position.clone();
             
             // Apply BOTH rotations before baking
-            blade.rotation.x = bevelRadians * this.bevelDirection;  // Bevel
-            blade.rotation.y = this.bladeAngle;  // Miter
+            blade.rotation.x = bevelRadians * this.bevelDirection;  // Bevel rotation
+            blade.rotation.y = this.bladeAngle;  // Miter rotation
             
-            // Bake BOTH rotations into geometry for CSG
+            console.log('Applying compound rotation - X (bevel):', (blade.rotation.x * 180 / Math.PI).toFixed(1), 'Y (miter):', (blade.rotation.y * 180 / Math.PI).toFixed(1));
+            
+            // Bake BOTH rotations into the geometry
+            blade.computeWorldMatrix(true);
             blade.bakeCurrentTransformIntoVertices();
             
-            // Clear rotations since they're now baked into geometry
+            // Clear rotations after baking - they're now in the geometry
             blade.rotation.x = 0;
-            blade.rotation.y = 0;
+            blade.rotation.y = 0
             
-            console.log('Created CSG blade with both angles baked - Miter:', (this.bladeAngle * 180 / Math.PI).toFixed(1), 'Bevel:', this.bevelAngle);
-            console.log('Created new CSG blade with bevel baked in:', this.bevelAngle, 'degrees');
+            console.log('Created CSG blade - Miter:', (this.bladeAngle * 180 / Math.PI).toFixed(1), 'degrees, Bevel:', this.bevelAngle, 'degrees');
+            console.log('Visual blade rotation.y:', (this.blade.rotation.y * 180 / Math.PI).toFixed(1), 'degrees');
             
             // The cloned blade already has the correct position and rotation from visual blade
             // Visual blade is updated by updateBladeRotation() which includes both miter and bevel
             console.log('CSG blade cloned with rotation:', blade.rotation);
             console.log('CSG blade position:', blade.position);
             
-            // Keep cloned blade invisible for CSG
-            blade.isVisible = false;
+            // Make blade visible for debugging
+            blade.isVisible = true;
+            blade.material = new BABYLON.StandardMaterial('csgBladeMat', this.millScene);
+            blade.material.diffuseColor = new BABYLON.Color3(0, 1, 0);  // Green
+            blade.material.alpha = 0.5;  // Semi-transparent
             
             console.log('Blade positioned at:', blade.position);
             console.log('Blade rotation:', blade.rotation);
@@ -1405,7 +1425,7 @@ class TheMillSystem {
             blade.material = new BABYLON.StandardMaterial('bladeMat', this.millScene);
             blade.material.diffuseColor = new BABYLON.Color3(0, 1, 0);  // Bright green for CSG blade
             blade.material.alpha = 0.8;  // More opaque to see clearly
-            // blade.isVisible = true; // KEEP VISIBLE to see actual cut position
+            blade.isVisible = true; // KEEP VISIBLE to see actual cut position
             
             console.log('Blade position:', blade.position);
             console.log('Board position:', this.currentBoard.position);
@@ -1420,33 +1440,72 @@ class TheMillSystem {
             console.log('Creating CSG from blade...');
             const bladeCSG = BABYLON.CSG.FromMesh(blade);
             
-            console.log('Performing CSG cut...');
+            console.log('Creating two pieces from CSG cut...');
             
-            // Subtract blade from board to create cut result
-            const cutBoardCSG = boardCSG.subtract(bladeCSG);
+            // Create separators to isolate each piece
+            // Account for blade's left-edge pivot at X=-100
+            const separator1 = BABYLON.MeshBuilder.CreateBox('separator1', {
+                width: 500,
+                height: 100,
+                depth: 500
+            }, this.millScene);
             
-            // Create the cut result as a single mesh
-            const cutResult = cutBoardCSG.toMesh('cutBoard', this.currentBoard.material.clone(), this.millScene);
+            // Position separator to right of blade center (blade center is at X=0 when blade.position.x=-100)
+            // Since blade is 200 wide with pivot at left edge, blade center is 100 units from pivot
+            const bladeCenterOffset = new BABYLON.Vector3(100, 0, 0);
+            const rotMatrix = BABYLON.Matrix.RotationY(blade.rotation.y);
+            const rotatedCenter = BABYLON.Vector3.TransformCoordinates(bladeCenterOffset, rotMatrix);
+            const bladeCenter = blade.position.clone().add(rotatedCenter);
             
-            // Position the cut result at the original board position
-            cutResult.position = this.currentBoard.position.clone();
+            // Now position separators relative to blade center
+            const offset1 = new BABYLON.Vector3(0, 0, 250);
+            const rotatedOffset1 = BABYLON.Vector3.TransformCoordinates(offset1, rotMatrix);
+            separator1.position = bladeCenter.clone().add(rotatedOffset1);
+            // Separator1 stays unrotated to cut perpendicular
             
-            console.log('Cut complete - single result mesh created');
+            const separator2 = BABYLON.MeshBuilder.CreateBox('separator2', {
+                width: 500,
+                height: 100,
+                depth: 500
+            }, this.millScene);
             
-            // Store the cut result for later manipulation
-            const piece1 = cutResult;  // For compatibility with existing code
-            const piece2 = null;  // No second piece for miter cuts
+            // Position separator to left of blade center
+            const offset2 = new BABYLON.Vector3(0, 0, -250);
+            const rotatedOffset2 = BABYLON.Vector3.TransformCoordinates(offset2, rotMatrix);
+            separator2.position = bladeCenter.clone().add(rotatedOffset2);
+            // Separator2 stays unrotated to cut perpendicular
             
-            // Clean up
-            // Delay blade disposal so we can see where the cut happened
+            // Create piece 1 (left side) by subtracting blade and right separator
+            const piece1CSG = boardCSG.subtract(bladeCSG).subtract(BABYLON.CSG.FromMesh(separator1));
+            const piece1 = piece1CSG.toMesh('piece1', this.currentBoard.material.clone(), this.millScene);
+            
+            // Create piece 2 (right side) by subtracting blade and left separator
+            const piece2CSG = boardCSG.subtract(bladeCSG).subtract(BABYLON.CSG.FromMesh(separator2));
+            const piece2 = piece2CSG.toMesh('piece2', this.currentBoard.material.clone(), this.millScene);
+            
+            // Clean up separators
+            separator1.dispose();
+            separator2.dispose();
+            
+            console.log('Two pieces created');
+            
+            // Position pieces with visible gap
+            const separation = 10;
+            // Position pieces at origin with separation
+            piece1.position = this.currentBoard.position.clone();
+            piece1.position.z -= separation / 2;
+            piece2.position = this.currentBoard.position.clone();
+            // piece2.position.z += separation / 2;  // Removed duplicate
+            // piece2.position.z += separation / 2;  // Removed duplicate
+            
+            // Clean up - dispose CSG blade after a delay
             setTimeout(() => {
-                // if (blade) blade.dispose();  // KEEP blade visible to see cut position
+                if (blade) blade.dispose();  // Dispose CSG blade after cut
             }, 2000);
             
             // Visual feedback
             this.flashBlade();
-            // Animation only if we have two pieces
-            // if (piece2) this.showCutAnimation(piece1, piece2);
+            if (piece2) this.showCutAnimation(piece1, piece2);
             
             // Handle piece management
             if (this.cutPieces) {
@@ -1473,14 +1532,14 @@ class TheMillSystem {
                 this.cutPieces = [];
             }
             
-            // Ensure cut result is visible
+            // Ensure pieces are visible
             piece1.isVisible = true;
-            // piece2.isVisible = true;  // No piece2 for miter cuts
+            piece2.isVisible = true;
             
             this.cutPieces.push(piece1);
-            // this.cutPieces.push(piece2);  // No piece2 for single cut result
+            this.cutPieces.push(piece2);
             
-            console.log('Added cut result to pieces:', this.cutPieces.length);
+            console.log('Added cut pieces:', this.cutPieces.length);
             
             // Make pieces selectable
             this.makePiecesSelectable();
@@ -1616,7 +1675,7 @@ class TheMillSystem {
         if (!this.cutPieces) {
             this.cutPieces = [];
         }
-        this.cutPieces.push(piece1);  // Single cut result
+        this.cutPieces.push(piece1, piece2);
         
         // Add click handlers to pieces for selection
         this.makePiecesSelectable();

@@ -227,28 +227,6 @@ class TheMillSystem {
         // Create scene
         this.millScene = new BABYLON.Scene(millEngine);
         this.millScene.clearColor = new BABYLON.Color3(0.98, 0.98, 0.98);
-        // Create blade EARLY before physics
-        this.blade = BABYLON.MeshBuilder.CreateBox('blade', {
-            width: 500,  // 500 inches long blade
-            height: 12,     // Full 12 inch height
-            depth: 0.125  // 1/8 inch kerf
-        }, this.millScene);
-        this.blade.position.y = 0;  // Center at Y=0 so blade extends -6 to +6
-        this.blade.position.z = 0;
-        const bladeMat = new BABYLON.StandardMaterial('bladeMat', this.millScene);
-        bladeMat.diffuseColor = new BABYLON.Color3(0.7, 0.7, 0.8);
-        bladeMat.alpha = 0.7;  // Semi-transparent to see through board
-        bladeMat.specularColor = new BABYLON.Color3(0.3, 0.3, 0.3);  // Less shine
-        this.blade.material = bladeMat;
-        this.blade.renderingGroupId = 1;  // Same layer as board for proper depth
-        
-        // Set pivot at left edge where blade intersects table (Y=0)
-        // Blade is 500 wide, so left edge is at X=-250
-        // Pivot must be at (-100, 0, 0) - left edge at table surface
-        this.blade.setPivotMatrix(BABYLON.Matrix.Translation(0, 0, 0));  // Pivot at blade center\n        this.blade.position.x = 0;  // Center blade on table
-        
-        console.log('Blade created with pivot at left edge/table intersection');
-        
         
         // Create ArcRotateCamera and FORCE it to top-down view
         this.millCamera = new BABYLON.ArcRotateCamera('millCamera',
@@ -308,48 +286,34 @@ class TheMillSystem {
                 if (rotationControl) rotationControl.style.display = 'block';
                 if (bevelControl) bevelControl.style.display = 'none';
                 
-                // UNLOCK camera rotation limits from blade-eye view
-                this.millCamera.lowerAlphaLimit = null;
-                this.millCamera.upperAlphaLimit = null;
-                this.millCamera.lowerBetaLimit = 0;
-                this.millCamera.upperBetaLimit = Math.PI / 2;
-                
-                // Reset blade thickness if it was scaled in B view
-                if (this.blade) {
-                    this.blade.scaling.z = 1;
-                }
-                
                 // Reset camera to top-down position
                 this.millCamera.alpha = -Math.PI / 2;
                 this.millCamera.beta = 0;
                 
-                // Re-frame the current board or pieces to 90% of viewport
-                if (this.currentBoard) {
-                    this.frameBoard(this.currentBoard);
-                } else if (this.cutPieces && this.cutPieces.length > 0) {
-                    // Frame all pieces together
-                    let minX = Infinity, maxX = -Infinity;
-                    let minZ = Infinity, maxZ = -Infinity;
-                    this.cutPieces.forEach(piece => {
-                        piece.computeWorldMatrix(true);
-                        const bounds = piece.getBoundingInfo().boundingBox;
-                        minX = Math.min(minX, bounds.minimumWorld.x);
-                        maxX = Math.max(maxX, bounds.maximumWorld.x);
-                        minZ = Math.min(minZ, bounds.minimumWorld.z);
-                        maxZ = Math.max(maxZ, bounds.maximumWorld.z);
-                    });
-                    const sizeX = maxX - minX;
-                    const sizeZ = maxZ - minZ;
-                    const maxSize = Math.max(sizeX, sizeZ);
-                    const paddedSize = maxSize * 1.11;  // 90% fill
-                    console.log('T key framing - bounds:', {minX, maxX, minZ, maxZ, maxSize, paddedSize});
-                    const aspectRatio = this.millCanvas.width / this.millCanvas.height;
-                    this.millCamera.orthoLeft = -paddedSize * aspectRatio / 2;
-                    this.millCamera.orthoRight = paddedSize * aspectRatio / 2;
-                    this.millCamera.orthoTop = paddedSize / 2;
-                    this.millCamera.orthoBottom = -paddedSize / 2;
-                    this.millCamera.target = new BABYLON.Vector3((minX+maxX)/2, 0, (minZ+maxZ)/2);
+                // Recalculate ortho bounds based on current radius
+                const aspectRatio = this.millCanvas.width / this.millCanvas.height;
+                const orthoSize = this.millCamera.radius;
+                this.millCamera.orthoLeft = -orthoSize * aspectRatio;
+                this.millCamera.orthoRight = orthoSize * aspectRatio;
+                this.millCamera.orthoTop = orthoSize;
+                this.millCamera.orthoBottom = -orthoSize;
+                
+                // Disable rotation gizmo in ortho mode
+                if (this.gizmoManager) {
+                    this.gizmoManager.rotationGizmoEnabled = false;
                 }
+                
+        // Hide table surface in top view
+        if (this.tableSurface) {
+            this.tableSurface.isVisible = false;
+        }
+        // Show transform toolbar in top view
+        const toolbar = document.getElementById("mill-transform-toolbar");
+        if (toolbar) toolbar.style.display = "flex";
+                console.log('Returned to top-down orthographic view');
+        
+        // Disable B view dragging
+        this.enableBViewDragging = false;
             } else if (e.key === 'b' || e.key === 'B') {
                 // Switch to blade profile view
                 this.switchToBladeProfileView();
@@ -360,55 +324,6 @@ class TheMillSystem {
                 const bevelControl = document.getElementById('mill-bevel-control');
                 if (rotationControl) rotationControl.style.display = 'none';
                 if (bevelControl) bevelControl.style.display = 'block';
-                
-                console.log('Switched to blade-eye view');
-            } else if (e.key === 'i' || e.key === 'I') {
-                // Isometric view - perfect for seeing bevels
-                this.millCamera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
-                this.currentViewMode = 'iso';
-                
-                // Unlock camera if it was locked
-                this.millCamera.lowerAlphaLimit = null;
-                this.millCamera.upperAlphaLimit = null;
-                this.millCamera.lowerBetaLimit = 0;
-                this.millCamera.upperBetaLimit = Math.PI / 2;
-                
-                // Reset blade thickness
-                if (this.blade) {
-                    this.blade.scaling.z = 1;
-                }
-                
-                // Set to isometric angle (45 degrees around, 35 degrees up)
-                this.millCamera.alpha = -Math.PI / 4;  // 45 degrees
-                this.millCamera.beta = Math.PI / 3;    // 60 degrees from vertical (30 degrees up)
-                
-                // Frame the pieces or board
-                if (this.cutPieces && this.cutPieces.length > 0) {
-                    let minX = Infinity, maxX = -Infinity;
-                    let minZ = Infinity, maxZ = -Infinity;
-                    this.cutPieces.forEach(piece => {
-                        piece.computeWorldMatrix(true);
-                        const bounds = piece.getBoundingInfo().boundingBox;
-                        minX = Math.min(minX, bounds.minimumWorld.x);
-                        maxX = Math.max(maxX, bounds.maximumWorld.x);
-                        minZ = Math.min(minZ, bounds.minimumWorld.z);
-                        maxZ = Math.max(maxZ, bounds.maximumWorld.z);
-                    });
-                    const sizeX = maxX - minX;
-                    const sizeZ = maxZ - minZ;
-                    const maxSize = Math.max(sizeX, sizeZ);
-                    const paddedSize = maxSize * 1.5;  // More padding for iso view
-                    const aspectRatio = this.millCanvas.width / this.millCanvas.height;
-                    this.millCamera.orthoLeft = -paddedSize * aspectRatio / 2;
-                    this.millCamera.orthoRight = paddedSize * aspectRatio / 2;
-                    this.millCamera.orthoTop = paddedSize / 2;
-                    this.millCamera.orthoBottom = -paddedSize / 2;
-                    this.millCamera.target = new BABYLON.Vector3((minX+maxX)/2, 0, (minZ+maxZ)/2);
-                } else if (this.currentBoard) {
-                    this.frameBoard(this.currentBoard);
-                }
-                
-                console.log('Switched to isometric view - press I to see bevels clearly');
             }
         });
         
@@ -519,23 +434,6 @@ class TheMillSystem {
         
         // Store the board reference
         this.currentBoard = materialClone;
-
-        // Blade already created earlier
-        
-        
-        
-        // Make blade rotate with turntable
-        this.updateBladeRotation = () => {
-            if (this.blade) {
-                this.blade.rotation.y = this.bladeAngle || 0;
-                // Apply bevel if set
-                if (Math.abs(this.bevelAngle - 90) > 0.1) {
-                    const bevelRadians = (90 - this.bevelAngle) * Math.PI / 180;
-                    this.blade.rotation.x = bevelRadians * this.bevelDirection;  // Fixed: removed negative
-                }
-            }
-        };
-
         this.currentBoard.isPickable = true; // Ensure board is pickable for dragging
         
         // Force board to render in all camera modes
@@ -554,7 +452,7 @@ class TheMillSystem {
         this.frameBoard(materialClone);
         
         // Create blade visualization
-        // Blade visualization removed - using single blade in CSG
+        this.createBladeVisualization();
         this.updateBladeTilt(); // Set initial angle
         
         // Add grid for reference
@@ -609,7 +507,7 @@ class TheMillSystem {
         window.addEventListener('resize', () => {
             millEngine.resize();
         });
-        }
+    }
     
 
     updateAngleDisplay(degrees) {
@@ -685,7 +583,7 @@ class TheMillSystem {
             if (this.isDraggingBoard && this.currentBoard) {
                 const deltaX = e.clientX - this.lastMouseX;
                 // In B view, move along Z axis (forward/backward relative to blade)
-                this.currentBoard.position.z += deltaX * 0.05;  // Fixed: positive for correct direction
+                this.currentBoard.position.z -= deltaX * 0.05;  // Negative for correct direction
                 this.lastMouseX = e.clientX;
                 return;
             }
@@ -768,7 +666,6 @@ class TheMillSystem {
     
     // Mouse down - handle based on button
     onMouseDown(e) {
-        console.log('Mouse down event');
         
         console.log("onMouseDown called, button:", e.button);
         // Check for B view board dragging
@@ -781,12 +678,6 @@ class TheMillSystem {
         }
         
         const pickResult = this.millScene.pick(e.clientX, e.clientY);
-        if (pickResult.hit) {
-            console.log('Clicked on mesh:', pickResult.pickedMesh.name);
-        } else {
-            console.log('No mesh clicked');
-        }
-        console.log('Pick result:', pickResult.hit ? pickResult.pickedMesh.name : 'no hit');
         
         if (!pickResult.hit) return;
         
@@ -798,10 +689,8 @@ class TheMillSystem {
         }
         
         // Check if clicking on turntable (only with left button)
-        console.log('Checking if mesh is turntable:', pickResult.pickedMesh.name === 'turntable');
         if (pickResult.pickedMesh.name === 'turntable') {
             this.isDraggingTurntable = true;
-            console.log('Started dragging turntable');
             
             // Calculate starting angle from click position
             const clickPoint = pickResult.pickedPoint;
@@ -813,7 +702,6 @@ class TheMillSystem {
     
     // Mouse move - rotate turntable and laser if dragging
     onMouseMove(e) {
-        // Mouse move logging removed
         if (!this.isDraggingTurntable) return;
         
         // Handle B view board dragging (left/right only)
@@ -826,7 +714,6 @@ class TheMillSystem {
         }
         
         const pickResult = this.millScene.pick(e.clientX, e.clientY);
-        console.log('Pick result:', pickResult.hit ? pickResult.pickedMesh.name : 'no hit');
         
         if (pickResult.hit) {
             const currentPoint = pickResult.pickedPoint;
@@ -843,30 +730,6 @@ class TheMillSystem {
             if (this.laserLine) {
                 this.laserLine.rotation.y = this.bladeAngle;
             }
-            // Force blade rotation using different methods
-            if (this.blade) {
-                console.log('Attempting blade rotation to:', (this.bladeAngle * 180 / Math.PI).toFixed(1), 'degrees');
-                
-                // Method 1: Direct rotation
-                this.blade.rotation.y = this.bladeAngle;
-                
-                // Method 2: Force compute world matrix
-                this.blade.computeWorldMatrix(true);
-                
-                // Method 3: Try rotating around Y axis
-                this.blade.rotate(BABYLON.Axis.Y, this.bladeAngle - (this.blade.rotation.y || 0), BABYLON.Space.LOCAL);
-                
-                // Check if it actually rotated
-                console.log('Blade rotation after all attempts:', this.blade.rotation.y);
-                
-                // Check if blade is frozen
-                if (this.blade.rotationQuaternion) {
-                    console.log('WARNING: Blade has quaternion rotation!');
-                    this.blade.rotationQuaternion = null;
-                }
-            }
-            
-
             
             // Update start angle for next frame
             this.dragStartAngle = currentAngle;
@@ -955,6 +818,7 @@ class TheMillSystem {
         this.bevelDirection = 1; // 1 = right, -1 = left
         this.bladeVisual = null;
         this.cuttingPlane = null;
+        this.bevelAngle = 90; // Default 90 degrees (straight cut)
         this.bevelDirection = 1; // 1 = right, -1 = left
         this.bladeVisual = null;
         this.cuttingPlane = null;
@@ -1271,11 +1135,7 @@ class TheMillSystem {
             
             // Rotate the laser
             if (this.laserAssembly) {
-                this.laserAssembly.rotation.y = currentRotation * Math.PI / 180;
-            if (this.blade) {
-                this.blade.rotation.y = currentRotation * Math.PI / 180;
-                this.bladeAngle = currentRotation * Math.PI / 180;  // CRITICAL: Keep bladeAngle in sync!
-            }
+                this.laserAssembly.rotation.y = currentRotation * Math.PI / 180;  // Natural direction
             }
             
             // Update HUD if exists
@@ -1293,556 +1153,24 @@ class TheMillSystem {
     }
     
         executeCut() {
-        const miterAngleDegrees = (this.bladeAngle * 180 / Math.PI) % 360;
-        console.log('Executing cut with miter:', miterAngleDegrees, 'bevel:', this.bevelAngle);
+        console.log('Executing cut in The Mill with blade angle:', this.bladeAngle);
         
-        // Use BABYLON.CSG for proper boolean operations
-        if (BABYLON.CSG) {
-            console.log('Using CSG for cutting');
-            this.executeCSGCut();
-        } else {
-            console.warn('CSG not available, using simple cut');
-            this.executeSimpleCut();
-        }
-    }
-    
-    updateBladeTilt() {
-        if (!this.blade) {
-            return;
-        }
-        
-        // Apply bevel angle to blade
-        const tiltRadians = (90 - this.bevelAngle) * Math.PI / 180;
-        const direction = this.bevelDirection || 1;
-        
-        // Tilt the blade on X axis for bevel
-        this.blade.rotation.x = tiltRadians * direction;  // Fixed: removed negative
-        
-        // Debug: Make blade more visible when beveled
-        if (Math.abs(this.bevelAngle - 90) > 0.1) {
-            console.log('Blade bevel applied:', this.bevelAngle, 'degrees, direction:', direction > 0 ? 'right' : 'left');
-            console.log('Blade X rotation:', this.blade.rotation.x * 180 / Math.PI, 'degrees');
-            // Make blade red when beveled for visibility
-            if (!this.blade.material) {
-                this.blade.material = new BABYLON.StandardMaterial('bladeMat', this.millScene);
-            }
-            this.blade.material.diffuseColor = new BABYLON.Color3(1, 0.2, 0.2);
-            this.blade.material.alpha = 0.8;
-        } else {
-            if (this.blade.material) {
-                this.blade.material.diffuseColor = new BABYLON.Color3(0.5, 0.5, 0.5);
-                this.blade.material.alpha = 0.3;
-            }
-        }
-    }
-
-    executeCSGCut() {
-        const miterAngleDegrees = (this.bladeAngle * 180 / Math.PI) % 360;
-        console.log('CSG Cut - Miter:', miterAngleDegrees, 'Bevel:', this.bevelAngle);
-        
-        // Check for pieces and current board
-        if (this.cutPieces && this.cutPieces.length > 0 && !this.currentBoard) {
-            alert('Please select a piece to cut by clicking on it.');
-            return;
-        }
-        
-        if (!this.currentBoard) {
+        // Get the lumber position
+        const lumberMesh = this.millScene.getMeshByName('millMaterial');
+        if (!lumberMesh) {
             alert('No material to cut');
             return;
         }
         
-        try {
-            // Get board dimensions
-            const bounds = this.currentBoard.getBoundingInfo();
-            const boardSize = bounds.maximum.subtract(bounds.minimum);
-            
-            // Create a realistic blade with proper kerf
-            const kerfWidth = 3.175; // 1/8 inch kerf (standard table saw blade)
-            const bladeRadius = 254; // 20 inch blade (508mm diameter) for 500 inch length
-            
-            // Create a NEW blade mesh with bevel built into geometry
-            // This ensures CSG will definitely cut at an angle
-            const bevelRadians = (90 - this.bevelAngle) * Math.PI / 180;
-            
-            // Create a tilted blade by using a rotated box
-            const blade = BABYLON.MeshBuilder.CreateBox('csgBlade', {
-                width: 500,
-                height: 12,
-                depth: 3  // Make it 3 inches thick for CSG to work better
-            }, this.millScene);
-            
-            // Position and rotate the CSG blade
-            // Position the CSG blade
-            blade.position = this.blade.position.clone();
-            
-            // Apply BOTH rotations before baking
-            blade.rotation.x = bevelRadians * this.bevelDirection;  // Bevel
-            blade.rotation.y = this.bladeAngle;  // Miter
-            
-            // Bake BOTH rotations into geometry for CSG
-            blade.bakeCurrentTransformIntoVertices();
-            
-            // Clear rotations since they're now baked into geometry
-            blade.rotation.x = 0;
-            blade.rotation.y = 0;
-            
-            console.log('Created CSG blade with both angles baked - Miter:', (this.bladeAngle * 180 / Math.PI).toFixed(1), 'Bevel:', this.bevelAngle);
-            console.log('Created new CSG blade with bevel baked in:', this.bevelAngle, 'degrees');
-            
-            // The cloned blade already has the correct position and rotation from visual blade
-            // Visual blade is updated by updateBladeRotation() which includes both miter and bevel
-            console.log('CSG blade cloned with rotation:', blade.rotation);
-            console.log('CSG blade position:', blade.position);
-            
-            // Keep cloned blade invisible for CSG
-            blade.isVisible = false;
-            
-            console.log('Blade positioned at:', blade.position);
-            console.log('Blade rotation:', blade.rotation);
-            console.log('Board at:', this.currentBoard.position);
-            
-            // Make blade visible temporarily to debug
-            blade.material = new BABYLON.StandardMaterial('bladeMat', this.millScene);
-            blade.material.diffuseColor = new BABYLON.Color3(0, 1, 0);  // Bright green for CSG blade
-            blade.material.alpha = 0.8;  // More opaque to see clearly
-            // blade.isVisible = true; // KEEP VISIBLE to see actual cut position
-            
-            console.log('Blade position:', blade.position);
-            console.log('Board position:', this.currentBoard.position);
-            console.log('Board bounds:', bounds);
-            
-            // blade.isVisible = false; // Keep visible for debugging
-            
-            // Perform a single CSG operation - just subtract the blade
-            console.log('Creating CSG from board...');
-            const boardCSG = BABYLON.CSG.FromMesh(this.currentBoard);
-            
-            console.log('Creating CSG from blade...');
-            const bladeCSG = BABYLON.CSG.FromMesh(blade);
-            
-            console.log('Performing CSG cut...');
-            
-            // Subtract blade from board to create cut result
-            const cutBoardCSG = boardCSG.subtract(bladeCSG);
-            
-            // Create the cut result as a single mesh
-            const cutResult = cutBoardCSG.toMesh('cutBoard', this.currentBoard.material.clone(), this.millScene);
-            
-            // Position the cut result at the original board position
-            cutResult.position = this.currentBoard.position.clone();
-            
-            console.log('Cut complete - single result mesh created');
-            
-            // Store the cut result for later manipulation
-            const piece1 = cutResult;  // For compatibility with existing code
-            const piece2 = null;  // No second piece for miter cuts
-            
-            // Clean up
-            // Delay blade disposal so we can see where the cut happened
-            setTimeout(() => {
-                // if (blade) blade.dispose();  // KEEP blade visible to see cut position
-            }, 2000);
-            
-            // Visual feedback
-            this.flashBlade();
-            // Animation only if we have two pieces
-            // if (piece2) this.showCutAnimation(piece1, piece2);
-            
-            // Handle piece management
-            if (this.cutPieces) {
-                const index = this.cutPieces.indexOf(this.currentBoard);
-                if (index > -1) {
-                    this.cutPieces.splice(index, 1);
-                }
-            }
-            
-            // Clean up gizmos
-            if (this.gizmoManager) {
-                this.gizmoManager.attachToMesh(null);
-            }
-            
-            // Dispose original board
-            console.log('Disposing original board:', this.currentBoard.name);
-            this.currentBoard.isVisible = false;
-            this.currentBoard.dispose();
-            this.currentBoard = null;
-            console.log('Original board disposed');
-            
-            // Add new pieces
-            if (!this.cutPieces) {
-                this.cutPieces = [];
-            }
-            
-            // Ensure cut result is visible
-            piece1.isVisible = true;
-            // piece2.isVisible = true;  // No piece2 for miter cuts
-            
-            this.cutPieces.push(piece1);
-            // this.cutPieces.push(piece2);  // No piece2 for single cut result
-            
-            console.log('Added cut result to pieces:', this.cutPieces.length);
-            
-            // Make pieces selectable
-            this.makePiecesSelectable();
-            this.updateSelectionDisplay();
-            
-            // Show success
-            const cutData = {
-                miterAngle: miterAngleDegrees,
-                bevelAngle: this.bevelAngle,
-                bevelDirection: this.bevelDirection,
-                kerfWidth: kerfWidth
-            };
-            
-            console.log('CSG cut completed successfully');
-            this.showCutSuccess(cutData);
-            
-            // Frame the cut pieces in view
-            if (this.cutPieces && this.cutPieces.length > 0) {
-                // Calculate bounds of all pieces
-                let minX = Infinity, maxX = -Infinity;
-                let minZ = Infinity, maxZ = -Infinity;
-                this.cutPieces.forEach(piece => {
-                    piece.computeWorldMatrix(true);
-                    const bounds = piece.getBoundingInfo().boundingBox;
-                    minX = Math.min(minX, bounds.minimumWorld.x);
-                    maxX = Math.max(maxX, bounds.maximumWorld.x);
-                    minZ = Math.min(minZ, bounds.minimumWorld.z);
-                    maxZ = Math.max(maxZ, bounds.maximumWorld.z);
-                });
-                
-                const sizeX = maxX - minX;
-                const sizeZ = maxZ - minZ;
-                const maxSize = Math.max(sizeX, sizeZ);
-                const paddedSize = maxSize * 1.2;  // 20% padding
-                
-                // Update orthographic camera bounds
-                const aspectRatio = this.millCanvas.width / this.millCanvas.height;
-                this.millCamera.orthoLeft = -paddedSize * aspectRatio / 2;
-                this.millCamera.orthoRight = paddedSize * aspectRatio / 2;
-                this.millCamera.orthoTop = paddedSize / 2;
-                this.millCamera.orthoBottom = -paddedSize / 2;
-                
-                // Center camera on pieces
-                this.millCamera.target = new BABYLON.Vector3((minX+maxX)/2, 0, (minZ+maxZ)/2);
-            }
-            
-        } catch (error) {
-            console.error('CSG cut failed:', error);
-            console.error('Error details:', error.message);
-            console.error('Error stack:', error.stack);
-            alert('Cut failed: ' + error.message);
-        }
-    }
-    
-    executeSimpleCut() {
-        const miterAngleDegrees = (this.bladeAngle * 180 / Math.PI) % 360;
-        // If we have cut pieces and one is selected, we can cut it
-        // If no board is selected from cut pieces, remind user to select one
-        if (this.cutPieces && this.cutPieces.length > 0 && !this.currentBoard) {
-            alert('Please select a piece to cut by clicking on it.');
-            return;
-        }
-        
-        if (!this.currentBoard) {
-            alert('No material to cut');
-            return;
-        }
-        
-        // Get board dimensions
-        const bounds = this.currentBoard.getBoundingInfo();
-        const boardSize = bounds.maximum.subtract(bounds.minimum);
-        
-        // Calculate where the cut happens (blade position in board's local space)
-        const cutPositionZ = this.currentBoard.position.z; // Where the board is positioned relative to blade
-        
-        // Create two pieces
-        let piece1, piece2;
-        
-        // Calculate where the blade cuts through the board
-        const boardCenter = this.currentBoard.position.z;
-        const halfBoardLength = boardSize.z / 2;
-        
-        // Calculate the ratio of where the cut happens along the board
-        const cutRatio = (halfBoardLength - boardCenter) / boardSize.z;
-        const piece1Ratio = Math.max(0.1, Math.min(0.9, cutRatio)); // Keep between 10% and 90%
-        const piece2Ratio = 1 - piece1Ratio;
-        
-        const piece1Length = boardSize.z * piece1Ratio;
-        const piece2Length = boardSize.z * piece2Ratio;
-        
-        // Clone the board for both pieces
-        piece1 = this.currentBoard.clone('piece1');
-        piece2 = this.currentBoard.clone('piece2');
-        
-        // Scale the pieces based on the cut position
-        piece1.scaling.z = piece1Ratio;
-        piece2.scaling.z = piece2Ratio;
-        
-        // If bevel angle is not 90 degrees, add visual indicators
-        if (Math.abs(this.bevelAngle - 90) > 0.1) {
-            this.addBevelIndicator(piece1, boardSize, piece1Length, this.bevelAngle, this.bevelDirection, true);
-            this.addBevelIndicator(piece2, boardSize, piece2Length, this.bevelAngle, -this.bevelDirection, false);
-        }
-        
-        // Position pieces with gap at the cut line
-        const separation = 5; // mm gap between pieces
-        piece1.position.z = -piece1Length/2 - separation/2;
-        piece2.position.z = piece2Length/2 + separation/2;
-        
-        // Apply visual feedback
-        this.flashBlade();
-        this.showCutAnimation(piece1, piece2);
-        
-        // Clean up gizmos from original board
-        if (this.gizmoManager) {
-            this.gizmoManager.attachToMesh(null);
-        }
-        
-        // Remove the original board from cutPieces array if it was a cut piece
-        if (this.cutPieces) {
-            const index = this.cutPieces.indexOf(this.currentBoard);
-            if (index > -1) {
-                this.cutPieces.splice(index, 1);
-            }
-        }
-        
-        // Hide and dispose original board
-        this.currentBoard.isVisible = false;
-        this.currentBoard.dispose();
-        this.currentBoard = null;
-        
-        // Add new pieces to cut pieces array (or create new array)
-        if (!this.cutPieces) {
-            this.cutPieces = [];
-        }
-        this.cutPieces.push(piece1);  // Single cut result
-        
-        // Add click handlers to pieces for selection
-        this.makePiecesSelectable();
-        
-        // Update selection display
-        this.updateSelectionDisplay();
-        
-        // Store cut data for returning to main scene
+        // Calculate cut based on laser line intersection with lumber
         const cutData = {
-            miterAngle: miterAngleDegrees,
-            bevelAngle: this.bevelAngle,
-            bevelDirection: this.bevelDirection,
-            cutPosition: cutPositionZ,
-            piece1Length: piece1Length,
-            piece2Length: piece2Length
+            position: lumberMesh.position.clone(),
+            angle: this.bladeAngle,
+            kerf: this.kerfWidth
         };
         
-        console.log('Cut completed:', cutData);
-        
-        // Show success message
-        this.showCutSuccess(cutData);
-    }
-    
-    makePiecesSelectable() {
-        if (!this.cutPieces) return;
-        
-        this.cutPieces.forEach((piece, index) => {
-            piece.isPickable = true;
-            piece.actionManager = new BABYLON.ActionManager(this.millScene);
-            
-            // Add click action
-            piece.actionManager.registerAction(new BABYLON.ExecuteCodeAction(
-                BABYLON.ActionManager.OnPickTrigger,
-                () => {
-                    this.selectPiece(piece, index);
-                }
-            ));
-            
-            // Add hover effect
-            piece.actionManager.registerAction(new BABYLON.ExecuteCodeAction(
-                BABYLON.ActionManager.OnPointerOverTrigger,
-                () => {
-                    piece.renderOutline = true;
-                    piece.outlineColor = new BABYLON.Color3(0, 1, 0);
-                    piece.outlineWidth = 0.1;
-                }
-            ));
-            
-            piece.actionManager.registerAction(new BABYLON.ExecuteCodeAction(
-                BABYLON.ActionManager.OnPointerOutTrigger,
-                () => {
-                    piece.renderOutline = false;
-                }
-            ));
-        });
-    }
-    
-    selectPiece(piece, index) {
-        console.log('Selected piece', index + 1);
-        
-        // Don't dispose other pieces - Prime Directive!
-        // Just deselect them visually
-        this.cutPieces.forEach((p, i) => {
-            if (p.renderOutline) {
-                p.renderOutline = false;
-            }
-            // Remove selection highlight
-            if (p.material.emissiveColor) {
-                p.material.emissiveColor = new BABYLON.Color3(0, 0, 0);
-            }
-        });
-        
-        // Set selected piece as current board
-        this.currentBoard = piece;
-        // Keep cutPieces array so we know there are multiple pieces
-        
-        // Attach gizmos to selected piece
-        if (this.gizmoManager) {
-            this.gizmoManager.attachToMesh(piece);
-        }
-        
-        // Visual feedback for selection
-        piece.renderOutline = true;
-        piece.outlineColor = new BABYLON.Color3(0, 1, 1); // Cyan for selected
-        piece.outlineWidth = 0.15;
-        
-        // Flash to indicate selection
-        const originalEmissive = piece.material.emissiveColor ? piece.material.emissiveColor.clone() : new BABYLON.Color3(0, 0, 0);
-        piece.material.emissiveColor = new BABYLON.Color3(0.2, 0.5, 0.2);
-        setTimeout(() => {
-            piece.material.emissiveColor = originalEmissive;
-        }, 300);
-        
-        // Update selection display
-        this.updateSelectionDisplay();
-    }
-    
-    showCutAnimation(piece1, piece2) {
-        // Animate pieces separating
-        const animationFrames = 30;
-        let frame = 0;
-        
-        const animate = () => {
-            if (frame < animationFrames) {
-                const progress = frame / animationFrames;
-                const ease = 1 - Math.pow(1 - progress, 3); // Ease out cubic
-                
-                piece1.position.z -= 0.3 * ease;
-                piece2.position.z += 0.3 * ease;
-                
-                frame++;
-                requestAnimationFrame(animate);
-            }
-        };
-        
-        animate();
-    }
-    
-    flashBlade() {
-        // Visual feedback for cutting
-        if (!this.bladeVisual) return;
-        
-        const originalAlpha = this.bladeVisual.material.alpha;
-        const originalColor = this.bladeVisual.material.diffuseColor.clone();
-        
-        // Flash white
-        this.bladeVisual.material.diffuseColor = new BABYLON.Color3(1, 1, 1);
-        this.bladeVisual.material.alpha = 0.8;
-        
-        setTimeout(() => {
-            // Return to red
-            this.bladeVisual.material.diffuseColor = originalColor;
-            this.bladeVisual.material.alpha = originalAlpha;
-        }, 200);
-    }
-    
-    addBevelIndicator(piece, originalSize, pieceLength, bevelAngle, direction, isFirstPiece) {
-        // Add a visual indicator for the bevel angle
-        const bevelRadians = (90 - bevelAngle) * Math.PI / 180;
-        const bevelOffset = Math.tan(bevelRadians) * originalSize.y;
-        
-        // Create a thin plane to show the cut angle
-        const indicator = BABYLON.MeshBuilder.CreatePlane('bevelIndicator', {
-            width: originalSize.x,
-            height: originalSize.y * 1.2,
-            sideOrientation: BABYLON.Mesh.DOUBLESIDE
-        }, this.millScene);
-        
-        // Position at the cut end
-        if (isFirstPiece) {
-            indicator.position.z = pieceLength / 2;
-        } else {
-            indicator.position.z = -pieceLength / 2;
-        }
-        
-        // Rotate to show the bevel angle
-        indicator.rotation.y = Math.PI / 2; // Face the cut direction
-        indicator.rotation.z = -bevelRadians * direction;
-        
-        // Make it semi-transparent colored to show the cut
-        const indicatorMat = new BABYLON.StandardMaterial('bevelIndicatorMat', this.millScene);
-        indicatorMat.diffuseColor = new BABYLON.Color3(0.2, 0.8, 0.2);
-        indicatorMat.alpha = 0.2;
-        indicatorMat.emissiveColor = new BABYLON.Color3(0.1, 0.4, 0.1);
-        indicator.material = indicatorMat;
-        
-        // Parent to the piece
-        indicator.parent = piece;
-    }
-    
-    updateSelectionDisplay() {
-        // Remove existing selection display if any
-        const existing = document.getElementById('mill-selection-display');
-        if (existing) existing.remove();
-        
-        if (this.cutPieces && this.cutPieces.length > 0) {
-            const display = document.createElement('div');
-            display.id = 'mill-selection-display';
-            display.style.position = 'fixed';
-            display.style.top = '80px';
-            display.style.right = '20px';
-            display.style.background = 'rgba(0, 0, 0, 0.8)';
-            display.style.color = 'white';
-            display.style.padding = '10px 15px';
-            display.style.borderRadius = '4px';
-            display.style.fontSize = '14px';
-            display.style.zIndex = '1000';
-            
-            const selectedIndex = this.currentBoard ? this.cutPieces.indexOf(this.currentBoard) + 1 : 0;
-            display.innerHTML = `
-                <div style="font-weight: bold; margin-bottom: 5px;">Cut Pieces: ${this.cutPieces.length}</div>
-                <div style="color: #0ff;">Selected: ${selectedIndex > 0 ? 'Piece ' + selectedIndex : 'None - Click a piece'}</div>
-            `;
-            document.body.appendChild(display);
-        }
-    }
-    
-    showCutSuccess(cutData) {
-        // Create success message
-        const message = document.createElement('div');
-        message.style.position = 'fixed';
-        message.style.top = '50%';
-        message.style.left = '50%';
-        message.style.transform = 'translate(-50%, -50%)';
-        message.style.background = 'rgba(39, 174, 96, 0.95)';
-        message.style.color = 'white';
-        message.style.padding = '20px 40px';
-        message.style.borderRadius = '8px';
-        message.style.fontSize = '24px';
-        message.style.fontWeight = 'bold';
-        message.style.zIndex = '10000';
-        message.style.boxShadow = '0 4px 20px rgba(0,0,0,0.3)';
-        message.innerHTML = `
-            <div>✓ Cut Successful!</div>
-            <div style="font-size: 14px; margin-top: 10px; font-weight: normal;">
-                Miter: ${(cutData.miterAngle || 0).toFixed(1)}° | Bevel: ${cutData.bevelAngle.toFixed(1)}°
-            </div>
-        `;
-        document.body.appendChild(message);
-        
-        // Remove after 2 seconds
-        setTimeout(() => {
-            message.style.transition = 'opacity 0.5s';
-            message.style.opacity = '0';
-            setTimeout(() => message.remove(), 500);
-        }, 2000);
+        // Close mill and execute cut in main scene
+        this.closeMill(cutData);
     }
     
     // Get operation display name
@@ -1951,7 +1279,7 @@ class TheMillSystem {
         needle.style.bottom = '0';
         needle.style.left = '50%';
         needle.style.transformOrigin = 'bottom center';
-        needle.style.transform = "translateX(-50%) rotate(0deg)"; // Start at 90 degrees (vertical)
+        needle.style.transform = "translateX(-50%) rotate(0deg)"; // Start vertical; // Start at 90 degrees
         needle.style.pointerEvents = 'none';
         control.appendChild(needle);
         
@@ -1984,46 +1312,26 @@ class TheMillSystem {
             const centerY = rect.bottom; // Bottom center for hemisphere
             
             const dx = e.clientX - centerX;
-            const dy = centerY - e.clientY; // Positive when above center
+            const dy = centerY - e.clientY; // Inverted for hemisphere
             
-            // Only update if mouse is in the upper hemisphere
-            if (dy < 0) return; // Don't allow below the base
+            // Calculate angle for full hemisphere (-90 to +90 degrees)
+            let angle = Math.atan2(dy, Math.abs(dx)) * 180 / Math.PI;
             
-            // Calculate angle from horizontal (0 to 180 degrees for the arc)
-            let arcAngle = Math.atan2(dy, dx) * 180 / Math.PI;
+            // Map to left (-90 to 0) or right (0 to +90)
+            if (dx < 0) angle = -angle; // Left side is negative
             
-            // Convert to bevel angle:
-            // arcAngle 0 (far right) = bevel 0
-            // arcAngle 90 (top) = bevel 90
-            // arcAngle 180 (far left) = bevel 0
-            let bevelAngle;
-            let direction;
             
-            if (arcAngle >= 0 && arcAngle <= 90) {
-                // Right side: 0 to 90 degrees
-                bevelAngle = arcAngle;
-                direction = 1;
-            } else if (arcAngle > 90 && arcAngle <= 180) {
-                // Left side: 90 to 0 degrees
-                bevelAngle = 180 - arcAngle;
-                direction = -1;
-            } else {
-                return; // Shouldn't happen
-            }
-            
-            // Store the values
-            this.bevelAngle = bevelAngle;
-            this.bevelDirection = direction;
-            
-            // Needle rotation: 0 degrees = vertical, positive = clockwise
-            // When bevel is 90, needle is vertical (0 rotation)
-            // When bevel is 0 on right, needle is 90 degrees clockwise
-            // When bevel is 0 on left, needle is -90 degrees
-            const needleRotation = (90 - bevelAngle) * direction;
+            // Store direction and absolute angle
+            this.bevelDirection = angle < 0 ? -1 : 1;
+            this.bevelAngle = Math.abs(angle);
+            this.bevelAngle = Math.abs(angle);
+            const needleRotation = angle; // Direct angle for needle
+            // Update needle rotation (-90 to +90 from vertical)
+            // Update needle rotation
             needle.style.transform = `translateX(-50%) rotate(${needleRotation}deg)`;
             
             // Update display
-            display.textContent = (direction < 0 ? 'L ' : 'R ') + bevelAngle.toFixed(1) + '°';
+            display.textContent = (this.bevelDirection < 0 ? '-' : '') + this.bevelAngle.toFixed(1) + '°';
             
             // Update blade tilt
             this.updateBladeTilt();
@@ -2040,27 +1348,22 @@ class TheMillSystem {
         document.getElementById('mill-container').appendChild(control);
     }
     
-    /* Removed - using single blade
     createBladeVisualization() {
         // Create blade visual (rectangular plane)
-        // Create a more realistic blade visual (10 inch diameter)
-        this.bladeVisual = BABYLON.MeshBuilder.CreateBox('blade', {
-            width: 500,  // 500 inches long blade
-            height: 6,   // 6 inches high
-            depth: 0.25  // 1/4 inch thick for visibility
+        this.bladeVisual = BABYLON.MeshBuilder.CreatePlane('blade', {
+            width: 50,
+            height: 100,
+            sideOrientation: BABYLON.Mesh.DOUBLESIDE
         }, this.millScene);
         
-        // Blade box is already oriented correctly, no rotation needed
-        
-        // Position blade at cutting height above table
-        this.bladeVisual.position.y = 50; // Above table at typical cutting height
-        this.bladeVisual.position.z = 0; // Aligned with laser at Z=0
-        this.bladeVisual.position.x = 0; // Centered
+        // Position blade above the table
+        this.bladeVisual.position.y = 50;
+        this.bladeVisual.position.z = 0;
         
         // Semi-transparent red material for blade
         const bladeMaterial = new BABYLON.StandardMaterial('bladeMat', this.millScene);
-        bladeMaterial.diffuseColor = new BABYLON.Color3(0.7, 0.7, 0.8); // Steel blue
-        bladeMaterial.alpha = 0.8; // Mostly opaque
+        bladeMaterial.diffuseColor = new BABYLON.Color3(0.8, 0.2, 0.2);
+        bladeMaterial.alpha = 0.3;
         bladeMaterial.backFaceCulling = false;
         this.bladeVisual.material = bladeMaterial;
         
@@ -2082,37 +1385,20 @@ class TheMillSystem {
     }
     
     updateBladeTilt() {
-        if (!this.bladeVisual) {
-            return;
-        }
+        if (!this.bladeVisual) return;
         
-        // Blade tilt matches the bevel angle
-        // bevelAngle 90 = vertical blade (no tilt)
-        // bevelAngle 0 = blade tilted 90 degrees
-        // bevelDirection: 1 = right tilt, -1 = left tilt
-        
-        // The blade needs to rotate on X axis to tilt left/right in B view
-        // bevelAngle 90 = vertical blade (no tilt)
-        // bevelAngle < 90 = blade tilts
-        // direction: 1 = right, -1 = left
+        // Tilt the blade on its Z axis (left/right when viewed from the side)
+        // 90 degrees = vertical blade (no bevel)
+        // Less than 90 = blade tilts to the right
         const tiltRadians = (90 - this.bevelAngle) * Math.PI / 180;
         const direction = this.bevelDirection || 1;
-        
-        // Rotate on X axis - this was working before, just wrong direction
-        // Negate to match needle direction
-        this.bladeVisual.rotation.x = -tiltRadians * direction;
+        this.bladeVisual.rotation.x = tiltRadians * direction; // Match needle direction
         
         // Update cutting plane to match blade angle
         if (this.cuttingPlane) {
-            this.cuttingPlane.rotation.x = -tiltRadians * direction;
-        }
-        
-        // Force scene render
-        if (this.millScene) {
-            this.millScene.render();
+            this.cuttingPlane.rotation.x = tiltRadians * direction;
         }
     }
-    */
     switchToBladeProfileView() {
         
         // Debug: Check if board exists and is visible
@@ -2126,94 +1412,62 @@ class TheMillSystem {
         if (bevelControl) bevelControl.style.display = 'block';
         // Switch to orthographic view looking from the LEFT side (like view cube LEFT face)
         
-        // BLADE-EYE VIEW: Camera positioned at blade end, looking down its length
-        // This creates a "sight line" view where the blade acts as the aiming reticle
+        // LEFT view: Look from -X toward +X
+        // Alpha = Math.PI means looking from negative X
+        // Beta = Math.PI/2 means horizontal view
+        this.millCamera.alpha = Math.PI; // 180 degrees - looking from -X
+        const viewSize = 15; // Frame the 6 inch board face nicely
+        // Move camera far enough to see the board
+        this.millCamera.beta = Math.PI / 2; // 90 degrees - horizontal
         
-        // Get current blade rotation (miter angle)
-        const bladeAngle = this.blade ? this.blade.rotation.y : 0;
-        const bladeLength = 250;  // Half of 500" blade width
-        
-        // Position camera at one end of the blade
-        const cameraX = Math.cos(bladeAngle) * bladeLength;
-        const cameraZ = Math.sin(bladeAngle) * bladeLength;
-        const cameraY = 0;  // At table surface where pivot is
-        
-        // Set camera to look at the opposite end of blade
-        this.millCamera.position = new BABYLON.Vector3(cameraX, cameraY, cameraZ);
-        this.millCamera.setTarget(new BABYLON.Vector3(0, 0, 0));  // Look at table center
-        
-        // Switch to orthographic for precision view
-        this.millCamera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
-        
-        // Set view bounds to frame the board cross-section
-        const viewSize = 50;  // Show larger area
+        // Keep the same target
+        // Ensure camera looks at board center
+        this.millCamera.setTarget(BABYLON.Vector3.Zero());
         const aspectRatio = this.millCanvas.width / this.millCanvas.height;
+        const currentOrthoSize = Math.abs(this.millCamera.orthoRight - this.millCamera.orthoLeft) / aspectRatio;
         
         this.millCamera.orthoLeft = -viewSize;
         this.millCamera.orthoRight = viewSize;
         this.millCamera.orthoTop = viewSize / aspectRatio;
         this.millCamera.orthoBottom = -viewSize / aspectRatio;
+        // Set orthographic bounds correctly for side view
         
-        // Lock camera rotation - we only look down the blade
-        this.millCamera.lowerAlphaLimit = this.millCamera.alpha;
-        this.millCamera.upperAlphaLimit = this.millCamera.alpha;
-        this.millCamera.lowerBetaLimit = this.millCamera.beta;
-        this.millCamera.upperBetaLimit = this.millCamera.beta;
-        
-        // Make blade visible as our "sight"
-        if (this.blade) {
-            this.blade.isVisible = true;
-            console.log("Blade visibility set to:", this.blade.isVisible);
-            console.log("Blade position:", this.blade.position);
-            console.log("Blade rotation:", this.blade.rotation);
-            console.log("Blade dimensions: 200x12x0.0625");
-            
-            // Ensure material is visible
-            if (this.blade.material) {
-                this.blade.material.alpha = 1.0;  // Fully opaque
-                this.blade.material.emissiveColor = new BABYLON.Color3(0.1, 0.1, 0.2);
-                this.blade.material.backFaceCulling = false;  // See both sides
-                // Make blade thicker for visibility when looking down its length
-                this.blade.scaling.z = 10;  // Slightly thicker for visibility in blade-eye view
-            }
-            this.blade.computeWorldMatrix(true);
-        } else {
-            console.error("BLADE NOT FOUND in B view!");
-        }
-        
-        // Ensure board is visible
+        // Update radius for consistent zoom when switching modes
+        this.millCamera.radius = 50; // Position camera at reasonable distance
+        this.millCamera.radius = 30; // Close enough to see board face
+        // Force board visibility in ortho mode
         if (this.currentBoard) {
             this.currentBoard.isVisible = true;
+            this.millScene.render();
         }
         
-        // Show table for reference
+        // Show cutting plane in profile view if it exists
+        if (this.cuttingPlane) {
+            this.cuttingPlane.isVisible = true;
+        }
+        
+        
+        // Show table surface in side view
         if (this.tableSurface) {
             this.tableSurface.isVisible = true;
+            console.log("Table surface visibility:", this.tableSurface.isVisible, "Position:", this.tableSurface.position);
+            this.tableSurface.renderingGroupId = 0; // Ensure proper rendering order
         }
-        
-        // Hide transform toolbar
+        // Hide transform toolbar in B view (not needed)
         const toolbar = document.getElementById("mill-transform-toolbar");
         if (toolbar) toolbar.style.display = "none";
+        console.log('Switched to LEFT side view (blade profile)');
         
-        console.log("BLADE-EYE VIEW ACTIVE: Looking down blade from end to end");
-        
-        // Force blade to render in orthographic
-        if (this.blade) {
-            this.blade.refreshBoundingInfo();
-            this.blade.showBoundingBox = false;  // Ensure no bounding box
-            this.blade.isPickable = false;  // Not pickable in this view
-            this.blade.alwaysSelectAsActiveMesh = true;  // Force render
-        }
-        console.log("Blade angle:", (bladeAngle * 180 / Math.PI), "degrees");
-        
-        // Enable board dragging in this view
+        // Enable simple left/right dragging in B view
         this.enableBViewDragging = true;
         
-        // Force render
+        // Force immediate render to show board
+        this.millCamera.getProjectionMatrix(true); // Force projection matrix update
         this.millScene.render();
-
-
     }
+    
+
+
     frameBoard(boardMesh) {
         // Get board bounds
         boardMesh.computeWorldMatrix(true);
@@ -2226,38 +1480,22 @@ class TheMillSystem {
         const sizeZ = max.z - min.z;
         const maxSize = Math.max(sizeX, sizeZ);
         
-        // Fill 90% of viewport (10% total padding - 5% each side)
-        const paddedSize = maxSize * 1.11;  // 1/0.9 = 1.11 to make board fill 90%
+        // Add 10% padding
+        const paddedSize = maxSize * 1.05;
         
         // Set orthographic bounds to frame the board
         const aspectRatio = this.millCanvas.width / this.millCanvas.height;
-        
-        if (aspectRatio > 1) {
-            // Wider viewport - adjust horizontal bounds
-            this.millCamera.orthoLeft = -paddedSize * aspectRatio / 2;
-            this.millCamera.orthoRight = paddedSize * aspectRatio / 2;
-            this.millCamera.orthoTop = paddedSize / 2;
-            this.millCamera.orthoBottom = -paddedSize / 2;
-        } else {
-            // Taller viewport - adjust vertical bounds
-            this.millCamera.orthoLeft = -paddedSize / 2;
-            this.millCamera.orthoRight = paddedSize / 2;
-            this.millCamera.orthoTop = paddedSize / (2 * aspectRatio);
-            this.millCamera.orthoBottom = -paddedSize / (2 * aspectRatio);
-        }
+        this.millCamera.orthoLeft = -paddedSize * aspectRatio / 2;
+        this.millCamera.orthoRight = paddedSize * aspectRatio / 2;
+        this.millCamera.orthoTop = paddedSize / 2;
+        this.millCamera.orthoBottom = -paddedSize / 2;
         
         // Also set radius for when switching to perspective
-        this.millCamera.radius = paddedSize * 0.8;  // Closer in perspective too
+        this.millCamera.radius = paddedSize;
         
         // Center camera on board
         const center = boundingInfo.boundingBox.centerWorld;
         this.millCamera.target = new BABYLON.Vector3(center.x, 0, center.z);
-        
-        // Force camera to top-down position
-        this.millCamera.alpha = -Math.PI / 2;
-        this.millCamera.beta = 0;
-        
-        console.log('Framed board to 90% of viewport, size:', maxSize);
     }
     
     // Close The Mill

@@ -994,6 +994,76 @@ class DrawingWorld {
         
     }
 
+    // Handle cut results from The Mill System
+    handleMillCutResults(cutParts, originalMesh) {
+        console.log('Handling Mill cut results:', cutParts);
+        
+        if (!cutParts || cutParts.length !== 2) {
+            console.error('Invalid cut results from Mill');
+            return;
+        }
+        
+        // Find and remove the original board from workBenchParts
+        if (originalMesh) {
+            const index = this.workBenchParts.findIndex(part => part.name === originalMesh.name);
+            if (index > -1) {
+                // Dispose the original mesh
+                originalMesh.dispose();
+                // Remove from workbench parts
+                this.workBenchParts.splice(index, 1);
+                console.log('Removed original board from workbench');
+            }
+        }
+        
+        // Create meshes for the new Part instances in the main scene
+        const [part1, part2] = cutParts;
+        
+        // Create mesh for part 1
+        const mesh1 = part1.createMesh(this.scene);
+        mesh1.name = part1.id;
+        mesh1.partInstance = part1;
+        part1.mesh = mesh1;
+        
+        // Apply material if available
+        if (part1.material && part1.material.id) {
+            this.applyMaterialToPart(mesh1, part1.material.id);
+        }
+        
+        // Create mesh for part 2
+        const mesh2 = part2.createMesh(this.scene);
+        mesh2.name = part2.id;
+        mesh2.partInstance = part2;
+        part2.mesh = mesh2;
+        
+        // Apply material if available
+        if (part2.material && part2.material.id) {
+            this.applyMaterialToPart(mesh2, part2.material.id);
+        }
+        
+        // Add both new parts to workBenchParts
+        this.workBenchParts.push(mesh1);
+        this.workBenchParts.push(mesh2);
+        
+        console.log('Created new board meshes in main scene:', mesh1.name, mesh2.name);
+        
+        // Animate the pieces slightly apart so user can see the cut
+        const separationDistance = 2; // cm
+        setTimeout(() => {
+            // Move pieces apart along the cut line
+            const normal = new BABYLON.Vector3(1, 0, 0); // Default to X-axis
+            mesh1.position.addInPlace(normal.scale(-separationDistance));
+            mesh2.position.addInPlace(normal.scale(separationDistance));
+        }, 100);
+        
+        // Update any Part management systems if they exist
+        if (this.partManager) {
+            this.partManager.registerPart(part1);
+            this.partManager.registerPart(part2);
+        }
+        
+        console.log('Mill cut successfully integrated into main scene');
+    }
+
     initializeViewCube() {
         try {
             // Create ViewCube container inside canvas parent

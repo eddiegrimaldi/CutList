@@ -1,4 +1,5 @@
 import { ViewCube } from './ViewCube.js';
+import { Part } from './Part.js';
 
 // The Mill System - A 2D workspace for cutting operations
 // Simulates real workshop tools in an orthographic view
@@ -1413,29 +1414,143 @@ class TheMillSystem {
             
             // blade.isVisible = false; // Keep visible for debugging
             
-            // Perform a single CSG operation - just subtract the blade
+            // Create separator boxes to split board into two pieces
+            console.log('Creating separators for board splitting...');
+            
+            // Create a large box on the left side of the blade to isolate piece 1
+            const leftSeparator = BABYLON.MeshBuilder.CreateBox('leftSeparator', {
+                width: 1000,
+                height: 100,
+                depth: 1000
+            }, this.millScene);
+            
+            // Position left separator to the left of the blade center
+            // Account for blade rotation when positioning
+            const separatorOffset = 502; // Just beyond half blade width + kerf
+            const leftOffset = new BABYLON.Vector3(-separatorOffset, 0, 0);
+            const rotMatrix = BABYLON.Matrix.RotationY(this.bladeAngle);
+            const rotatedLeftOffset = BABYLON.Vector3.TransformCoordinates(leftOffset, rotMatrix);
+            
+            leftSeparator.position = blade.position.clone().add(rotatedLeftOffset);
+            leftSeparator.rotation.y = this.bladeAngle;
+            leftSeparator.rotation.x = blade.rotation.x; // Match bevel if any
+            leftSeparator.bakeCurrentTransformIntoVertices();
+            leftSeparator.isVisible = false;
+            
+            // Create a large box on the right side of the blade to isolate piece 2
+            const rightSeparator = BABYLON.MeshBuilder.CreateBox('rightSeparator', {
+                width: 1000,
+                height: 100,
+                depth: 1000
+            }, this.millScene);
+            
+            // Position right separator to the right of the blade center
+            const rightOffset = new BABYLON.Vector3(separatorOffset, 0, 0);
+            const rotatedRightOffset = BABYLON.Vector3.TransformCoordinates(rightOffset, rotMatrix);
+            
+            rightSeparator.position = blade.position.clone().add(rotatedRightOffset);
+            rightSeparator.rotation.y = this.bladeAngle;
+            rightSeparator.rotation.x = blade.rotation.x; // Match bevel if any
+            rightSeparator.bakeCurrentTransformIntoVertices();
+            rightSeparator.isVisible = false;
+            
+            // Perform CSG operations to create two separate pieces
             console.log('Creating CSG from board...');
             const boardCSG = BABYLON.CSG.FromMesh(this.currentBoard);
             
             console.log('Creating CSG from blade...');
             const bladeCSG = BABYLON.CSG.FromMesh(blade);
             
-            console.log('Performing CSG cut...');
+            console.log('Creating CSG from separators...');
+            const leftSeparatorCSG = BABYLON.CSG.FromMesh(leftSeparator);
+            const rightSeparatorCSG = BABYLON.CSG.FromMesh(rightSeparator);
             
-            // Subtract blade from board to create cut result
-            const cutBoardCSG = boardCSG.subtract(bladeCSG);
+            console.log('Creating piece 1 (left of blade)...');
+            // Piece 1: Board minus blade, then minus right separator
+            const piece1CSG = boardCSG.clone().subtract(bladeCSG).subtract(rightSeparatorCSG);
+            const piece1 = piece1CSG.toMesh('piece1', this.currentBoard.material.clone(), this.millScene);
             
-            // Create the cut result as a single mesh
-            const cutResult = cutBoardCSG.toMesh('cutBoard', this.currentBoard.material.clone(), this.millScene);
+            console.log('Creating piece 2 (right of blade)...');
+            // Piece 2: Board minus blade, then minus left separator
+            const piece2CSG = boardCSG.subtract(bladeCSG).subtract(leftSeparatorCSG);
+            const piece2 = piece2CSG.toMesh('piece2', this.currentBoard.material.clone(), this.millScene);
             
-            // Position the cut result at the original board position
-            cutResult.position = this.currentBoard.position.clone();
+            // Position pieces at original board position
+            piece1.position = this.currentBoard.position.clone();
+            piece2.position = this.currentBoard.position.clone();
             
-            console.log('Cut complete - single result mesh created');
+            console.log('Cut complete - two pieces created');
             
-            // Store the cut result for later manipulation
-            const piece1 = cutResult;  // For compatibility with existing code
-            const piece2 = null;  // No second piece for miter cuts
+            // Create Part instances for both pieces (following Prime Directive)
+            // Calculate dimensions for each piece based on cut position
+            const boardBounds = this.currentBoard.getBoundingInfo().boundingBox;
+            const boardLength = boardBounds.maximum.x - boardBounds.minimum.x;
+            const boardWidth = boardBounds.maximum.z - boardBounds.minimum.z;
+            const boardThickness = boardBounds.maximum.y - boardBounds.minimum.y;
+            
+            // Get material info from original board
+            const originalMaterial = this.originalMesh?.material || this.currentBoard.material;
+            const materialId = originalMaterial?.id || 'walnut_001';
+            const materialName = originalMaterial?.name || 'Black Walnut';
+            
+            // Create Part for piece 1
+            const piece1Bounds = piece1.getBoundingInfo().boundingBox;
+            const piece1Part = new Part({
+                type: 'board',
+                dimensions: {
+                    length: (piece1Bounds.maximum.x - piece1Bounds.minimum.x) / 2.54, // Convert cm to inches
+                    width: (piece1Bounds.maximum.z - piece1Bounds.minimum.z) / 2.54,
+                    thickness: (piece1Bounds.maximum.y - piece1Bounds.minimum.y) / 2.54
+                },
+                position: {
+                    x: piece1.position.x,
+                    y: piece1.position.y,
+                    z: piece1.position.z
+                },
+                rotation: {
+                    x: piece1.rotation.x,
+                    y: piece1.rotation.y,
+                    z: piece1.rotation.z
+                },
+                material: { id: materialId, name: materialName },
+                parentId: this.currentBoard.name // Track parent board
+            });
+            piece1.partInstance = piece1Part; // Link mesh to Part
+            piece1Part.mesh = piece1; // Link Part to mesh
+            
+            // Create Part for piece 2
+            const piece2Bounds = piece2.getBoundingInfo().boundingBox;
+            const piece2Part = new Part({
+                type: 'board',
+                dimensions: {
+                    length: (piece2Bounds.maximum.x - piece2Bounds.minimum.x) / 2.54, // Convert cm to inches
+                    width: (piece2Bounds.maximum.z - piece2Bounds.minimum.z) / 2.54,
+                    thickness: (piece2Bounds.maximum.y - piece2Bounds.minimum.y) / 2.54
+                },
+                position: {
+                    x: piece2.position.x,
+                    y: piece2.position.y,
+                    z: piece2.position.z
+                },
+                rotation: {
+                    x: piece2.rotation.x,
+                    y: piece2.rotation.y,
+                    z: piece2.rotation.z
+                },
+                material: { id: materialId, name: materialName },
+                parentId: this.currentBoard.name // Track parent board
+            });
+            piece2.partInstance = piece2Part; // Link mesh to Part
+            piece2Part.mesh = piece2; // Link Part to mesh
+            
+            console.log('Created Part instances for both pieces:', piece1Part.id, piece2Part.id);
+            
+            // Store Parts for return to main scene
+            this.cutParts = [piece1Part, piece2Part];
+            
+            // Clean up separators
+            leftSeparator.dispose();
+            rightSeparator.dispose();
             
             // Clean up
             // Delay blade disposal so we can see where the cut happened
@@ -1445,8 +1560,10 @@ class TheMillSystem {
             
             // Visual feedback
             this.flashBlade();
-            // Animation only if we have two pieces
-            // if (piece2) this.showCutAnimation(piece1, piece2);
+            // Animate the separation of the two pieces
+            if (piece2) {
+                this.showCutAnimation(piece1, piece2);
+            }
             
             // Handle piece management
             if (this.cutPieces) {
@@ -1473,12 +1590,12 @@ class TheMillSystem {
                 this.cutPieces = [];
             }
             
-            // Ensure cut result is visible
+            // Ensure both pieces are visible
             piece1.isVisible = true;
-            // piece2.isVisible = true;  // No piece2 for miter cuts
+            piece2.isVisible = true;
             
             this.cutPieces.push(piece1);
-            // this.cutPieces.push(piece2);  // No piece2 for single cut result
+            this.cutPieces.push(piece2);
             
             console.log('Added cut result to pieces:', this.cutPieces.length);
             
@@ -2264,6 +2381,32 @@ class TheMillSystem {
     closeMill(cutData = null) {
         console.log('Closing The Mill');
         
+        // If we have cut Parts, return them to the main scene
+        if (this.cutParts && this.cutParts.length === 2) {
+            console.log('Returning cut Parts to main scene:', this.cutParts);
+            
+            // Call the main scene to handle the cut results
+            if (this.drawingWorld.handleMillCutResults) {
+                this.drawingWorld.handleMillCutResults(this.cutParts, this.originalMesh);
+            } else {
+                console.warn('Main scene does not have handleMillCutResults method');
+                // For now, just log what we would do
+                console.log('Would create these Parts in main scene:', {
+                    originalBoard: this.originalMesh?.name,
+                    piece1: {
+                        id: this.cutParts[0].id,
+                        dimensions: this.cutParts[0].dimensions,
+                        position: this.cutParts[0].position
+                    },
+                    piece2: {
+                        id: this.cutParts[1].id,
+                        dimensions: this.cutParts[1].dimensions,
+                        position: this.cutParts[1].position
+                    }
+                });
+            }
+        }
+        
         // Clean up mill scene
         if (this.millScene) {
             this.millScene.dispose();
@@ -2280,16 +2423,13 @@ class TheMillSystem {
         // Reset state
         this.isActive = false;
         this.currentMaterial = null;
+        this.originalMesh = null;
         this.currentOperation = null;
+        this.cutParts = null;
         
-        // If we have cut data, execute the cut in the main scene
-        if (cutData) {
-            // This would trigger the actual cut in the main scene
-            // For now, we'll just log it
-            console.log('Would execute cut with data:', cutData);
-            
-            // TODO: Call back to main scene to execute the cut
-            // this.drawingWorld.executeCutFromMill(this.currentMaterial, cutData);
+        // Legacy cutData support
+        if (cutData && !this.cutParts) {
+            console.log('Legacy cut data:', cutData);
         }
     }
 

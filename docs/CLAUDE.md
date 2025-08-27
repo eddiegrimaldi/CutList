@@ -1,8 +1,3 @@
-# CRITICAL BREAKTHROUGH DOCUMENTATION - READ FIRST!
-**MUST READ: /var/www/html/docs/CSG_BEVEL_BREAKTHROUGH.md**
-- Contains the solution to making beveled cuts work with Babylon.js CSG
-- Key: Create fresh meshes and bake rotations for CSG to recognize angles
-- Applies to ALL cutting tools (router, drill press, miter saw, etc.)
 
 VISION
 ⦁	CutList is a tool to help create optimized drawings and cutting plans for woodworking projects.
@@ -33,41 +28,23 @@ This project is the most important project in his life. His livelihood literally
 
 1) You are not to use SED for any operation. Use python instead. ALWAYS
 
-1) The directory you are in is for instructions only. No development should be done locally, and no files should be created in or edited in this folder.
-
-2) We work on our AWS server using ssh as the ubuntu user. The following will help you get in and included the .pem file
-
-ssh -i ~/cutlist-key-2.pem ubuntu@ec2-54-87-50-202.compute-1.amazonaws.com
+2) Our codebase is location in the folder /CutList
 
 
 
-- 1) Sometimes. As the mouse moves across the board and as the blade move where the original board was, at one point their are so close they're touching. 2)The blad is very long. Personally, I think you establish the blade length based on an invisible bounding box that is nicely similar to the shape of the board when the board is horozontal, but when the board is diagonal and the bounding box does not rotate, just gets bigger, the blade extends off into wherever... like it was told to do.
-# CRITICAL DEVELOPMENT RULES (Added 2025-08-18)
 
-## After the Great Cutting System Disaster of August 2025
+# DEVELOPMENT RULES 
 
-### NEVER AGAIN
-1. **NEVER** edit directly on production without a backup
-2. **NEVER** proceed if working functionality breaks  
-3. **NEVER** make multiple changes in one attempt
-4. **NEVER** refactor while fixing
+**ALWAYS** create a backup before editing
+**ALWAYS** document what currently works before changing anything
 
-### ALWAYS
-1. **ALWAYS** test horizontal cuts after ANY change
-2. **ALWAYS** commit immediately when something works
-3. **ALWAYS** create a backup before editing
-4. **ALWAYS** document what currently works before changing anything
 
-### Current Working Features (as of 2025-08-18)
-- Horizontal board cutting: WORKING
-- ViewCube orthographic views: WORKING
-- Materials library: WORKING
-- Board creation: WORKING
+# DEBUGGING
 
-### Known Issues
-- Rotated board cutting: Blade appears at original position, not rotated position
-- Blade tracking: Doesn't follow mouse on rotated boards
-- Blade sizing: Uses bounding box instead of actual dimensions
+** The user will test changes
+** The user will report results
+** The user may provide console output. If so, it will be located in consoledump.md for you review
+
 
 ### The Golden Rule
 **If it worked before your change and doesn't work after, your change is wrong.**

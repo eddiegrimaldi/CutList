@@ -1,0 +1,33 @@
+cat > /var/www/html/.gitignore <<'EOF'
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Node / JS
+node_modules/
+dist/
+build/
+.cache/
+*.log
+
+# PHP / misc
+vendor/
+.env
+*.tmp
+
+# Your backup artifacts (anywhere)
+**/*.backup.*
+**/*.bak
+**/*.broken_*
+**/*.corrupted
+
+# Archives / dumps / backups
+*.zip
+*.tar.gz
+*.gz
+backups/
+html-backup-*.tar.gz
+EOF
+

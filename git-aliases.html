@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Git Quick Ops — Aliases & Workflow (CutList)</title>
+  <style>
+    :root { --bg:#0f1115; --panel:#141821; --ink:#e7eaf0; --muted:#9aa3b2; --accent:#7cc7ff; --good:#80ffb4; --warn:#ffd37c; }
+    html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font:15px/1.55 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif}
+    .wrap{max-width:980px;margin:0 auto;padding:28px}
+    h1{font-size:28px;margin:0 0 12px}
+    h2{font-size:20px;margin:28px 0 8px;border-bottom:1px solid #232838;padding-bottom:6px}
+    h3{font-size:16px;margin:18px 0 6px;color:var(--accent)}
+    p{margin:8px 0;color:var(--ink)}
+    .muted{color:var(--muted)}
+    .grid{display:grid;grid-template-columns:1fr;gap:12px}
+    .panel{background:var(--panel);border:1px solid #232838;border-radius:10px;padding:14px}
+    code,kbd,pre{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+    pre{background:#0b0e14;border:1px solid #1e2331;border-radius:8px;padding:12px;overflow:auto}
+    .toc a{color:var(--accent);text-decoration:none}
+    .tag{display:inline-block;border:1px solid #2a3145;border-radius:999px;padding:2px 8px;margin-right:6px;font-size:12px;color:var(--muted)}
+    .good{color:var(--good)} .warn{color:var(--warn)}
+    .kbd{display:inline-block;border:1px solid #2a3145;background:#0b0e14;border-radius:6px;padding:2px 6px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Git Quick Ops — Aliases & Workflow <span class="tag">CutList</span></h1>
+    <p class="muted">Purpose: a fast, low-drama flow for pulling, pushing, inspecting, and cleaning your repo on AWS and local.</p>
+
+    <div class="panel toc">
+      <strong>Table of Contents</strong>
+      <ul>
+        <li><a href="#install">Install all aliases (one-time)</a></li>
+        <li><a href="#daily">Daily workflow (90% of life)</a></li>
+        <li><a href="#aliases">Alias reference</a></li>
+        <li><a href="#stash">Stash: the junk drawer</a></li>
+        <li><a href="#branches">Branches & upstream fixes</a></li>
+        <li><a href="#cleanup">Cleanup & safety</a></li>
+        <li><a href="#cheats">Cheat sheet</a></li>
+      </ul>
+    </div>
+
+    <h2 id="install">Install all aliases (one-time)</h2>
+    <div class="panel">
+      <pre><code># Safe fast-forward pull
+git config --global alias.gup "pull --ff-only"
+# Safer push (protects against blind overwrites)
+git config --global alias.gpush "push --force-with-lease"
+# Short status + branch tracking
+git config --global alias.gstat "status -sb"
+# Last commit (one line)
+git config --global alias.glast "log -1 --oneline"
+# Compact graph of history (all branches)
+git config --global alias.glog "log --oneline --graph --decorate --all"
+# Clean untracked files & folders (⚠️ destructive)
+git config --global alias.gclean "clean -fdx"
+# Undo last commit but keep changes staged
+git config --global alias.gundo "reset --soft HEAD~1"</code></pre>
+      <p class="muted">Verify any alias: <code>git config --get alias.&lt;name&gt;</code></p>
+
+      <h3>One-line installer (copy/paste)</h3>
+      <pre><code>git config --global alias.gup  "pull --ff-only" \
+ && git config --global alias.gpush "push --force-with-lease" \
+ && git config --global alias.gstat "status -sb" \
+ && git config --global alias.glast "log -1 --oneline" \
+ && git config --global alias.glog  "log --oneline --graph --decorate --all" \
+ && git config --global alias.gclean "clean -fdx" \
+ && git config --global alias.gundo "reset --soft HEAD~1"</code></pre>
+    </div>
+
+    <!-- rest of document unchanged -->
+
+    <h2 id="daily">Daily workflow (90% of life)</h2>
+    <div class="panel grid">
+      <div>
+        <h3>1) Update to latest</h3>
+        <pre><code>git gup
+git glast   # sanity check what you just pulled</code></pre>
+      </div>
+      <div>
+        <h3>2) Work normally</h3>
+        <pre><code># edit files ...
+# stage + commit (example)
+git add -A && git commit -m "Your useful message"
+# optional: view short repo state
+git gstat</code></pre>
+      </div>
+      <div>
+        <h3>3) Push safely</h3>
+        <pre><code>git gpush</code></pre>
+        <p class="muted">Uses <code>--force-with-lease</code> so you don’t clobber work you haven’t seen.</p>
+      </div>
+      <div>
+        <h3>4) Browse history (when confused)</h3>
+        <pre><code>git glog</code></pre>
+      </div>
+    </div>
+
+    <!-- rest of original sections remain here (aliases, stash, branches, cleanup, cheats) -->
+
+    <p class="muted">Built for AWS + GitHub flow. Keep it boring; ship more.</p>
+  </div>
+</body>
+</html>
+

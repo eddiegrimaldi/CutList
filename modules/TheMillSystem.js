@@ -1417,56 +1417,66 @@ class TheMillSystem {
             // Create separator boxes to split board into two pieces
             console.log('Creating separators for board splitting...');
             
-            // Create a large box on the left side of the blade to isolate piece 1
+            // Create separators at origin
             const leftSeparator = BABYLON.MeshBuilder.CreateBox('leftSeparator', {
                 width: 600,
-                height: 100,
-                depth: 500
+                height: 500,
+                depth: 100
             }, this.millScene);
             
-            // Position left separator to the left of the blade center
-            // Account for blade rotation when positioning
-            const separatorOffset = 0.5; // Just beyond half blade width + kerf
-            const leftOffset = new BABYLON.Vector3(0, 0, -separatorOffset - 250);
-            const rotMatrix = BABYLON.Matrix.RotationY(this.bladeAngle);
-            const rotatedLeftOffset = BABYLON.Vector3.TransformCoordinates(leftOffset, rotMatrix);
+            const rightSeparator = BABYLON.MeshBuilder.CreateBox('rightSeparator', {
+                width: 600,
+                height: 500,
+                depth: 100
+            }, this.millScene);
             
-            leftSeparator.position = blade.position.clone().add(rotatedLeftOffset);
-            leftSeparator.rotation.y = this.bladeAngle;
-            leftSeparator.rotation.x = blade.rotation.x; // Match bevel if any
+            // Position separators BEFORE rotation - relative to origin
+            // Left separator inner edge at -0.0625, so center at -50.0625
+            leftSeparator.position.z = -50.0625;
+            // Right separator inner edge at +0.0625, so center at +50.0625
+            rightSeparator.position.z = 50.0625;
+            
+            // Bake initial positions
             leftSeparator.bakeCurrentTransformIntoVertices();
-            // Add red semi-transparent material for debugging
+            rightSeparator.bakeCurrentTransformIntoVertices();
+            
+            // Now apply rotations around origin (0,0,0)
+            leftSeparator.position.set(0, 0, 0);
+            rightSeparator.position.set(0, 0, 0);
+            
+            leftSeparator.rotation.x = bevelRadians * this.bevelDirection;
+            leftSeparator.rotation.y = this.bladeAngle;
+            rightSeparator.rotation.x = bevelRadians * this.bevelDirection;
+            rightSeparator.rotation.y = this.bladeAngle;
+            
+            // Bake rotations
+            leftSeparator.bakeCurrentTransformIntoVertices();
+            rightSeparator.bakeCurrentTransformIntoVertices();
+            
+            // Finally move to blade position
+            leftSeparator.position = blade.position.clone();
+            rightSeparator.position = blade.position.clone();
+            
+            // Add materials for debugging
             const leftMaterial = new BABYLON.StandardMaterial("leftSepMat", this.millScene);
             leftMaterial.diffuseColor = new BABYLON.Color3(1, 0, 0); // Red
             leftMaterial.alpha = 0.5; // Half opacity
             leftSeparator.material = leftMaterial;
-            leftSeparator.isVisible = true; // Made visible for debugging
-            console.log("Left separator created:", {position: leftSeparator.position, dimensions: {w:600, h:100, d:500}, visible: leftSeparator.isVisible, color: "red"});
+            leftSeparator.isVisible = false; // Hidden for production
             
-            // Create a large box on the right side of the blade to isolate piece 2
-            const rightSeparator = BABYLON.MeshBuilder.CreateBox('rightSeparator', {
-                width: 600,
-                height: 100,
-                depth: 500
-            }, this.millScene);
-            
-            // Position right separator to the right of the blade center
-            const rightOffset = new BABYLON.Vector3(0, 0, separatorOffset + 250);
-            const rotatedRightOffset = BABYLON.Vector3.TransformCoordinates(rightOffset, rotMatrix);
-            
-            rightSeparator.position = blade.position.clone().add(rotatedRightOffset);
-            rightSeparator.rotation.y = this.bladeAngle;
-            rightSeparator.rotation.x = blade.rotation.x; // Match bevel if any
-            rightSeparator.bakeCurrentTransformIntoVertices();
-            // Add blue semi-transparent material for debugging
             const rightMaterial = new BABYLON.StandardMaterial("rightSepMat", this.millScene);
             rightMaterial.diffuseColor = new BABYLON.Color3(0, 0, 1); // Blue
             rightMaterial.alpha = 0.5; // Half opacity
             rightSeparator.material = rightMaterial;
-            rightSeparator.isVisible = true; // Made visible for debugging
-            console.log("Right separator created:", {position: rightSeparator.position, dimensions: {w:600, h:100, d:500}, visible: rightSeparator.isVisible, color: "blue"});
+            rightSeparator.isVisible = false; // Hidden for production
             
-            // Perform CSG operations to create two separate pieces
+            console.log("Separators rotated around blade center point");
+            
+
+            
+
+            
+
             console.log('Creating CSG from board...');
             const boardCSG = BABYLON.CSG.FromMesh(this.currentBoard);
             

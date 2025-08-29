@@ -232,7 +232,7 @@ class TheMillSystem {
         this.blade = BABYLON.MeshBuilder.CreateBox('blade', {
             width: 500,  // 500 inches long blade
             height: 12,     // Full 12 inch height
-            depth: 0.3175  // 1/8 inch kerf (0.3175cm)
+            depth: 0.125  // 1/8 inch kerf
         }, this.millScene);
         this.blade.position.y = 0;  // Center at Y=0 so blade extends -6 to +6
         this.blade.position.z = 0;
@@ -1369,7 +1369,7 @@ class TheMillSystem {
             const blade = BABYLON.MeshBuilder.CreateBox('csgBlade', {
                 width: 500,
                 height: 12,
-                depth: 0.3175  // 1/8 inch kerf (0.3175cm)
+                depth: 0.125  // Make it 3 inches thick for CSG to work better
             }, this.millScene);
             
             // Position and rotate the CSG blade
@@ -1431,10 +1431,10 @@ class TheMillSystem {
             }, this.millScene);
             
             // Position separators BEFORE rotation - relative to origin
-            // Separators split at blade edges - kerf removed from right piece
-            leftSeparator.position.z = -50.15875;  // Inner edge at -0.15875cm (left blade edge)
+            // Left separator inner edge at -0.0625, so center at -50.0625
+            leftSeparator.position.z = -50.0625;
             // Right separator inner edge at +0.0625, so center at +50.0625
-            rightSeparator.position.z = 50.15875;   // Inner edge at +0.15875cm (right blade edge)
+            rightSeparator.position.z = 50.0625;
             
             // Bake initial positions
             leftSeparator.bakeCurrentTransformIntoVertices();
@@ -1501,18 +1501,6 @@ class TheMillSystem {
             piece1.position = this.currentBoard.position.clone();
             piece2.position = this.currentBoard.position.clone();
             
-            
-            // Separate the pieces slightly to show the kerf
-            // Move pieces apart based on blade angle
-            const separationDistance = 0.15875; // Half of kerf width (1/16 inch)
-            const bladeNormal = new BABYLON.Vector3(
-                Math.sin(this.bladeAngle),
-                0,
-                Math.cos(this.bladeAngle)
-            );
-            piece1.position.addInPlace(bladeNormal.scale(-separationDistance));
-            piece2.position.addInPlace(bladeNormal.scale(separationDistance));
-            console.log("Pieces separated by", separationDistance * 2, "cm");
             console.log('Cut complete - two pieces created');
             
             // Create Part instances for both pieces (following Prime Directive)
@@ -1646,10 +1634,72 @@ class TheMillSystem {
             };
             
             console.log('CSG cut completed successfully');
-            // Hide blade after cut
+
+            // Force camera to perspective view
+            this.setCameraToPerspectiveView();
+
+            // Unlock camera limits that may have been set by blade-eye view            this.millCamera.lowerAlphaLimit = null;            this.millCamera.upperAlphaLimit = null;            this.millCamera.lowerBetaLimit = 0;            this.millCamera.upperBetaLimit = Math.PI;                        // Now move the camera to perspective view            this.millCamera.mode = BABYLON.Camera.PERSPECTIVE_CAMERA;            this.millCamera.alpha = -Math.PI / 3;  // -60 degrees              this.millCamera.beta = Math.PI / 3;    // 60 degrees from top            this.millCamera.radius = 200;                        // Set target to board center            const boardCenter = this.currentBoard ? this.currentBoard.position.clone() : new BABYLON.Vector3(0, 0, 0);            this.millCamera.target.copyFrom(boardCenter);                        console.log('Camera unlocked and repositioned:', {                alpha: this.millCamera.alpha * 180 / Math.PI,                beta: this.millCamera.beta * 180 / Math.PI,                radius: this.millCamera.radius,                limits: 'removed'            });
+            // Delay camera repositioning to ensure it happens after everything else
+            setTimeout(() => {
+                if (!this.millCamera || !this.currentBoard) return;
+                
+                // Get board center
+                const boardCenter = this.currentBoard.position.clone();
+                
+                // Simple perspective view setup
+                this.millCamera.mode = BABYLON.Camera.PERSPECTIVE_CAMERA;
+                
+                // Set camera angles directly
+                this.millCamera.alpha = -Math.PI / 3;  // -60 degrees
+                this.millCamera.beta = Math.PI / 4;    // 45 degrees from top
+                this.millCamera.radius = 200;
+                
+                // Target the board
+                this.millCamera.target.x = boardCenter.x;
+                this.millCamera.target.y = boardCenter.y;
+                this.millCamera.target.z = boardCenter.z;
+                
+                console.log('Camera moved after delay:', {
+                    alpha: this.millCamera.alpha,
+                    beta: this.millCamera.beta,
+                    radius: this.millCamera.radius
+                });
+            }, 100);  // 100ms delay
+
+            // Reposition camera to perspective view of the cut
+            const boardCenter = this.currentBoard ? this.currentBoard.position.clone() : new BABYLON.Vector3(0, 0, 0);
+            
+            // First detach controls to allow programmatic movement
+            this.millCamera.detachControl();
+            
+            // Switch to perspective mode FIRST
+            this.millCamera.mode = BABYLON.Camera.PERSPECTIVE_CAMERA;
+            
+            // Set new camera parameters for ArcRotateCamera
+            this.millCamera.alpha = -Math.PI / 4;  // 45 degrees around
+            this.millCamera.beta = Math.PI / 3;    // 60 degrees from vertical (30 from horizontal)
+            this.millCamera.radius = 150;          // Distance from target
+            
+            // Set the target
+            this.millCamera.setTarget(boardCenter);
+            
+            // Force the camera to update
+            this.millCamera.rebuildAnglesAndRadius();
+            
+            // Re-attach controls
+            this.millCamera.attachControl(this.millCanvas, false);
+            
+            // Update view flag
+            this.currentView = 'P';
+            
+            console.log('Camera forcefully repositioned:', {
+                alpha: (this.millCamera.alpha * 180 / Math.PI).toFixed(1),
+                beta: (this.millCamera.beta * 180 / Math.PI).toFixed(1),
+                radius: this.millCamera.radius,
+                target: boardCenter
+            });                        // Hide all cutting tools
             if (this.blade) {
                 this.blade.isVisible = false;
-                console.log("Blade hidden after cut");
             }
             if (this.laserLine) {
                 this.laserLine.isVisible = false;
@@ -1659,6 +1709,16 @@ class TheMillSystem {
                     mesh.isVisible = false;
                 });
             }
+            if (this.turntable) {
+                this.turntable.isVisible = false;
+            }
+            if (this.pivot) {
+                this.pivot.isVisible = false;
+            }
+            
+
+            console.log('Camera repositioned to perspective view, blade and laser hidden');
+
             this.showCutSuccess(cutData);
             
             // Frame the cut pieces in view
@@ -1724,11 +1784,11 @@ class TheMillSystem {
         let piece1, piece2;
         
         // Calculate where the blade cuts through the board
-        const boardCenter = this.currentBoard.position.z;
+        const cutBoardCenter = this.currentBoard.position.z;
         const halfBoardLength = boardSize.z / 2;
         
         // Calculate the ratio of where the cut happens along the board
-        const cutRatio = (halfBoardLength - boardCenter) / boardSize.z;
+        const cutRatio = (halfBoardLength - cutBoardCenter) / boardSize.z;
         const piece1Ratio = Math.max(0.1, Math.min(0.9, cutRatio)); // Keep between 10% and 90%
         const piece2Ratio = 1 - piece1Ratio;
         
@@ -1799,6 +1859,60 @@ class TheMillSystem {
         };
         
         console.log('Cut completed:', cutData);
+
+            // Reposition camera to perspective view of the cut
+            const boardCenter = this.currentBoard ? this.currentBoard.position.clone() : new BABYLON.Vector3(0, 0, 0);
+            
+            // First detach controls to allow programmatic movement
+            this.millCamera.detachControl();
+            
+            // Switch to perspective mode FIRST
+            this.millCamera.mode = BABYLON.Camera.PERSPECTIVE_CAMERA;
+            
+            // Set new camera parameters for ArcRotateCamera
+            this.millCamera.alpha = -Math.PI / 4;  // 45 degrees around
+            this.millCamera.beta = Math.PI / 3;    // 60 degrees from vertical (30 from horizontal)
+            this.millCamera.radius = 150;          // Distance from target
+            
+            // Set the target
+            this.millCamera.setTarget(boardCenter);
+            
+            // Force the camera to update
+            this.millCamera.rebuildAnglesAndRadius();
+            
+            // Re-attach controls
+            this.millCamera.attachControl(this.millCanvas, false);
+            
+            // Update view flag
+            this.currentView = 'P';
+            
+            console.log('Camera forcefully repositioned:', {
+                alpha: (this.millCamera.alpha * 180 / Math.PI).toFixed(1),
+                beta: (this.millCamera.beta * 180 / Math.PI).toFixed(1),
+                radius: this.millCamera.radius,
+                target: boardCenter
+            });// Hide all cutting tools
+            if (this.blade) {
+                this.blade.isVisible = false;
+            }
+            if (this.laserLine) {
+                this.laserLine.isVisible = false;
+            }
+            if (this.laserAssembly) {
+                this.laserAssembly.getChildMeshes().forEach(mesh => {
+                    mesh.isVisible = false;
+                });
+            }
+            if (this.turntable) {
+                this.turntable.isVisible = false;
+            }
+            if (this.pivot) {
+                this.pivot.isVisible = false;
+            }
+            
+
+            console.log('Camera repositioned to perspective view, blade and laser hidden');
+
         
         // Show success message
         this.showCutSuccess(cutData);
@@ -2277,108 +2391,7 @@ class TheMillSystem {
         }
     }
     */
-    switchToBladeProfileView() {
-        
-        // Debug: Check if board exists and is visible
-        console.log("Board in B view:", this.currentBoard ? "exists" : "missing", this.currentBoard?.isVisible);
-        this.currentViewMode = "side";
-        
-        this.millCamera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA; // Back to ORTHO as intended
-        const rotationControl = document.getElementById('mill-rotation-control');
-        const bevelControl = document.getElementById('mill-bevel-control');
-        if (rotationControl) rotationControl.style.display = 'none';
-        if (bevelControl) bevelControl.style.display = 'block';
-        // Switch to orthographic view looking from the LEFT side (like view cube LEFT face)
-        
-        // BLADE-EYE VIEW: Camera positioned at blade end, looking down its length
-        // This creates a "sight line" view where the blade acts as the aiming reticle
-        
-        // Get current blade rotation (miter angle)
-        const bladeAngle = this.blade ? this.blade.rotation.y : 0;
-        const bladeLength = 250;  // Half of 500" blade width
-        
-        // Position camera at one end of the blade
-        const cameraX = Math.cos(bladeAngle) * bladeLength;
-        const cameraZ = Math.sin(bladeAngle) * bladeLength;
-        const cameraY = 0;  // At table surface where pivot is
-        
-        // Set camera to look at the opposite end of blade
-        this.millCamera.position = new BABYLON.Vector3(cameraX, cameraY, cameraZ);
-        this.millCamera.setTarget(new BABYLON.Vector3(0, 0, 0));  // Look at table center
-        
-        // Switch to orthographic for precision view
-        this.millCamera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
-        
-        // Set view bounds to frame the board cross-section
-        const viewSize = 50;  // Show larger area
-        const aspectRatio = this.millCanvas.width / this.millCanvas.height;
-        
-        this.millCamera.orthoLeft = -viewSize;
-        this.millCamera.orthoRight = viewSize;
-        this.millCamera.orthoTop = viewSize / aspectRatio;
-        this.millCamera.orthoBottom = -viewSize / aspectRatio;
-        
-        // Lock camera rotation - we only look down the blade
-        this.millCamera.lowerAlphaLimit = this.millCamera.alpha;
-        this.millCamera.upperAlphaLimit = this.millCamera.alpha;
-        this.millCamera.lowerBetaLimit = this.millCamera.beta;
-        this.millCamera.upperBetaLimit = this.millCamera.beta;
-        
-        // Make blade visible as our "sight"
-        if (this.blade) {
-            this.blade.isVisible = true;
-            console.log("Blade visibility set to:", this.blade.isVisible);
-            console.log("Blade position:", this.blade.position);
-            console.log("Blade rotation:", this.blade.rotation);
-            console.log("Blade dimensions: 200x12x0.0625");
-            
-            // Ensure material is visible
-            if (this.blade.material) {
-                this.blade.material.alpha = 1.0;  // Fully opaque
-                this.blade.material.emissiveColor = new BABYLON.Color3(0.1, 0.1, 0.2);
-                this.blade.material.backFaceCulling = false;  // See both sides
-                // Make blade thicker for visibility when looking down its length
-                this.blade.scaling.z = 10;  // Slightly thicker for visibility in blade-eye view
-            }
-            this.blade.computeWorldMatrix(true);
-        } else {
-            console.error("BLADE NOT FOUND in B view!");
-        }
-        
-        // Ensure board is visible
-        if (this.currentBoard) {
-            this.currentBoard.isVisible = true;
-        }
-        
-        // Show table for reference
-        if (this.tableSurface) {
-            this.tableSurface.isVisible = true;
-        }
-        
-        // Hide transform toolbar
-        const toolbar = document.getElementById("mill-transform-toolbar");
-        if (toolbar) toolbar.style.display = "none";
-        
-        console.log("BLADE-EYE VIEW ACTIVE: Looking down blade from end to end");
-        
-        // Force blade to render in orthographic
-        if (this.blade) {
-            this.blade.refreshBoundingInfo();
-            this.blade.showBoundingBox = false;  // Ensure no bounding box
-            this.blade.isPickable = false;  // Not pickable in this view
-            this.blade.alwaysSelectAsActiveMesh = true;  // Force render
-        }
-        console.log("Blade angle:", (bladeAngle * 180 / Math.PI), "degrees");
-        
-        // Enable board dragging in this view
-        this.enableBViewDragging = true;
-        
-        // Force render
-        this.millScene.render();
-
-
-    }
-    frameBoard(boardMesh) {
+    switchToBladeProfileView() {        console.log("Switching to blade-eye view");                // Get CURRENT blade angle - camera will be fixed at this position        const bladeAngle = this.bladeAngle || 0;        console.log("Setting camera at blade angle:", bladeAngle * 180 / Math.PI, "degrees");                // Dispose current ArcRotateCamera        if (this.millCamera) {            this.millCamera.detachControl();            this.millCamera.dispose();        }                // Create a FIXED camera at current blade end position        // Blade is 500 units wide (250 each direction from center)        const bladeEndDistance = 260; // Slightly beyond blade end                // Calculate camera position at one end of blade (based on current angle)        const cameraX = Math.cos(bladeAngle) * bladeEndDistance;        const cameraZ = Math.sin(bladeAngle) * bladeEndDistance;        const cameraY = 0; // At table height where blade sits                // Create UniversalCamera at blade end        this.millCamera = new BABYLON.UniversalCamera(            'millCamera',            new BABYLON.Vector3(cameraX, cameraY, cameraZ),            this.millScene        );                // Point camera toward opposite end of blade (at current angle)        const targetX = -Math.cos(bladeAngle) * bladeEndDistance;        const targetZ = -Math.sin(bladeAngle) * bladeEndDistance;        this.millCamera.setTarget(new BABYLON.Vector3(targetX, cameraY, targetZ));                // Set to orthographic mode for precision        this.millCamera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;                // Set orthographic bounds to see the board cross-section        const viewSize = 30; // Smaller view to focus on cutting area        const canvas = this.millCanvas;        const aspectRatio = canvas.width / canvas.height;        this.millCamera.orthoLeft = -viewSize * aspectRatio;        this.millCamera.orthoRight = viewSize * aspectRatio;        this.millCamera.orthoTop = viewSize;        this.millCamera.orthoBottom = -viewSize;                // Attach controls but completely disable camera movement        this.millCamera.attachControl(canvas, false);        this.millCamera.speed = 0; // No keyboard movement        this.millCamera.angularSensibility = Infinity; // No mouse rotation                // Update UI        const rotationControl = document.getElementById('mill-rotation-control');        const bevelControl = document.getElementById('mill-bevel-control');        if (rotationControl) rotationControl.style.display = 'none';        if (bevelControl) bevelControl.style.display = 'block';                console.log("Fixed camera locked at blade-eye position - blade can still rotate");    }    frameBoard(boardMesh) {
         // Get board bounds
         boardMesh.computeWorldMatrix(true);
         const boundingInfo = boardMesh.getBoundingInfo();
@@ -2423,6 +2436,42 @@ class TheMillSystem {
         
         console.log('Framed board to 90% of viewport, size:', maxSize);
     }
+
+    // Force camera to perspective view after cut
+    setCameraToPerspectiveView() {
+        console.log('Forcing camera to perspective view');
+        
+        // Completely recreate the camera to bypass any locks
+        const currentTarget = this.currentBoard ? this.currentBoard.position.clone() : new BABYLON.Vector3(0, 0, 0);
+        
+        // Store current canvas
+        const canvas = this.millCanvas;
+        
+        // Detach and dispose old camera
+        this.millCamera.detachControl();
+        
+        // Create new camera
+        this.millCamera = new BABYLON.ArcRotateCamera('millCamera',
+            -Math.PI / 3,  // alpha: -60 degrees
+            Math.PI / 3,   // beta: 60 degrees from top  
+            200,           // radius: 200 units
+            currentTarget,
+            this.millScene
+        );
+        
+        // Set perspective mode
+        this.millCamera.mode = BABYLON.Camera.PERSPECTIVE_CAMERA;
+        
+        // Attach controls
+        this.millCamera.attachControl(canvas, false);
+        
+        // No limits on new camera
+        this.millCamera.lowerRadiusLimit = 10;
+        this.millCamera.upperRadiusLimit = 500;
+        
+        console.log('New camera created and positioned');
+    }
+
     
     // Close The Mill
     closeMill(cutData = null) {

@@ -1419,15 +1419,15 @@ class TheMillSystem {
             
             // Create a large box on the left side of the blade to isolate piece 1
             const leftSeparator = BABYLON.MeshBuilder.CreateBox('leftSeparator', {
-                width: 1000,
+                width: 600,
                 height: 100,
-                depth: 1000
+                depth: 500
             }, this.millScene);
             
             // Position left separator to the left of the blade center
             // Account for blade rotation when positioning
-            const separatorOffset = 502; // Just beyond half blade width + kerf
-            const leftOffset = new BABYLON.Vector3(-separatorOffset, 0, 0);
+            const separatorOffset = 0.5; // Just beyond half blade width + kerf
+            const leftOffset = new BABYLON.Vector3(0, 0, -separatorOffset - 250);
             const rotMatrix = BABYLON.Matrix.RotationY(this.bladeAngle);
             const rotatedLeftOffset = BABYLON.Vector3.TransformCoordinates(leftOffset, rotMatrix);
             
@@ -1435,24 +1435,36 @@ class TheMillSystem {
             leftSeparator.rotation.y = this.bladeAngle;
             leftSeparator.rotation.x = blade.rotation.x; // Match bevel if any
             leftSeparator.bakeCurrentTransformIntoVertices();
-            leftSeparator.isVisible = false;
+            // Add red semi-transparent material for debugging
+            const leftMaterial = new BABYLON.StandardMaterial("leftSepMat", this.millScene);
+            leftMaterial.diffuseColor = new BABYLON.Color3(1, 0, 0); // Red
+            leftMaterial.alpha = 0.5; // Half opacity
+            leftSeparator.material = leftMaterial;
+            leftSeparator.isVisible = true; // Made visible for debugging
+            console.log("Left separator created:", {position: leftSeparator.position, dimensions: {w:600, h:100, d:500}, visible: leftSeparator.isVisible, color: "red"});
             
             // Create a large box on the right side of the blade to isolate piece 2
             const rightSeparator = BABYLON.MeshBuilder.CreateBox('rightSeparator', {
-                width: 1000,
+                width: 600,
                 height: 100,
-                depth: 1000
+                depth: 500
             }, this.millScene);
             
             // Position right separator to the right of the blade center
-            const rightOffset = new BABYLON.Vector3(separatorOffset, 0, 0);
+            const rightOffset = new BABYLON.Vector3(0, 0, separatorOffset + 250);
             const rotatedRightOffset = BABYLON.Vector3.TransformCoordinates(rightOffset, rotMatrix);
             
             rightSeparator.position = blade.position.clone().add(rotatedRightOffset);
             rightSeparator.rotation.y = this.bladeAngle;
             rightSeparator.rotation.x = blade.rotation.x; // Match bevel if any
             rightSeparator.bakeCurrentTransformIntoVertices();
-            rightSeparator.isVisible = false;
+            // Add blue semi-transparent material for debugging
+            const rightMaterial = new BABYLON.StandardMaterial("rightSepMat", this.millScene);
+            rightMaterial.diffuseColor = new BABYLON.Color3(0, 0, 1); // Blue
+            rightMaterial.alpha = 0.5; // Half opacity
+            rightSeparator.material = rightMaterial;
+            rightSeparator.isVisible = true; // Made visible for debugging
+            console.log("Right separator created:", {position: rightSeparator.position, dimensions: {w:600, h:100, d:500}, visible: rightSeparator.isVisible, color: "blue"});
             
             // Perform CSG operations to create two separate pieces
             console.log('Creating CSG from board...');
@@ -1549,8 +1561,8 @@ class TheMillSystem {
             this.cutParts = [piece1Part, piece2Part];
             
             // Clean up separators
-            leftSeparator.dispose();
-            rightSeparator.dispose();
+            // leftSeparator.dispose(); // Commented out for debugging - keep visible
+            // rightSeparator.dispose(); // Commented out for debugging - keep visible
             
             // Clean up
             // Delay blade disposal so we can see where the cut happened

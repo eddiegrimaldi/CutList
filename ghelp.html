@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Git Help Cheatsheet</title>
+  <style>
+    body { font-family: monospace; background:#111; color:#eee; padding:20px; }
+    h1, h2 { color:#6cf; }
+    code { background:#222; padding:2px 5px; border-radius:3px; }
+    .cmd { margin-bottom:1em; }
+  </style>
+</head>
+<body>
+  <h1>Git Command Cheatsheet ("gcodes")</h1>
+
+  <h2>Basics</h2>
+  <div class="cmd"><code>git status</code> → show changes</div>
+  <div class="cmd"><code>git add .</code> → stage all changes</div>
+  <div class="cmd"><code>git commit -m "message"</code> → save changes</div>
+  <div class="cmd"><code>git push</code> → upload to remote</div>
+  <div class="cmd"><code>git pull</code> → download from remote</div>
+
+  <h2>Branching</h2>
+  <div class="cmd"><code>git branch</code> → list branches</div>
+  <div class="cmd"><code>git checkout branch</code> → switch branch</div>
+  <div class="cmd"><code>git checkout -b new-branch</code> → create & switch</div>
+  <div class="cmd"><code>git push -u origin new-branch</code> → publish new branch</div>
+
+  <h2>Fixing / Resetting</h2>
+  <div class="cmd"><code>git reset --hard</code> → nuke uncommitted changes</div>
+  <div class="cmd"><code>git reset --hard branch</code> → match another branch</div>
+  <div class="cmd"><code>git checkout .</code> → throw away file changes</div>
+
+  <h2>Branch Management</h2>
+  <div class="cmd"><code>git branch -d branch</code> → delete branch (local)</div>
+  <div class="cmd"><code>git push origin --delete branch</code> → delete branch (remote)</div>
+
+  <h2>Shortcuts ("gcodes")</h2>
+  <div class="cmd"><code>gswitch</code> → quickly checkout branch</div>
+  <div class="cmd"><code>gnew</code> → create & push new branch</div>
+  <div class="cmd"><code>rollback</code> → reset to last commit</div>
+
+  <h2>Useful</h2>
+  <div class="cmd"><code>pwd</code> → show current folder</div>
+  <div class="cmd"><code>ls</code> → list files</div>
+</body>
+</html>
+

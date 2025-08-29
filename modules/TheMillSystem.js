@@ -1369,7 +1369,7 @@ class TheMillSystem {
             const blade = BABYLON.MeshBuilder.CreateBox('csgBlade', {
                 width: 500,
                 height: 12,
-                depth: 3  // Make it 3 inches thick for CSG to work better
+                depth: 0.125  // Make it 3 inches thick for CSG to work better
             }, this.millScene);
             
             // Position and rotate the CSG blade
@@ -1574,7 +1574,7 @@ class TheMillSystem {
             this.flashBlade();
             // Animate the separation of the two pieces
             if (piece2) {
-                this.showCutAnimation(piece1, piece2);
+                // this.showCutAnimation(piece1, piece2); // Animation disabled
             }
             
             // Handle piece management
@@ -1721,7 +1721,7 @@ class TheMillSystem {
         
         // Apply visual feedback
         this.flashBlade();
-        this.showCutAnimation(piece1, piece2);
+                // this.showCutAnimation(piece1, piece2); // Animation disabled
         
         // Clean up gizmos from original board
         if (this.gizmoManager) {
@@ -1843,7 +1843,7 @@ class TheMillSystem {
         this.updateSelectionDisplay();
     }
     
-    showCutAnimation(piece1, piece2) {
+    showCutAnimation(piece1, piece2) { return; // Animation disabled
         // Animate pieces separating
         const animationFrames = 30;
         let frame = 0;

@@ -297,37 +297,25 @@ class TheMillSystem {
     enableSplitScreen() {
         if (this.splitScreenEnabled) return;
         
-        // Get blade angle for camera positioning
-        const bladeAngle = (this.bladeAngle || 0);  // In radians already
-        
-        // Create orthographic camera positioned at blade height on XZ plane
-        // Looking straight along the blade direction
+        // Create orthographic camera that will be positioned dynamically
         this.splitCamera = new BABYLON.UniversalCamera(
             'splitCamera',
-            new BABYLON.Vector3(
-                -300 * Math.cos(bladeAngle),  // Position behind blade
-                0,                             // At XZ plane (blade height)
-                -300 * Math.sin(bladeAngle)   // Rotate with blade
-            ),
-            this.millScene  // Same scene as main view
+            new BABYLON.Vector3(0, 0, -300),  // Initial position
+            this.millScene
         );
         
         // Set to orthographic mode
         this.splitCamera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
         
-        // Set orthographic boundaries (adjust for proper framing)
-        const orthoSize = 150;
+        // Set orthographic boundaries
+        const orthoSize = 10;
         this.splitCamera.orthoLeft = -orthoSize;
         this.splitCamera.orthoRight = orthoSize;
         this.splitCamera.orthoTop = orthoSize;
         this.splitCamera.orthoBottom = -orthoSize;
         
-        // Point camera straight ahead along blade direction
-        this.splitCamera.setTarget(new BABYLON.Vector3(
-            300 * Math.cos(bladeAngle),   // Look straight ahead
-            0,                             // Stay at same height
-            300 * Math.sin(bladeAngle)
-        ));
+        // Update camera to current blade position
+        this.updateBladeEyeCamera();
         
         // Set up split-screen viewports
         this.millScene.activeCameras = [this.millCamera, this.splitCamera];
@@ -430,6 +418,32 @@ class TheMillSystem {
             );
             this.splitCamera.setTarget(new BABYLON.Vector3(0, 0, 0));
         }
+    }
+    
+    updateBladeEyeCamera() {
+        if (!this.splitCamera) return;
+        
+        // Get current blade angle (miter) only
+        const miterAngle = this.bladeAngle || 0;  // In radians
+        
+        // Calculate camera position based on blade rotation
+        // Camera should be positioned behind the blade looking forward
+        const distance = 300;
+        const cos = Math.cos(miterAngle);
+        const sin = Math.sin(miterAngle);
+        
+        // Position camera behind blade at blade height
+        this.splitCamera.position.x = -distance * cos;
+        this.splitCamera.position.y = 0;  // Stay at blade height
+        this.splitCamera.position.z = -distance * sin;
+        
+        // Look forward along blade direction
+        const targetX = distance * cos;
+        const targetZ = distance * sin;
+        this.splitCamera.setTarget(new BABYLON.Vector3(targetX, 0, targetZ));
+        
+        // DO NOT rotate the camera - keep it straight up and down
+        // Camera stays level regardless of bevel angle
     }
     
     createMillInterface() {

@@ -423,35 +423,61 @@ class TheMillSystem {
     updateBladeEyeCamera() {
         if (!this.splitCamera || !this.blade) return;
         
-        // Debug marker
+        // Get blade miter rotation
+        const miterAngle = this.blade.rotation.y || 0;
+        
+        // Blade is 500 units wide, camera at end
+        const bladeHalfWidth = 250;
+        
+        // Calculate rotated blade end position
+        const cos = Math.cos(miterAngle);
+        const sin = Math.sin(miterAngle);
+        
+        // Camera at RIGHT end of blade
+        const cameraX = bladeHalfWidth * cos;
+        const cameraZ = 0;  // Z=0, not following blade rotation
+        
+        // Set camera at blade end looking along its length
+        // Camera needs to be offset in Z to look along the blade edge
+        this.splitCamera.position = new BABYLON.Vector3(cameraX, 0, 100);  // Offset in Z
+        this.splitCamera.setTarget(new BABYLON.Vector3(-cameraX, 0, 100));  // Look toward other end
+        this.splitCamera.upVector = new BABYLON.Vector3(0, 1, 0);
+        
+        console.log('Camera at blade end:', {
+            x: cameraX.toFixed(1),
+            z: cameraZ.toFixed(1),
+            miter: (miterAngle * 180 / Math.PI).toFixed(1) + '°'
+        });
+        
+        // DEBUG: Create visual marker for camera position
         if (!this.cameraMarker) {
             this.cameraMarker = BABYLON.MeshBuilder.CreateBox('cameraMarker', {size: 15}, this.millScene);
             const markerMat = new BABYLON.StandardMaterial('cameraMarkerMat', this.millScene);
             markerMat.diffuseColor = new BABYLON.Color3(0, 1, 0);
+            markerMat.emissiveColor = new BABYLON.Color3(0, 0.5, 0);
             this.cameraMarker.material = markerMat;
+            
+            // Add direction indicator
+            this.cameraDirection = BABYLON.MeshBuilder.CreateCylinder('cameraDir', {
+                height: 20, diameterTop: 0, diameterBottom: 8, tessellation: 4
+            }, this.millScene);
+            const dirMat = new BABYLON.StandardMaterial('cameraDirMat', this.millScene);
+            dirMat.diffuseColor = new BABYLON.Color3(1, 0, 0);
+            this.cameraDirection.material = dirMat;
+            this.cameraDirection.parent = this.cameraMarker;
+            this.cameraDirection.position = new BABYLON.Vector3(0, 0, -15);
+            this.cameraDirection.rotation.x = Math.PI / 2;
         }
         
-        // Get blade actual position and rotation
-        const bladePos = this.blade.position.clone();
-        const miterAngle = this.blade.rotation.y || 0;
-        
-        // Blade is 500 wide, get the ACTUAL end position
-        const halfWidth = 250;
-        const rightEndX = bladePos.x + halfWidth * Math.cos(miterAngle);
-        const rightEndZ = bladePos.z - halfWidth * Math.sin(miterAngle);  // Negative because miterAngle is negative
-        const leftEndX = bladePos.x - halfWidth * Math.cos(miterAngle);
-        const leftEndZ = bladePos.z + halfWidth * Math.sin(miterAngle);
-        
-        // Put camera at right end looking at left end
-        this.splitCamera.position = new BABYLON.Vector3(rightEndX, bladePos.y, rightEndZ);
-        this.splitCamera.setTarget(new BABYLON.Vector3(leftEndX, bladePos.y, leftEndZ));
-        
-        // Move marker to show where camera is
+        // Update marker position to match camera
         this.cameraMarker.position.copyFrom(this.splitCamera.position);
         
-        console.log('Miter angle:', (miterAngle * 180 / Math.PI).toFixed(1), '° Blade at:', bladePos.x, bladePos.y, bladePos.z, 'Camera at:', rightEndX, rightEndZ);
+        // Point red cone toward where camera is looking
+        const target = new BABYLON.Vector3(-cameraX, 0, 100);
+        const direction = target.subtract(this.splitCamera.position);
+        const angle = Math.atan2(direction.x, direction.z);
+        this.cameraMarker.rotation.y = angle;
     }
-
     createMillInterface() {
         // Create container
         this.millUI = document.createElement('div');

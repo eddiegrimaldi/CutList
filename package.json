@@ -13,12 +13,19 @@
     "test": "echo \"No tests specified\" && exit 0"
   },
   "dependencies": {
+    "puppeteer-core": "^24.17.1",
     "three": "^0.159.0"
   },
   "devDependencies": {
     "vite": "^5.0.0"
   },
-  "keywords": ["cad", "woodworking", "design", "3d", "drawing"],
+  "keywords": [
+    "cad",
+    "woodworking",
+    "design",
+    "3d",
+    "drawing"
+  ],
   "author": "CutList Team",
   "license": "MIT"
 }

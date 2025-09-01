@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mill Test</title>
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+</head>
+<body>
+    <canvas id="renderCanvas" style="width: 1920px; height: 1080px;"></canvas>
+    <script>
+        // Create a simple scene to test blade camera positioning
+        const canvas = document.getElementById('renderCanvas');
+        const engine = new BABYLON.Engine(canvas, true);
+        const scene = new BABYLON.Scene(engine);
+        
+        // Create main camera
+        const camera = new BABYLON.ArcRotateCamera('camera', -Math.PI/2, 0, 100, BABYLON.Vector3.Zero(), scene);
+        
+        // Create blade mesh (same dimensions as TheMillSystem)
+        const blade = BABYLON.MeshBuilder.CreateBox('blade', {
+            width: 500,  // X-axis
+            height: 12,  // Y-axis
+            depth: 0.3175  // Z-axis (kerf)
+        }, scene);
+        
+        // Rotate blade for miter angle (45 degrees for test)
+        blade.rotation.y = Math.PI / 4;
+        
+        // Create split camera positioned to see blade edge
+        const splitCamera = new BABYLON.UniversalCamera('splitCamera', new BABYLON.Vector3(0, 0, -100), scene);
+        
+        // Test different camera positions
+        function testCameraPosition(angle) {
+            const miterAngle = angle || blade.rotation.y;
+            
+            // Position at blade END looking along width
+            const bladeLocalX = new BABYLON.Vector3(
+                Math.cos(miterAngle),
+                0,
+                Math.sin(miterAngle)
+            );
+            
+            const cameraDistance = 300;
+            const cameraPos = new BABYLON.Vector3(
+                bladeLocalX.x * cameraDistance,
+                0,
+                bladeLocalX.z * cameraDistance
+            );
+            
+            const targetPos = new BABYLON.Vector3(
+                -bladeLocalX.x * cameraDistance,
+                0,
+                -bladeLocalX.z * cameraDistance
+            );
+            
+            console.log('Camera at:', cameraPos, 'Target:', targetPos);
+            
+            // Check what the camera would see
+            const viewDirection = targetPos.subtract(cameraPos).normalize();
+            const bladeFront = new BABYLON.Vector3(-Math.sin(miterAngle), 0, Math.cos(miterAngle));
+            const dot = BABYLON.Vector3.Dot(viewDirection, bladeFront);
+            
+            console.log('View direction dot with blade front:', dot);
+            if (Math.abs(dot) < 0.1) {
+                console.log('SUCCESS: Camera looking along blade width - will see thin edge!');
+            } else {
+                console.log('FAIL: Camera looking at blade side - will see wide face');
+            }
+        }
+        
+        // Test with 45 degree miter
+        testCameraPosition(Math.PI / 4);
+        
+        engine.runRenderLoop(() => scene.render());
+    </script>
+</body>
+</html>

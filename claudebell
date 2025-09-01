@@ -1,0 +1,18 @@
+#!/usr/bin/expect -f
+# Beep when Claude finishes a reply; auto-selects menu option 1 on startup
+set timeout -1
+proc ding {} { send_user "\a" }
+
+spawn -noecho claude --resume --dangerously-skip-permissions
+
+# If a conversation menu appears, pick 1
+expect {
+    -re {(?i)(select|choose|resume).*(conversation)} { after 150; send -- "1\r"; exp_continue }
+    -re {(?i)(enter|choice).{0,10}[:>]\s*$}          { send -- "1\r"; exp_continue }
+    timeout {}
+}
+
+# Ding whenever Claude hands input back to you (adjust tokens if needed)
+set prompt_re {\r\n(You:|you\s*[>:]|>>>|claude[>#:]|Input:)\s*$}
+interact -o -re $prompt_re { ding }
+

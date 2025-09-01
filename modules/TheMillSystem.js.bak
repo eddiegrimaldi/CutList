@@ -1,4 +1,5 @@
 import { ViewCube } from './ViewCube.js';
+import { Part } from './Part.js';
 
 // The Mill System - A 2D workspace for cutting operations
 // Simulates real workshop tools in an orthographic view
@@ -43,26 +44,16 @@ class TheMillSystem {
         this.viewCube = null;
     }
     
-    // Open The Mill with a selected Part or mesh
-    openMill(partOrMesh, operation = 'cut') {
-        if (!partOrMesh) {
-            console.error('No part/material provided to The Mill');
+    // Open The Mill with a selected material
+    openMill(material, operation = 'cut') {
+        if (!material) {
+            console.error('No material provided to The Mill');
             return;
         }
         
-        // Handle both Part instances and raw meshes
-        let mesh;
-        if (partOrMesh.mesh) {
-            // It's a Part instance
-            mesh = partOrMesh.mesh;
-            console.log('Opening The Mill with Part:', partOrMesh.materialName);
-        } else {
-            // It's a raw mesh
-            mesh = partOrMesh;
-            console.log('Opening The Mill with mesh:', mesh.name);
-        }
+        console.log('Opening The Mill with material:', material.name);
         
-        this.currentMaterial = mesh;
+        this.currentMaterial = material;
         this.currentOperation = operation;
         this.isActive = true;
         
@@ -80,6 +71,391 @@ class TheMillSystem {
     }
     
     // Create the mill UI interface
+    
+    createSmartToolbar() {
+        const smartToolbar = document.createElement('div');
+        smartToolbar.id = 'mill-smart-toolbar';
+        smartToolbar.style.position = 'absolute';
+        smartToolbar.style.top = '60px';
+        smartToolbar.style.left = '0';
+        smartToolbar.style.right = '0';
+        smartToolbar.style.height = '100px';
+        smartToolbar.style.background = 'linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 100%)';
+        smartToolbar.style.borderBottom = '2px solid #555';
+        smartToolbar.style.display = 'flex';
+        smartToolbar.style.alignItems = 'center';
+        smartToolbar.style.justifyContent = 'space-around';
+        smartToolbar.style.padding = '10px 20px';
+        smartToolbar.style.boxShadow = '0 2px 10px rgba(0,0,0,0.3)';
+        smartToolbar.style.zIndex = '1000';
+        
+        // Laser toggle
+        const laserToggle = this.createToggleButton('Laser', true, (state) => {
+            if (this.laserLine) this.laserLine.isVisible = state;
+        });
+        smartToolbar.appendChild(laserToggle);
+        
+        // View toggle
+        const viewToggle = this.createToggleButton('View: ORTHO', true, (state) => {
+            if (state) {
+                this.millCamera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
+                viewToggle.querySelector('button').textContent = 'View: ORTHO';
+            } else {
+                this.millCamera.mode = BABYLON.Camera.PERSPECTIVE_CAMERA;
+                viewToggle.querySelector('button').textContent = 'View: PERSP';
+            }
+        });
+        smartToolbar.appendChild(viewToggle);
+        
+        // Miter angle control
+        const miterControl = this.createSliderControl('Miter', -90, 90, 0, (value) => {
+            this.bladeAngle = value * Math.PI / 180;
+            if (this.blade) this.blade.rotation.y = this.bladeAngle;
+            if (this.laserLine) this.laserLine.rotation.y = this.bladeAngle;
+            // Update split camera position to match blade angle
+            if (this.splitScreenEnabled) {
+                this.updateSplitScreen(true);
+            }
+        });
+        smartToolbar.appendChild(miterControl);
+        
+        // Bevel angle control
+        const bevelControl = this.createSliderControl('Bevel', -45, 45, 0, (value) => {
+            this.bevelAngle = 90 - Math.abs(value);
+            this.bevelDirection = value < 0 ? -1 : 1;
+            this.updateBladeTilt();
+            // Toggle split screen
+            if (value !== 0) {
+                this.enableSplitScreen();
+            } else {
+                this.disableSplitScreen();
+            }
+        });
+        smartToolbar.appendChild(bevelControl);
+        
+        // CUT button
+        const cutButton = document.createElement('button');
+        cutButton.style.width = '80px';
+        cutButton.style.height = '80px';
+        cutButton.style.background = 'radial-gradient(circle, #ff4444 0%, #cc0000 100%)';
+        cutButton.style.border = '3px solid #900';
+        cutButton.style.borderRadius = '50%';
+        cutButton.style.color = 'white';
+        cutButton.style.fontWeight = 'bold';
+        cutButton.style.fontSize = '18px';
+        cutButton.style.cursor = 'pointer';
+        cutButton.style.boxShadow = '0 4px 10px rgba(0,0,0,0.5)';
+        cutButton.textContent = 'CUT';
+        cutButton.onclick = () => this.executeCut();
+        smartToolbar.appendChild(cutButton);
+        
+        // Reset button
+        const resetButton = document.createElement('button');
+        resetButton.style.padding = '10px 20px';
+        resetButton.style.background = '#666';
+        resetButton.style.border = '1px solid #888';
+        resetButton.style.borderRadius = '5px';
+        resetButton.style.color = 'white';
+        resetButton.style.cursor = 'pointer';
+        resetButton.textContent = 'Reset';
+        resetButton.onclick = () => {
+            // Reset all angles
+            this.bladeAngle = 0;
+            this.bevelAngle = 90;
+            this.bevelDirection = 1;
+            if (this.blade) {
+                this.blade.rotation.y = 0;
+                this.blade.rotation.x = 0;
+            }
+            if (this.laserLine) this.laserLine.rotation.y = 0;
+            // Reset sliders
+            const miterSlider = document.querySelector('#miter-slider');
+            const bevelSlider = document.querySelector('#bevel-slider');
+            if (miterSlider) {
+                miterSlider.value = 0;
+                miterSlider.dispatchEvent(new Event('input'));
+            }
+            if (bevelSlider) {
+                bevelSlider.value = 0;
+                bevelSlider.dispatchEvent(new Event('input'));
+            }
+            this.disableSplitScreen();
+        };
+        smartToolbar.appendChild(resetButton);
+        
+        this.millUI.appendChild(smartToolbar);
+        
+        // Adjust canvas container position
+        const canvasContainer = document.getElementById('mill-container');
+        if (canvasContainer) {
+            canvasContainer.style.top = '160px';
+        }
+    }
+    
+    createToggleButton(label, initialState, onChange) {
+        const container = document.createElement('div');
+        container.style.display = 'flex';
+        container.style.flexDirection = 'column';
+        container.style.alignItems = 'center';
+        
+        const button = document.createElement('button');
+        button.style.width = '80px';
+        button.style.height = '30px';
+        button.style.background = initialState ? '#4CAF50' : '#666';
+        button.style.border = 'none';
+        button.style.borderRadius = '5px';
+        button.style.color = 'white';
+        button.style.cursor = 'pointer';
+        button.style.fontSize = '12px';
+        button.textContent = label;
+        
+        let state = initialState;
+        button.onclick = () => {
+            state = !state;
+            button.style.background = state ? '#4CAF50' : '#666';
+            onChange(state);
+        };
+        
+        container.appendChild(button);
+        return container;
+    }
+    
+    createSliderControl(label, min, max, defaultValue, onChange) {
+        const container = document.createElement('div');
+        container.style.display = 'flex';
+        container.style.flexDirection = 'column';
+        container.style.alignItems = 'center';
+        container.style.minWidth = '150px';
+        
+        const labelDiv = document.createElement('div');
+        labelDiv.style.color = '#ccc';
+        labelDiv.style.fontSize = '12px';
+        labelDiv.style.marginBottom = '5px';
+        labelDiv.textContent = label;
+        
+        const sliderContainer = document.createElement('div');
+        sliderContainer.style.display = 'flex';
+        sliderContainer.style.alignItems = 'center';
+        sliderContainer.style.gap = '10px';
+        
+        const slider = document.createElement('input');
+        slider.type = 'range';
+        slider.id = label.toLowerCase() + '-slider';
+        slider.min = min;
+        slider.max = max;
+        slider.value = defaultValue;
+        slider.style.width = '100px';
+        
+        const display = document.createElement('div');
+        display.style.color = '#0ff';
+        display.style.fontSize = '14px';
+        display.style.fontWeight = 'bold';
+        display.style.minWidth = '40px';
+        display.textContent = defaultValue + '°';
+        
+        slider.oninput = () => {
+            const value = parseFloat(slider.value);
+            display.textContent = value + '°';
+            onChange(value);
+        };
+        
+        sliderContainer.appendChild(slider);
+        sliderContainer.appendChild(display);
+        
+        container.appendChild(labelDiv);
+        container.appendChild(sliderContainer);
+        
+        // Add preset buttons
+        const presets = document.createElement('div');
+        presets.style.display = 'flex';
+        presets.style.gap = '2px';
+        presets.style.marginTop = '5px';
+        
+        const presetValues = label === 'Miter' ? [-45, -22.5, 0, 22.5, 45] : [-45, -22.5, 0, 22.5, 45];
+        presetValues.forEach(value => {
+            if (value >= min && value <= max) {
+                const btn = document.createElement('button');
+                btn.style.padding = '2px 4px';
+                btn.style.fontSize = '10px';
+                btn.style.background = '#444';
+                btn.style.border = '1px solid #666';
+                btn.style.color = '#ccc';
+                btn.style.cursor = 'pointer';
+                btn.textContent = value + '°';
+                btn.onclick = () => {
+                    slider.value = value;
+                    slider.dispatchEvent(new Event('input'));
+                };
+                presets.appendChild(btn);
+            }
+        });
+        
+        container.appendChild(presets);
+        return container;
+    }
+    
+    enableSplitScreen() {
+        if (this.splitScreenEnabled) return;
+        
+        // Create orthographic camera that will be positioned dynamically
+        this.splitCamera = new BABYLON.UniversalCamera(
+            'splitCamera',
+            new BABYLON.Vector3(0, 0, -300),  // Initial position
+            this.millScene
+        );
+        
+        // Set to orthographic mode
+        this.splitCamera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
+        
+        // Set orthographic boundaries for blade view
+        const orthoSize = 50;  // Wider view to see board and blade
+        this.splitCamera.orthoLeft = -orthoSize;
+        this.splitCamera.orthoRight = orthoSize;
+        this.splitCamera.orthoTop = orthoSize;
+        this.splitCamera.orthoBottom = -orthoSize;
+        
+        // Update camera to current blade position
+        this.updateBladeEyeCamera();
+        
+        // Set up split-screen viewports
+        this.millScene.activeCameras = [this.millCamera, this.splitCamera];
+        this.millCamera.viewport = new BABYLON.Viewport(0, 0, 0.5, 1);
+        this.splitCamera.viewport = new BABYLON.Viewport(0.5, 0, 0.5, 1);
+        
+        // Add label overlay
+        const overlay = document.createElement('div');
+        overlay.id = 'split-overlay';
+        overlay.style.position = 'absolute';
+        overlay.style.top = '0';
+        overlay.style.right = '0';
+        overlay.style.width = '50%';
+        overlay.style.height = '100%';
+        overlay.style.pointerEvents = 'none';
+        overlay.style.zIndex = '10';
+        
+        const label = document.createElement('div');
+        label.textContent = 'BLADE-EYE VIEW (ORTHO)';
+        label.style.position = 'absolute';
+        label.style.top = '10px';
+        label.style.right = '10px';
+        label.style.color = '#0ff';
+        label.style.fontWeight = 'bold';
+        label.style.fontSize = '12px';
+        label.style.background = 'rgba(0,0,0,0.7)';
+        label.style.padding = '5px 10px';
+        label.style.borderRadius = '3px';
+        overlay.appendChild(label);
+        
+        const container = document.getElementById('mill-container');
+        container.appendChild(overlay);
+        this.splitOverlay = overlay;
+        
+        // Add divider line
+        const divider = document.createElement('div');
+        divider.id = 'split-divider';
+        divider.style.position = 'absolute';
+        divider.style.left = '50%';
+        divider.style.top = '0';
+        divider.style.width = '2px';
+        divider.style.height = '100%';
+        divider.style.background = '#666';
+        divider.style.zIndex = '11';
+        container.appendChild(divider);
+        this.splitDivider = divider;
+        
+        this.splitScreenEnabled = true;
+        this.millEngine.resize();
+    }
+
+    
+    disableSplitScreen() {
+        if (!this.splitScreenEnabled) return;
+        
+        // Remove overlay and divider
+        if (this.splitOverlay) {
+            this.splitOverlay.remove();
+            this.splitOverlay = null;
+        }
+        
+        if (this.splitDivider) {
+            this.splitDivider.remove();
+            this.splitDivider = null;
+        }
+        
+        // Reset cameras
+        this.millScene.activeCameras = [];
+        this.millScene.activeCamera = this.millCamera;
+        this.millCamera.viewport = new BABYLON.Viewport(0, 0, 1, 1);
+        
+        // Dispose split camera
+        if (this.splitCamera) {
+            this.splitCamera.dispose();
+            this.splitCamera = null;
+        }
+        
+        this.splitScreenEnabled = false;
+        this.millEngine.resize();
+    }
+
+    
+    updateSplitScreen(shouldShow) {
+        if (shouldShow && !this.splitScreenEnabled) {
+            this.enableSplitScreen();
+        } else if (!shouldShow && this.splitScreenEnabled) {
+            this.disableSplitScreen();
+        }
+        
+        // Update camera position if split screen is active
+        if (this.splitScreenEnabled && this.splitCamera) {
+            const bladeAngle = this.bladeAngle || 0;
+            const bevelRad = ((90 - (this.bevelAngle || 90)) * Math.PI) / 180;
+            
+            // Update blade-eye camera position based on current angles
+            this.splitCamera.position = new BABYLON.Vector3(
+                Math.sin(bladeAngle * Math.PI / 180) * 200,
+                Math.sin(bevelRad) * 50,
+                Math.cos(bladeAngle * Math.PI / 180) * 200
+            );
+            this.splitCamera.setTarget(new BABYLON.Vector3(0, 0, 0));
+        }
+    }
+    
+    updateBladeEyeCamera() {
+        if (!this.splitCamera || !this.blade) return;
+        
+        // Get blade miter rotation
+        const miterAngle = this.blade.rotation.y || 0;
+        
+        // Blade is 500 units wide, camera at end
+        const bladeHalfWidth = 250;
+        
+        // Calculate rotated blade end position
+        const cos = Math.cos(miterAngle);
+        const sin = Math.sin(miterAngle);
+        
+        // Camera at RIGHT end of blade
+        const cameraX = bladeHalfWidth * cos;
+        const cameraZ = bladeHalfWidth * sin;
+        
+        // Set camera position and target
+        this.splitCamera.position = new BABYLON.Vector3(cameraX, 0, cameraZ);
+        this.splitCamera.setTarget(new BABYLON.Vector3(0, 0, 0));
+        this.splitCamera.upVector = new BABYLON.Vector3(0, 1, 0);
+        
+        console.log('Camera at blade end:', {
+            x: cameraX.toFixed(1),
+            z: cameraZ.toFixed(1),
+            miter: (miterAngle * 180 / Math.PI).toFixed(1) + '°'
+        });
+        
+        // Update markers
+        if (this.cameraMarker) {
+            this.cameraMarker.position.copyFrom(this.splitCamera.position);
+            if (this.cameraDirection) {
+                this.cameraDirection.rotation.y = miterAngle + Math.PI;
+            }
+        }
+    }
     createMillInterface() {
         // Create container
         this.millUI = document.createElement('div');
@@ -159,11 +535,177 @@ class TheMillSystem {
         
         this.millUI.appendChild(header);
         
+        // Create smart toolbar
+        this.createSmartToolbar();
+
+        // Create smart toolbar
+        const smartToolbar = document.createElement('div');
+        smartToolbar.id = 'mill-smart-toolbar';
+        smartToolbar.style.position = 'absolute';
+        smartToolbar.style.top = '60px';
+        smartToolbar.style.left = '0';
+        smartToolbar.style.right = '0';
+        smartToolbar.style.height = '120px';
+        smartToolbar.style.background = 'linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 100%)';
+        smartToolbar.style.borderBottom = '2px solid #555';
+        smartToolbar.style.display = 'flex';
+        smartToolbar.style.alignItems = 'center';
+        smartToolbar.style.justifyContent = 'space-around';
+        smartToolbar.style.padding = '10px 20px';
+        smartToolbar.style.boxShadow = '0 2px 10px rgba(0,0,0,0.3)';
+        smartToolbar.style.zIndex = '1000';
+        
+        // Laser toggle
+        const laserControl = document.createElement('div');
+        laserControl.style.cssText = 'display: flex; flex-direction: column; align-items: center;';
+        const laserToggle = document.createElement('button');
+        laserToggle.id = 'laser-toggle';
+        laserToggle.style.width = '60px';
+        laserToggle.style.height = '30px';
+        laserToggle.style.background = '#4CAF50';
+        laserToggle.style.border = 'none';
+        laserToggle.style.borderRadius = '15px';
+        laserToggle.style.color = 'white';
+        laserToggle.style.fontWeight = 'bold';
+        laserToggle.style.cursor = 'pointer';
+        laserToggle.style.transition = 'background 0.3s';
+        laserToggle.textContent = 'ON';
+        laserToggle.dataset.state = 'on';
+        laserToggle.onclick = () => {
+            if (laserToggle.dataset.state === 'on') {
+                laserToggle.dataset.state = 'off';
+                laserToggle.textContent = 'OFF';
+                laserToggle.style.background = '#666';
+                if (this.laserLine) this.laserLine.isVisible = false;
+            } else {
+                laserToggle.dataset.state = 'on';
+                laserToggle.textContent = 'ON';
+                laserToggle.style.background = '#4CAF50';
+                if (this.laserLine) this.laserLine.isVisible = true;
+            }
+        };
+        const laserLabel = document.createElement('div');
+        laserLabel.textContent = 'Laser';
+        laserLabel.style.cssText = 'color: #ccc; font-size: 12px; margin-top: 5px;';
+        laserControl.appendChild(laserToggle);
+        laserControl.appendChild(laserLabel);
+        smartToolbar.appendChild(laserControl);
+        
+        // View toggle
+        const viewControl = document.createElement('div');
+        viewControl.style.cssText = 'display: flex; flex-direction: column; align-items: center;';
+        const viewToggle = document.createElement('button');
+        viewToggle.id = 'view-toggle';
+        viewToggle.style.width = '80px';
+        viewToggle.style.height = '30px';
+        viewToggle.style.background = '#2196F3';
+        viewToggle.style.border = 'none';
+        viewToggle.style.borderRadius = '5px';
+        viewToggle.style.color = 'white';
+        viewToggle.style.fontSize = '11px';
+        viewToggle.style.cursor = 'pointer';
+        viewToggle.style.transition = 'background 0.3s';
+        viewToggle.textContent = 'ORTHO';
+        viewToggle.onclick = () => {
+            if (this.millCamera.mode === BABYLON.Camera.ORTHOGRAPHIC_CAMERA) {
+                this.millCamera.mode = BABYLON.Camera.PERSPECTIVE_CAMERA;
+                viewToggle.textContent = 'PERSP';
+                viewToggle.style.background = '#FF9800';
+            } else {
+                this.millCamera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
+                viewToggle.textContent = 'ORTHO';
+                viewToggle.style.background = '#2196F3';
+            }
+        };
+        const viewLabel = document.createElement('div');
+        viewLabel.textContent = 'View';
+        viewLabel.style.cssText = 'color: #ccc; font-size: 12px; margin-top: 5px;';
+        viewControl.appendChild(viewToggle);
+        viewControl.appendChild(viewLabel);
+        smartToolbar.appendChild(viewControl);
+        
+        // Miter angle control
+        const miterControl = this.createAngleControl('miter', 'Miter', -90, 90, 0, 
+            (angle) => {
+                this.bladeAngle = angle * Math.PI / 180;
+                if (this.blade) this.blade.rotation.y = this.bladeAngle;
+                if (this.laserLine) this.laserLine.rotation.y = this.bladeAngle;
+            });
+        smartToolbar.appendChild(miterControl);
+        
+        // Bevel angle control
+        const bevelControl = this.createAngleControl('bevel', 'Bevel', -45, 45, 0,
+            (angle) => {
+                this.bevelAngle = 90 - Math.abs(angle);  // Convert to 0-90 range
+                this.bevelDirection = angle < 0 ? -1 : 1;
+                this.updateBladeTilt();
+                // Show/hide PIP monitor
+                this.updateSplitScreen(angle !== 0);
+                // Update blade-eye camera when split screen is enabled
+                if (this.splitScreenEnabled) {
+                    this.updateBladeEyeCamera();
+                }
+            });
+        smartToolbar.appendChild(bevelControl);
+        
+        // CUT button
+        const cutButton = document.createElement('button');
+        cutButton.id = 'cut-button';
+        cutButton.style.width = '80px';
+        cutButton.style.height = '80px';
+        cutButton.style.background = 'radial-gradient(circle, #ff4444 0%, #cc0000 100%)';
+        cutButton.style.border = '3px solid #900';
+        cutButton.style.borderRadius = '50%';
+        cutButton.style.color = 'white';
+        cutButton.style.fontWeight = 'bold';
+        cutButton.style.fontSize = '18px';
+        cutButton.style.cursor = 'pointer';
+        cutButton.style.boxShadow = '0 4px 10px rgba(0,0,0,0.5)';
+        cutButton.style.transition = 'all 0.2s';
+        cutButton.textContent = 'CUT';
+        cutButton.onmouseover = () => {
+            cutButton.style.transform = 'scale(1.1)';
+            cutButton.style.boxShadow = '0 6px 15px rgba(255,0,0,0.5)';
+        };
+        cutButton.onmouseout = () => {
+            cutButton.style.transform = 'scale(1)';
+            cutButton.style.boxShadow = '0 4px 10px rgba(0,0,0,0.5)';
+        };
+        cutButton.onclick = () => this.executeCut();
+        smartToolbar.appendChild(cutButton);
+        
+        // Reset button
+        const resetButton = document.createElement('button');
+        resetButton.style.padding = '10px 20px';
+        resetButton.style.background = '#666';
+        resetButton.style.border = '1px solid #888';
+        resetButton.style.borderRadius = '5px';
+        resetButton.style.color = 'white';
+        resetButton.style.cursor = 'pointer';
+        resetButton.textContent = 'Reset';
+        resetButton.onclick = () => {
+            this.bladeAngle = 0;
+            this.bevelAngle = 90;
+            this.bevelDirection = 1;
+            if (this.blade) this.blade.rotation.y = 0;
+            if (this.laserLine) this.laserLine.rotation.y = 0;
+            this.updateBladeTilt();
+            // Update gauges
+            document.querySelector('#miter-gauge-needle').style.transform = 'rotate(0deg)';
+            document.querySelector('#bevel-gauge-needle').style.transform = 'rotate(0deg)';
+            document.querySelector('#miter-display').textContent = '0°';
+            document.querySelector('#bevel-display').textContent = '0°';
+        };
+        smartToolbar.appendChild(resetButton);
+        
+        this.millUI.appendChild(smartToolbar);
+        
+        
         // Create canvas container
         const canvasContainer = document.createElement('div');
         canvasContainer.id = 'mill-container';  // ID for controls
         canvasContainer.style.position = 'absolute';
-        canvasContainer.style.top = '60px';
+        canvasContainer.style.top = '180px';  // Below header and toolbar
         canvasContainer.style.left = '0';
         canvasContainer.style.right = '0';
         canvasContainer.style.bottom = '100px';
@@ -226,27 +768,27 @@ class TheMillSystem {
         
         // Create UI controls after UI is in DOM
         this.createTransformButtons();
-        this.createBevelControl();
+        //         this.createBevelControl();
     }
     
     // Setup the 2D Babylon scene
     setupMillScene() {
         // Create new engine for mill canvas
-        const millEngine = new BABYLON.Engine(this.millCanvas, true);
+        this.millEngine = new BABYLON.Engine(this.millCanvas, true);
         
         // Create scene
-        this.millScene = new BABYLON.Scene(millEngine);
+        this.millScene = new BABYLON.Scene(this.millEngine);
         this.millScene.clearColor = new BABYLON.Color3(0.98, 0.98, 0.98);
         // Create blade EARLY before physics
         this.blade = BABYLON.MeshBuilder.CreateBox('blade', {
             width: 500,  // 500 inches long blade
             height: 12,     // Full 12 inch height
-            depth: 0.0078125  // 1/128 inch kerf - very thin realistic kerf
+            depth: 5  // TEMPORARILY THICK for testing camera angle
         }, this.millScene);
         this.blade.position.y = 0;  // Center at Y=0 so blade extends -6 to +6
         this.blade.position.z = 0;
         const bladeMat = new BABYLON.StandardMaterial('bladeMat', this.millScene);
-        bladeMat.diffuseColor = new BABYLON.Color3(0.7, 0.7, 0.8);
+        bladeMat.diffuseColor = new BABYLON.Color3(1, 0, 0);  // RED for visibility
         bladeMat.alpha = 0.7;  // Semi-transparent to see through board
         bladeMat.specularColor = new BABYLON.Color3(0.3, 0.3, 0.3);  // Less shine
         this.blade.material = bladeMat;
@@ -370,6 +912,23 @@ class TheMillSystem {
                 const bevelControl = document.getElementById('mill-bevel-control');
                 if (rotationControl) rotationControl.style.display = 'none';
                 if (bevelControl) bevelControl.style.display = 'block';
+        
+        // Make blade visible in this view
+        if (this.blade) {
+            this.blade.isVisible = true;
+            this.blade.material.alpha = 0.7;  // Semi-transparent to see through
+            console.log("Blade made visible for blade-eye view");
+        }
+        
+        // Make board visible too
+        if (this.currentBoard) {
+            this.currentBoard.isVisible = true;
+        }
+        
+        // Show table surface for reference
+        if (this.tableSurface) {
+            this.tableSurface.isVisible = true;
+        }
                 
                 console.log('Switched to blade-eye view');
             } else if (e.key === 'i' || e.key === 'I') {
@@ -445,7 +1004,7 @@ class TheMillSystem {
         this.setupCameraControls();
         
         // Set orthographic size based on material
-        const bounds = this.currentBoard ? this.currentBoard.getBoundingInfo().boundingBox : this.currentMaterial.getBoundingInfo().boundingBox;
+        const bounds = this.currentMaterial.getBoundingInfo().boundingBox;
         const boardLength = bounds.maximum.x - bounds.minimum.x;
         const boardWidth = bounds.maximum.z - bounds.minimum.z;
         const maxDim = Math.max(boardLength, boardWidth) * 1.5; // Add 50% padding for better view
@@ -596,14 +1155,14 @@ class TheMillSystem {
         setTimeout(forceTopDownView, 100);
         
         // Add ViewCube for navigation
-        this.setupViewCube(millEngine);
+        this.setupViewCube(this.millEngine);
         
         // Force camera to top-down before starting render
         this.millCamera.beta = 0;  // FORCE top-down
         this.millCamera.alpha = -Math.PI / 2;
         
         // Start render loop
-        millEngine.runRenderLoop(() => {
+        this.millEngine.runRenderLoop(() => {
             // Maintain camera angle based on current view mode
             if (this.millCamera.mode === BABYLON.Camera.ORTHOGRAPHIC_CAMERA && !this.cameraState.isRotating) {
                 if (this.currentViewMode === 'top') {
@@ -963,10 +1522,10 @@ class TheMillSystem {
         this.bevelAngle = 90; // Default 90 degrees (straight cut)
         this.bevelDirection = 1; // Default direction (positive/right)
         this.bevelDirection = 1; // 1 = right, -1 = left
-        this.bladeVisual = null;
+        // this.bladeVisual = null;
         this.cuttingPlane = null;
         this.bevelDirection = 1; // 1 = right, -1 = left
-        this.bladeVisual = null;
+        // this.bladeVisual = null;
         this.cuttingPlane = null;
     }
     
@@ -1119,7 +1678,7 @@ class TheMillSystem {
         this.laserLine.renderingGroupId = 2; // Render on top
         
         // Create corner rotation control
-        this.createRotationControl();
+        //         this.createRotationControl();
         
         // Setup rotation interaction
         this.setupRotationControl();
@@ -1284,8 +1843,8 @@ class TheMillSystem {
                 this.laserAssembly.rotation.y = currentRotation * Math.PI / 180;
             if (this.blade) {
                 this.blade.rotation.y = currentRotation * Math.PI / 180;
-                this.bladeAngle = currentRotation * Math.PI / 180;  // Keep bladeAngle in sync!
-            }  // Natural direction
+                this.bladeAngle = currentRotation * Math.PI / 180;  // CRITICAL: Keep bladeAngle in sync!
+            }
             }
             
             // Update HUD if exists
@@ -1378,25 +1937,25 @@ class TheMillSystem {
             const blade = BABYLON.MeshBuilder.CreateBox('csgBlade', {
                 width: 500,
                 height: 12,
-                depth: 3  // Make it 3 inches thick for CSG to work better
+                depth: 5  // TEMPORARILY THICK for testing camera angle
             }, this.millScene);
             
             // Position and rotate the CSG blade
+            // Position the CSG blade
             blade.position = this.blade.position.clone();
-            blade.rotation.y = this.blade.rotation.y;  // Miter angle
             
             // Apply BOTH rotations before baking
             blade.rotation.x = bevelRadians * this.bevelDirection;  // Bevel
-            blade.rotation.y = this.bladeAngle;  // Miter - use tracked angle
+            blade.rotation.y = this.bladeAngle;  // Miter
             
-            // Bake BOTH rotations into geometry
-            blade.computeWorldMatrix(true);
+            // Bake BOTH rotations into geometry for CSG
             blade.bakeCurrentTransformIntoVertices();
             
-            // Clear rotations after baking
+            // Clear rotations since they're now baked into geometry
             blade.rotation.x = 0;
-            blade.rotation.y = 0
+            blade.rotation.y = 0;
             
+            console.log('Created CSG blade with both angles baked - Miter:', (this.bladeAngle * 180 / Math.PI).toFixed(1), 'Bevel:', this.bevelAngle);
             console.log('Created new CSG blade with bevel baked in:', this.bevelAngle, 'degrees');
             
             // The cloned blade already has the correct position and rotation from visual blade
@@ -1415,7 +1974,7 @@ class TheMillSystem {
             blade.material = new BABYLON.StandardMaterial('bladeMat', this.millScene);
             blade.material.diffuseColor = new BABYLON.Color3(0, 1, 0);  // Bright green for CSG blade
             blade.material.alpha = 0.8;  // More opaque to see clearly
-            blade.isVisible = true; // KEEP VISIBLE to see actual cut position
+            // blade.isVisible = true; // KEEP VISIBLE to see actual cut position
             
             console.log('Blade position:', blade.position);
             console.log('Board position:', this.currentBoard.position);
@@ -1423,95 +1982,177 @@ class TheMillSystem {
             
             // blade.isVisible = false; // Keep visible for debugging
             
-            // Perform a single CSG operation - just subtract the blade
+            // Create separator boxes to split board into two pieces
+            console.log('Creating separators for board splitting...');
+            
+            // Create separators at origin
+            const leftSeparator = BABYLON.MeshBuilder.CreateBox('leftSeparator', {
+                width: 600,
+                height: 500,
+                depth: 100
+            }, this.millScene);
+            
+            const rightSeparator = BABYLON.MeshBuilder.CreateBox('rightSeparator', {
+                width: 600,
+                height: 500,
+                depth: 100
+            }, this.millScene);
+            
+            // Position separators BEFORE rotation - relative to origin
+            // Separators split at blade edges - kerf removed from right piece
+            leftSeparator.position.z = -50.15875;  // Inner edge at -0.15875cm (left blade edge)
+            // Right separator inner edge at +0.0625, so center at +50.0625
+            rightSeparator.position.z = 50.15875;   // Inner edge at +0.15875cm (right blade edge)
+            
+            // Bake initial positions
+            leftSeparator.bakeCurrentTransformIntoVertices();
+            rightSeparator.bakeCurrentTransformIntoVertices();
+            
+            // Now apply rotations around origin (0,0,0)
+            leftSeparator.position.set(0, 0, 0);
+            rightSeparator.position.set(0, 0, 0);
+            
+            leftSeparator.rotation.x = bevelRadians * this.bevelDirection;
+            leftSeparator.rotation.y = this.bladeAngle;
+            rightSeparator.rotation.x = bevelRadians * this.bevelDirection;
+            rightSeparator.rotation.y = this.bladeAngle;
+            
+            // Bake rotations
+            leftSeparator.bakeCurrentTransformIntoVertices();
+            rightSeparator.bakeCurrentTransformIntoVertices();
+            
+            // Finally move to blade position
+            leftSeparator.position = blade.position.clone();
+            rightSeparator.position = blade.position.clone();
+            
+            // Add materials for debugging
+            const leftMaterial = new BABYLON.StandardMaterial("leftSepMat", this.millScene);
+            leftMaterial.diffuseColor = new BABYLON.Color3(1, 0, 0); // Red
+            leftMaterial.alpha = 0.5; // Half opacity
+            leftSeparator.material = leftMaterial;
+            leftSeparator.isVisible = false; // Hidden for production
+            
+            const rightMaterial = new BABYLON.StandardMaterial("rightSepMat", this.millScene);
+            rightMaterial.diffuseColor = new BABYLON.Color3(0, 0, 1); // Blue
+            rightMaterial.alpha = 0.5; // Half opacity
+            rightSeparator.material = rightMaterial;
+            rightSeparator.isVisible = false; // Hidden for production
+            
+            console.log("Separators rotated around blade center point");
+            
+
+            
+
+            
+
             console.log('Creating CSG from board...');
             const boardCSG = BABYLON.CSG.FromMesh(this.currentBoard);
             
             console.log('Creating CSG from blade...');
             const bladeCSG = BABYLON.CSG.FromMesh(blade);
             
-            console.log('Creating two pieces with properly rotated separators...');
+            console.log('Creating CSG from separators...');
+            const leftSeparatorCSG = BABYLON.CSG.FromMesh(leftSeparator);
+            const rightSeparatorCSG = BABYLON.CSG.FromMesh(rightSeparator);
             
-            // Create separator 1 - a cube that will be rotated like the blade
-            // Separators should be big enough to cover the board, positioned to split at blade
-            const separator1 = BABYLON.MeshBuilder.CreateBox('separator1', {
-                width: 300,   // This dimension now perpendicular to blade
-                height: 100,  // Taller than board
-                depth: 600    // This dimension now along blade length
-            }, this.millScene);
-            
-            // Position it to cover everything beyond the blade
-            separator1.position = blade.position.clone();
-            separator1.position.z += 150;  // Half its depth beyond blade
-            
-            // Apply SAME rotations as blade
-            separator1.rotation.x = bevelRadians * this.bevelDirection;  // Bevel
-            separator1.rotation.y = this.bladeAngle;  // Miter
-            
-            // Bake the rotations into geometry
-            separator1.computeWorldMatrix(true);
-            separator1.bakeCurrentTransformIntoVertices();
-            separator1.rotation.x = 0;
-            separator1.rotation.y = 0;
-            
-            // Create separator 2
-            const separator2 = BABYLON.MeshBuilder.CreateBox('separator2', {
-                width: 300,   // This dimension now perpendicular to blade
-                height: 100,  // Taller than board
-                depth: 600    // This dimension now along blade length
-            }, this.millScene);
-            
-            // Position it to cover everything beyond the blade on other side
-            separator2.position = blade.position.clone();
-            separator2.position.z -= 150;  // Half its depth beyond blade
-            
-            // Apply THE SAME ROTATIONS
-            separator2.rotation.x = bevelRadians * this.bevelDirection;  // Bevel
-            separator2.rotation.y = this.bladeAngle;  // Miter
-            
-            // Bake the rotations
-            separator2.computeWorldMatrix(true);
-            separator2.bakeCurrentTransformIntoVertices();
-            separator2.rotation.x = 0;
-            separator2.rotation.y = 0;
-            
-            // Create piece 1: board - blade - separator1
-            const piece1CSG = boardCSG.subtract(bladeCSG).subtract(BABYLON.CSG.FromMesh(separator1));
+            console.log('Creating piece 1 (left of blade)...');
+            // Piece 1: Board minus blade, then minus right separator
+            const piece1CSG = boardCSG.clone().subtract(bladeCSG).subtract(rightSeparatorCSG);
             const piece1 = piece1CSG.toMesh('piece1', this.currentBoard.material.clone(), this.millScene);
             
-            // Create piece 2: board - blade - separator2
-            const piece2CSG = boardCSG.subtract(bladeCSG).subtract(BABYLON.CSG.FromMesh(separator2));
+            console.log('Creating piece 2 (right of blade)...');
+            // Piece 2: Board minus blade, then minus left separator
+            const piece2CSG = boardCSG.subtract(bladeCSG).subtract(leftSeparatorCSG);
             const piece2 = piece2CSG.toMesh('piece2', this.currentBoard.material.clone(), this.millScene);
             
-            // Debug separator properties
-            console.log('Separator1 dimensions:', {
-                width: separator1.getBoundingInfo().boundingBox.extendSize.x * 2,
-                height: separator1.getBoundingInfo().boundingBox.extendSize.y * 2,
-                depth: separator1.getBoundingInfo().boundingBox.extendSize.z * 2
-            });
-            console.log('Separator1 position:', separator1.position);
-            console.log('Separator1 rotation:', separator1.rotation);
-            
-            // Make separators visible for debugging
-            separator1.material = new BABYLON.StandardMaterial('sep1Mat', this.millScene);
-            separator1.material.diffuseColor = new BABYLON.Color3(1, 0, 0);  // Red
-            separator1.material.alpha = 0.3;  // Transparent
-            separator1.isVisible = true;
-            
-            separator2.material = new BABYLON.StandardMaterial('sep2Mat', this.millScene);
-            separator2.material.diffuseColor = new BABYLON.Color3(0, 0, 1);  // Blue
-            separator2.material.alpha = 0.3;  // Transparent
-            separator2.isVisible = true;
-            
-            // Don't dispose - keep them visible
-            // separator1.dispose();
-            // separator2.dispose();
-            
-            console.log('Two pieces created');
-            
-            // Keep pieces exactly where they were cut - no separation
+            // Position pieces at original board position
             piece1.position = this.currentBoard.position.clone();
             piece2.position = this.currentBoard.position.clone();
+            
+            
+            // Separate the pieces slightly to show the kerf
+            // Move pieces apart based on blade angle
+            const separationDistance = 0.15875; // Half of kerf width (1/16 inch)
+            const bladeNormal = new BABYLON.Vector3(
+                Math.sin(this.bladeAngle),
+                0,
+                Math.cos(this.bladeAngle)
+            );
+            piece1.position.addInPlace(bladeNormal.scale(-separationDistance));
+            piece2.position.addInPlace(bladeNormal.scale(separationDistance));
+            console.log("Pieces separated by", separationDistance * 2, "cm");
+            console.log('Cut complete - two pieces created');
+            
+            // Create Part instances for both pieces (following Prime Directive)
+            // Calculate dimensions for each piece based on cut position
+            const boardBounds = this.currentBoard.getBoundingInfo().boundingBox;
+            const boardLength = boardBounds.maximum.x - boardBounds.minimum.x;
+            const boardWidth = boardBounds.maximum.z - boardBounds.minimum.z;
+            const boardThickness = boardBounds.maximum.y - boardBounds.minimum.y;
+            
+            // Get material info from original board
+            const originalMaterial = this.originalMesh?.material || this.currentBoard.material;
+            const materialId = originalMaterial?.id || 'walnut_001';
+            const materialName = originalMaterial?.name || 'Black Walnut';
+            
+            // Create Part for piece 1
+            const piece1Bounds = piece1.getBoundingInfo().boundingBox;
+            const piece1Part = new Part({
+                type: 'board',
+                dimensions: {
+                    length: (piece1Bounds.maximum.x - piece1Bounds.minimum.x) / 2.54, // Convert cm to inches
+                    width: (piece1Bounds.maximum.z - piece1Bounds.minimum.z) / 2.54,
+                    thickness: (piece1Bounds.maximum.y - piece1Bounds.minimum.y) / 2.54
+                },
+                position: {
+                    x: piece1.position.x,
+                    y: piece1.position.y,
+                    z: piece1.position.z
+                },
+                rotation: {
+                    x: piece1.rotation.x,
+                    y: piece1.rotation.y,
+                    z: piece1.rotation.z
+                },
+                material: { id: materialId, name: materialName },
+                parentId: this.currentBoard.name // Track parent board
+            });
+            piece1.partInstance = piece1Part; // Link mesh to Part
+            piece1Part.mesh = piece1; // Link Part to mesh
+            
+            // Create Part for piece 2
+            const piece2Bounds = piece2.getBoundingInfo().boundingBox;
+            const piece2Part = new Part({
+                type: 'board',
+                dimensions: {
+                    length: (piece2Bounds.maximum.x - piece2Bounds.minimum.x) / 2.54, // Convert cm to inches
+                    width: (piece2Bounds.maximum.z - piece2Bounds.minimum.z) / 2.54,
+                    thickness: (piece2Bounds.maximum.y - piece2Bounds.minimum.y) / 2.54
+                },
+                position: {
+                    x: piece2.position.x,
+                    y: piece2.position.y,
+                    z: piece2.position.z
+                },
+                rotation: {
+                    x: piece2.rotation.x,
+                    y: piece2.rotation.y,
+                    z: piece2.rotation.z
+                },
+                material: { id: materialId, name: materialName },
+                parentId: this.currentBoard.name // Track parent board
+            });
+            piece2.partInstance = piece2Part; // Link mesh to Part
+            piece2Part.mesh = piece2; // Link Part to mesh
+            
+            console.log('Created Part instances for both pieces:', piece1Part.id, piece2Part.id);
+            
+            // Store Parts for return to main scene
+            this.cutParts = [piece1Part, piece2Part];
+            
+            // Clean up separators
+            // leftSeparator.dispose(); // Commented out for debugging - keep visible
+            // rightSeparator.dispose(); // Commented out for debugging - keep visible
             
             // Clean up
             // Delay blade disposal so we can see where the cut happened
@@ -1521,7 +2162,10 @@ class TheMillSystem {
             
             // Visual feedback
             this.flashBlade();
-            // Animation disabled - pieces stay where cut
+            // Animate the separation of the two pieces
+            if (piece2) {
+                // this.showCutAnimation(piece1, piece2); // Animation disabled
+            }
             
             // Handle piece management
             if (this.cutPieces) {
@@ -1548,14 +2192,14 @@ class TheMillSystem {
                 this.cutPieces = [];
             }
             
-            // Ensure pieces are visible
+            // Ensure both pieces are visible
             piece1.isVisible = true;
             piece2.isVisible = true;
             
             this.cutPieces.push(piece1);
             this.cutPieces.push(piece2);
             
-            console.log('Added cut pieces:', this.cutPieces.length);
+            console.log('Added cut result to pieces:', this.cutPieces.length);
             
             // Make pieces selectable
             this.makePiecesSelectable();
@@ -1570,6 +2214,19 @@ class TheMillSystem {
             };
             
             console.log('CSG cut completed successfully');
+            // Hide blade after cut
+            if (this.blade) {
+                this.blade.isVisible = false;
+                console.log("Blade hidden after cut");
+            }
+            if (this.laserLine) {
+                this.laserLine.isVisible = false;
+            }
+            if (this.laserAssembly) {
+                this.laserAssembly.getChildMeshes().forEach(mesh => {
+                    mesh.isVisible = false;
+                });
+            }
             this.showCutSuccess(cutData);
             
             // Frame the cut pieces in view
@@ -1667,7 +2324,7 @@ class TheMillSystem {
         
         // Apply visual feedback
         this.flashBlade();
-        this.showCutAnimation(piece1, piece2);
+                // this.showCutAnimation(piece1, piece2); // Animation disabled
         
         // Clean up gizmos from original board
         if (this.gizmoManager) {
@@ -1691,7 +2348,7 @@ class TheMillSystem {
         if (!this.cutPieces) {
             this.cutPieces = [];
         }
-        this.cutPieces.push(piece1, piece2);
+        this.cutPieces.push(piece1);  // Single cut result
         
         // Add click handlers to pieces for selection
         this.makePiecesSelectable();
@@ -1789,7 +2446,7 @@ class TheMillSystem {
         this.updateSelectionDisplay();
     }
     
-    showCutAnimation(piece1, piece2) {
+    showCutAnimation(piece1, piece2) { return; // Animation disabled
         // Animate pieces separating
         const animationFrames = 30;
         let frame = 0;
@@ -1812,19 +2469,19 @@ class TheMillSystem {
     
     flashBlade() {
         // Visual feedback for cutting
-        if (!this.bladeVisual) return;
+        // if (!this.bladeVisual) return;
         
-        const originalAlpha = this.bladeVisual.material.alpha;
-        const originalColor = this.bladeVisual.material.diffuseColor.clone();
+        // const originalAlpha = this.bladeVisual.material.alpha;
+        // const originalColor = this.bladeVisual.material.diffuseColor.clone();
         
         // Flash white
-        this.bladeVisual.material.diffuseColor = new BABYLON.Color3(1, 1, 1);
-        this.bladeVisual.material.alpha = 0.8;
+        // this.bladeVisual.material.diffuseColor = new BABYLON.Color3(1, 1, 1);
+        // this.bladeVisual.material.alpha = 0.8;
         
         setTimeout(() => {
             // Return to red
-            this.bladeVisual.material.diffuseColor = originalColor;
-            this.bladeVisual.material.alpha = originalAlpha;
+        // this.bladeVisual.material.diffuseColor = originalColor;
+        // this.bladeVisual.material.alpha = originalAlpha;
         }, 200);
     }
     
@@ -1890,20 +2547,35 @@ class TheMillSystem {
     }
     
     showCutSuccess(cutData) {
-        // Use the app's notification system
-        const message = `Cut Successful! Miter: ${(cutData.miterAngle || 0).toFixed(1)}° | Bevel: ${cutData.bevelAngle.toFixed(1)}°`;
+        // Create success message
+        const message = document.createElement('div');
+        message.style.position = 'fixed';
+        message.style.top = '50%';
+        message.style.left = '50%';
+        message.style.transform = 'translate(-50%, -50%)';
+        message.style.background = 'rgba(39, 174, 96, 0.95)';
+        message.style.color = 'white';
+        message.style.padding = '20px 40px';
+        message.style.borderRadius = '8px';
+        message.style.fontSize = '24px';
+        message.style.fontWeight = 'bold';
+        message.style.zIndex = '10000';
+        message.style.boxShadow = '0 4px 20px rgba(0,0,0,0.3)';
+        message.innerHTML = `
+            <div>✓ Cut Successful!</div>
+            <div style="font-size: 14px; margin-top: 10px; font-weight: normal;">
+                Miter: ${(cutData.miterAngle || 0).toFixed(1)}° | Bevel: ${cutData.bevelAngle.toFixed(1)}°
+            </div>
+        `;
+        document.body.appendChild(message);
         
-        // Use the existing notification system if available
-        if (window.showNotification) {
-            window.showNotification(message, 'success');
-        } else if (window.app && window.app.showNotification) {
-            window.app.showNotification(message, 'success');
-        } else {
-            // Fallback to console
-            console.log('✓ ' + message);
-        }
+        // Remove after 2 seconds
+        setTimeout(() => {
+            message.style.transition = 'opacity 0.5s';
+            message.style.opacity = '0';
+            setTimeout(() => message.remove(), 500);
+        }, 2000);
     }
-
     
     // Get operation display name
     getOperationName() {
@@ -2101,10 +2773,10 @@ class TheMillSystem {
     }
     
     /* Removed - using single blade
-    createBladeVisualization() {
+        // createBladeVisualization() {
         // Create blade visual (rectangular plane)
         // Create a more realistic blade visual (10 inch diameter)
-        this.bladeVisual = BABYLON.MeshBuilder.CreateBox('blade', {
+        // this.bladeVisual = BABYLON.MeshBuilder.CreateBox('blade', {
             width: 500,  // 500 inches long blade
             height: 6,   // 6 inches high
             depth: 0.25  // 1/4 inch thick for visibility
@@ -2113,16 +2785,16 @@ class TheMillSystem {
         // Blade box is already oriented correctly, no rotation needed
         
         // Position blade at cutting height above table
-        this.bladeVisual.position.y = 50; // Above table at typical cutting height
-        this.bladeVisual.position.z = 0; // Aligned with laser at Z=0
-        this.bladeVisual.position.x = 0; // Centered
+        // this.bladeVisual.position.y = 50; // Above table at typical cutting height
+        // this.bladeVisual.position.z = 0; // Aligned with laser at Z=0
+        // this.bladeVisual.position.x = 0; // Centered
         
         // Semi-transparent red material for blade
         const bladeMaterial = new BABYLON.StandardMaterial('bladeMat', this.millScene);
         bladeMaterial.diffuseColor = new BABYLON.Color3(0.7, 0.7, 0.8); // Steel blue
         bladeMaterial.alpha = 0.8; // Mostly opaque
         bladeMaterial.backFaceCulling = false;
-        this.bladeVisual.material = bladeMaterial;
+        // this.bladeVisual.material = bladeMaterial;
         
         // Create cutting plane indicator (only visible in profile view)
         this.cuttingPlane = BABYLON.MeshBuilder.CreatePlane('cuttingPlane', {
@@ -2142,7 +2814,7 @@ class TheMillSystem {
     }
     
     updateBladeTilt() {
-        if (!this.bladeVisual) {
+        // if (!this.bladeVisual) {
             return;
         }
         
@@ -2160,7 +2832,7 @@ class TheMillSystem {
         
         // Rotate on X axis - this was working before, just wrong direction
         // Negate to match needle direction
-        this.bladeVisual.rotation.x = -tiltRadians * direction;
+        // this.bladeVisual.rotation.x = -tiltRadians * direction;
         
         // Update cutting plane to match blade angle
         if (this.cuttingPlane) {
@@ -2174,106 +2846,89 @@ class TheMillSystem {
     }
     */
     switchToBladeProfileView() {
-        
-        // Debug: Check if board exists and is visible
-        console.log("Board in B view:", this.currentBoard ? "exists" : "missing", this.currentBoard?.isVisible);
+        console.log("Switching to blade-eye view - rifle sight perspective");
         this.currentViewMode = "side";
         
-        this.millCamera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA; // Back to ORTHO as intended
-        const rotationControl = document.getElementById('mill-rotation-control');
-        const bevelControl = document.getElementById('mill-bevel-control');
-        if (rotationControl) rotationControl.style.display = 'none';
-        if (bevelControl) bevelControl.style.display = 'block';
-        // Switch to orthographic view looking from the LEFT side (like view cube LEFT face)
+        // Get current blade rotation (miter angle) and tilt (bevel)
+        const bladeAngle = this.bladeAngle || 0;
+        const bevelRadians = (90 - this.bevelAngle) * Math.PI / 180;
+        const bevelDir = this.bevelDirection || 1;
         
-        // BLADE-EYE VIEW: Camera positioned at blade end, looking down its length
-        // This creates a "sight line" view where the blade acts as the aiming reticle
+        console.log("Blade miter:", bladeAngle * 180 / Math.PI, "degrees");
+        console.log("Blade bevel:", this.bevelAngle, "degrees, direction:", bevelDir);
         
-        // Get current blade rotation (miter angle)
-        const bladeAngle = this.blade ? this.blade.rotation.y : 0;
-        const bladeLength = 250;  // Half of 500" blade width
+        // Calculate camera position at blade end, accounting for both miter and bevel
+        const bladeLength = 260; // Slightly beyond blade end
         
-        // Position camera at one end of the blade
-        const cameraX = Math.cos(bladeAngle) * bladeLength;
-        const cameraZ = Math.sin(bladeAngle) * bladeLength;
-        const cameraY = 0;  // At table surface where pivot is
+        // Start with position for miter angle
+        let cameraX = Math.cos(bladeAngle) * bladeLength;
+        let cameraZ = Math.sin(bladeAngle) * bladeLength;
+        let cameraY = 0;
         
-        // Set camera to look at the opposite end of blade
-        this.millCamera.position = new BABYLON.Vector3(cameraX, cameraY, cameraZ);
-        this.millCamera.setTarget(new BABYLON.Vector3(0, 0, 0));  // Look at table center
+        // Adjust Y position for bevel tilt
+        if (Math.abs(this.bevelAngle - 90) > 0.1) {
+            // Camera needs to tilt with blade bevel
+            cameraY = Math.sin(bevelRadians) * bladeLength * 0.2; // Slight vertical offset for beveled view
+        }
         
-        // Switch to orthographic for precision view
+        // Calculate target position (opposite blade end)
+        const targetX = -Math.cos(bladeAngle) * bladeLength;
+        const targetZ = -Math.sin(bladeAngle) * bladeLength;
+        let targetY = 0;
+        
+        // Adjust target for bevel
+        if (Math.abs(this.bevelAngle - 90) > 0.1) {
+            targetY = -Math.sin(bevelRadians) * bladeLength * 0.2;
+        }
+        
+        // For ArcRotateCamera, calculate alpha, beta, radius from blade angle
+        // Alpha is the rotation around Y (matches blade rotation)
+        this.millCamera.alpha = bladeAngle - Math.PI/2;  // Perpendicular to blade
+        console.log("Setting camera alpha to:", this.millCamera.alpha * 180 / Math.PI, "degrees");
+        
+        // Beta for looking horizontally (90 degrees from vertical)
+        this.millCamera.beta = Math.PI/2;  // Horizontal view
+        console.log("Setting camera beta to:", this.millCamera.beta * 180 / Math.PI, "degrees");
+        
+        // Adjust beta for bevel
+        if (Math.abs(this.bevelAngle - 90) > 0.1) {
+            this.millCamera.beta = Math.PI/2 - (bevelRadians * bevelDir * 0.3);
+        }
+        
+        // Set radius (distance from target)
+        this.millCamera.radius = 250;  // Distance to see full blade length
+        console.log("Setting camera radius to:", this.millCamera.radius);
+        
+        // Force camera update
+        this.millCamera.rebuildAnglesAndRadius();
+        
+        // Set target at blade center
+        this.millCamera.target = new BABYLON.Vector3(0, 0, 0);
+        
+        // Switch to orthographic for precision
         this.millCamera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
         
-        // Set view bounds to frame the board cross-section
-        const viewSize = 50;  // Show larger area
+        // Tighter view to focus on cutting area
+        const viewSize = 30;
         const aspectRatio = this.millCanvas.width / this.millCanvas.height;
+        this.millCamera.orthoLeft = -viewSize * aspectRatio;
+        this.millCamera.orthoRight = viewSize * aspectRatio;
+        this.millCamera.orthoTop = viewSize;
+        this.millCamera.orthoBottom = -viewSize;
         
-        this.millCamera.orthoLeft = -viewSize;
-        this.millCamera.orthoRight = viewSize;
-        this.millCamera.orthoTop = viewSize / aspectRatio;
-        this.millCamera.orthoBottom = -viewSize / aspectRatio;
-        
-        // Lock camera rotation - we only look down the blade
+        // Lock camera in this position
         this.millCamera.lowerAlphaLimit = this.millCamera.alpha;
         this.millCamera.upperAlphaLimit = this.millCamera.alpha;
         this.millCamera.lowerBetaLimit = this.millCamera.beta;
         this.millCamera.upperBetaLimit = this.millCamera.beta;
         
-        // Make blade visible as our "sight"
-        if (this.blade) {
-            this.blade.isVisible = true;
-            console.log("Blade visibility set to:", this.blade.isVisible);
-            console.log("Blade position:", this.blade.position);
-            console.log("Blade rotation:", this.blade.rotation);
-            console.log("Blade dimensions: 200x12x0.0625");
-            
-            // Ensure material is visible
-            if (this.blade.material) {
-                this.blade.material.alpha = 1.0;  // Fully opaque
-                this.blade.material.emissiveColor = new BABYLON.Color3(0.1, 0.1, 0.2);
-                this.blade.material.backFaceCulling = false;  // See both sides
-                // Make blade thicker for visibility when looking down its length
-                this.blade.scaling.z = 10;  // Slightly thicker for visibility in blade-eye view
-            }
-            this.blade.computeWorldMatrix(true);
-        } else {
-            console.error("BLADE NOT FOUND in B view!");
-        }
-        
-        // Ensure board is visible
-        if (this.currentBoard) {
-            this.currentBoard.isVisible = true;
-        }
-        
-        // Show table for reference
-        if (this.tableSurface) {
-            this.tableSurface.isVisible = true;
-        }
-        
-        // Hide transform toolbar
-        const toolbar = document.getElementById("mill-transform-toolbar");
-        if (toolbar) toolbar.style.display = "none";
-        
-        console.log("BLADE-EYE VIEW ACTIVE: Looking down blade from end to end");
-        
-        // Force blade to render in orthographic
-        if (this.blade) {
-            this.blade.refreshBoundingInfo();
-            this.blade.showBoundingBox = false;  // Ensure no bounding box
-            this.blade.isPickable = false;  // Not pickable in this view
-            this.blade.alwaysSelectAsActiveMesh = true;  // Force render
-        }
-        console.log("Blade angle:", (bladeAngle * 180 / Math.PI), "degrees");
-        
-        // Enable board dragging in this view
-        this.enableBViewDragging = true;
-        
-        // Force render
-        this.millScene.render();
-
-
+        // Update UI
+        const rotationControl = document.getElementById('mill-rotation-control');
+        const bevelControl = document.getElementById('mill-bevel-control');
+        if (rotationControl) rotationControl.style.display = 'none';
+        if (bevelControl) bevelControl.style.display = 'block';
     }
+
     frameBoard(boardMesh) {
         // Get board bounds
         boardMesh.computeWorldMatrix(true);
@@ -2321,8 +2976,123 @@ class TheMillSystem {
     }
     
     // Close The Mill
+
+    createAngleControl(id, label, minAngle, maxAngle, defaultAngle, onChange) {
+        const container = document.createElement('div');
+        container.style.cssText = 'display: flex; flex-direction: column; align-items: center; position: relative;';
+        
+        // Create gauge
+        const gauge = document.createElement('div');
+        gauge.id = id + '-gauge';
+        gauge.style.cssText = 'width: 100px; height: 50px; position: relative; background: #222; border: 2px solid #555; border-radius: 50px 50px 0 0; overflow: hidden;';
+        
+        // Add gauge markings
+        const markings = document.createElement('div');
+        markings.style.cssText = 'position: absolute; width: 100%; height: 100%; pointer-events: none;';
+        
+        // Add major tick marks
+        [-90, -45, 0, 45, 90].forEach(angle => {
+            if (angle >= minAngle && angle <= maxAngle) {
+                const tick = document.createElement('div');
+                const rotation = angle + 90;  // Adjust for gauge orientation
+                tick.style.cssText = 'position: absolute; width: 1px; height: 10px; background: #888; left: 50%; top: 0; transform-origin: center 50px; transform: translateX(-50%) rotate(' + rotation + 'deg);';
+                markings.appendChild(tick);
+            }
+        });
+        gauge.appendChild(markings);
+        
+        // Add needle
+        const needle = document.createElement('div');
+        needle.id = id + '-gauge-needle';
+        needle.style.cssText = 'position: absolute; width: 2px; height: 45px; background: #ff9900; left: 50%; bottom: 0; transform-origin: center bottom; transform: translateX(-50%) rotate(' + defaultAngle + 'deg); transition: transform 0.3s;';
+        gauge.appendChild(needle);
+        
+        // Add digital display
+        const display = document.createElement('div');
+        display.id = id + '-display';
+        display.style.cssText = 'position: absolute; bottom: 5px; left: 50%; transform: translateX(-50%); color: #0ff; font-size: 14px; font-weight: bold;';
+        display.textContent = defaultAngle + '°';
+        gauge.appendChild(display);
+        
+        container.appendChild(gauge);
+        
+        // Add preset buttons
+        const presets = document.createElement('div');
+        presets.style.cssText = 'display: flex; gap: 5px; margin-top: 5px;';
+        
+        [-45, -22.5, 0, 22.5, 45].forEach(preset => {
+            const btn = document.createElement('button');
+            btn.style.cssText = 'padding: 2px 6px; background: #444; border: 1px solid #666; color: #ccc; font-size: 10px; cursor: pointer; border-radius: 3px;';
+            btn.textContent = preset + '°';
+            btn.onclick = () => {
+                needle.style.transform = 'translateX(-50%) rotate(' + preset + 'deg)';
+                display.textContent = preset + '°';
+                onChange(preset);
+            };
+            presets.appendChild(btn);
+        });
+        container.appendChild(presets);
+        
+        // Add label
+        const labelDiv = document.createElement('div');
+        labelDiv.textContent = label;
+        labelDiv.style.cssText = 'color: #ccc; font-size: 12px; margin-top: 5px;';
+        container.appendChild(labelDiv);
+        
+        // Make gauge interactive
+        let isDragging = false;
+        gauge.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            e.preventDefault();
+        });
+        
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            const rect = gauge.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.bottom;
+            const angle = Math.atan2(centerX - e.clientX, e.clientY - centerY) * 180 / Math.PI;
+            const clampedAngle = Math.max(minAngle, Math.min(maxAngle, angle));
+            needle.style.transform = 'translateX(-50%) rotate(' + clampedAngle + 'deg)';
+            display.textContent = Math.round(clampedAngle) + '°';
+            onChange(clampedAngle);
+        });
+        
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+        
+        return container;
+    }
+    
     closeMill(cutData = null) {
         console.log('Closing The Mill');
+        
+        // If we have cut Parts, return them to the main scene
+        if (this.cutParts && this.cutParts.length === 2) {
+            console.log('Returning cut Parts to main scene:', this.cutParts);
+            
+            // Call the main scene to handle the cut results
+            if (this.drawingWorld.handleMillCutResults) {
+                this.drawingWorld.handleMillCutResults(this.cutParts, this.originalMesh);
+            } else {
+                console.warn('Main scene does not have handleMillCutResults method');
+                // For now, just log what we would do
+                console.log('Would create these Parts in main scene:', {
+                    originalBoard: this.originalMesh?.name,
+                    piece1: {
+                        id: this.cutParts[0].id,
+                        dimensions: this.cutParts[0].dimensions,
+                        position: this.cutParts[0].position
+                    },
+                    piece2: {
+                        id: this.cutParts[1].id,
+                        dimensions: this.cutParts[1].dimensions,
+                        position: this.cutParts[1].position
+                    }
+                });
+            }
+        }
         
         // Clean up mill scene
         if (this.millScene) {
@@ -2340,16 +3110,13 @@ class TheMillSystem {
         // Reset state
         this.isActive = false;
         this.currentMaterial = null;
+        this.originalMesh = null;
         this.currentOperation = null;
+        this.cutParts = null;
         
-        // If we have cut data, execute the cut in the main scene
-        if (cutData) {
-            // This would trigger the actual cut in the main scene
-            // For now, we'll just log it
-            console.log('Would execute cut with data:', cutData);
-            
-            // TODO: Call back to main scene to execute the cut
-            // this.drawingWorld.executeCutFromMill(this.currentMaterial, cutData);
+        // Legacy cutData support
+        if (cutData && !this.cutParts) {
+            console.log('Legacy cut data:', cutData);
         }
     }
 

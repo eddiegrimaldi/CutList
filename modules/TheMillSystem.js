@@ -133,12 +133,44 @@ class TheMillSystem {
         });
         smartToolbar.appendChild(bevelControl);
         
-        // CUT button
+        // CANCEL button (red)
+        const cancelButton = document.createElement('button');
+        cancelButton.style.width = '80px';
+        cancelButton.style.height = '80px';
+        cancelButton.style.background = 'radial-gradient(circle, #ff4444 0%, #cc0000 100%)';
+        cancelButton.style.border = '3px solid #900';
+        cancelButton.style.borderRadius = '50%';
+        cancelButton.style.color = 'white';
+        cancelButton.style.fontWeight = 'bold';
+        cancelButton.style.fontSize = '16px';
+        cancelButton.style.cursor = 'pointer';
+        cancelButton.style.boxShadow = '0 4px 10px rgba(0,0,0,0.5)';
+        cancelButton.style.marginRight = '10px';
+        cancelButton.textContent = 'CANCEL';
+        cancelButton.onclick = () => {
+            // Reset everything
+            this.bladeAngle = 0;
+            this.bevelAngle = 90;
+            this.bevelDirection = 1;
+            this.updateBladeRotation();
+            this.updateBevelAngle(90);
+            if (this.cutPieces) {
+                this.cutPieces.forEach(piece => piece.dispose());
+                this.cutPieces = [];
+            }
+            if (this.currentBoard) {
+                this.currentBoard.isVisible = true;
+            }
+            console.log('Cut cancelled - all settings reset');
+        };
+        smartToolbar.appendChild(cancelButton);
+        
+        // CUT button (green)
         const cutButton = document.createElement('button');
         cutButton.style.width = '80px';
         cutButton.style.height = '80px';
-        cutButton.style.background = 'radial-gradient(circle, #ff4444 0%, #cc0000 100%)';
-        cutButton.style.border = '3px solid #900';
+        cutButton.style.background = 'radial-gradient(circle, #44ff44 0%, #00cc00 100%)';
+        cutButton.style.border = '3px solid #090';
         cutButton.style.borderRadius = '50%';
         cutButton.style.color = 'white';
         cutButton.style.fontWeight = 'bold';
@@ -307,20 +339,48 @@ class TheMillSystem {
         // Set to orthographic mode
         this.splitCamera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
         
-        // Set orthographic boundaries for blade view
-        const orthoSize = 50;  // Wider view to see board and blade
-        this.splitCamera.orthoLeft = -orthoSize;
-        this.splitCamera.orthoRight = orthoSize;
-        this.splitCamera.orthoTop = orthoSize;
-        this.splitCamera.orthoBottom = -orthoSize;
+        // Set up split-screen viewports FIRST
+        this.millScene.activeCameras = [this.millCamera, this.splitCamera];
+        this.millCamera.viewport = new BABYLON.Viewport(0, 0, 0.5, 1);
+        this.splitCamera.viewport = new BABYLON.Viewport(0.5, 0, 0.5, 1);
+        
+        // Force engine resize to update viewport dimensions
+        this.millEngine.resize();
+        
+        // NOW set orthographic boundaries with correct aspect ratio
+        const canvas = this.millEngine.getRenderingCanvas();
+        const viewportWidth = canvas.width * 0.5;  // Half the canvas width
+        const viewportHeight = canvas.height;
+        const aspectRatio = viewportWidth / viewportHeight;
+        
+        // Set orthographic boundaries for SIDE view along blade
+        const orthoHeight = 30;  // Height of view
+        const orthoWidth = orthoHeight * aspectRatio;  // Width based on actual aspect ratio
+        this.splitCamera.orthoLeft = -orthoWidth / 2;
+        this.splitCamera.orthoRight = orthoWidth / 2;
+        this.splitCamera.orthoTop = orthoHeight / 2;
+        this.splitCamera.orthoBottom = -orthoHeight / 2;
         
         // Update camera to current blade position
         this.updateBladeEyeCamera();
         
-        // Set up split-screen viewports
-        this.millScene.activeCameras = [this.millCamera, this.splitCamera];
-        this.millCamera.viewport = new BABYLON.Viewport(0, 0, 0.5, 1);
-        this.splitCamera.viewport = new BABYLON.Viewport(0.5, 0, 0.5, 1);
+        // Fix main mill camera aspect ratio for half-screen viewport
+        if (this.millCamera.mode === BABYLON.Camera.ORTHOGRAPHIC_CAMERA) {
+            // Recalculate orthographic bounds for main camera with new aspect ratio
+            const canvas = this.millEngine.getRenderingCanvas();
+            const viewportWidth = canvas.width * 0.5;  // Half the canvas width now
+            const viewportHeight = canvas.height;
+            const aspectRatio = viewportWidth / viewportHeight;
+            
+            // Get current ortho size
+            const currentOrthoHeight = this.millCamera.orthoTop - this.millCamera.orthoBottom;
+            const newOrthoWidth = currentOrthoHeight * aspectRatio;
+            
+            // Update bounds with new aspect ratio
+            this.millCamera.orthoLeft = -newOrthoWidth / 2;
+            this.millCamera.orthoRight = newOrthoWidth / 2;
+            // Keep vertical bounds the same
+        }
         
         // Add label overlay
         const overlay = document.createElement('div');
@@ -387,6 +447,23 @@ class TheMillSystem {
         this.millScene.activeCamera = this.millCamera;
         this.millCamera.viewport = new BABYLON.Viewport(0, 0, 1, 1);
         
+        // Force resize first to get new dimensions
+        this.millEngine.resize();
+        
+        // Fix main camera aspect ratio for full screen
+        if (this.millCamera.mode === BABYLON.Camera.ORTHOGRAPHIC_CAMERA) {
+            const canvas = this.millEngine.getRenderingCanvas();
+            const aspectRatio = canvas.width / canvas.height;
+            
+            // Get current ortho height
+            const currentOrthoHeight = this.millCamera.orthoTop - this.millCamera.orthoBottom;
+            const newOrthoWidth = currentOrthoHeight * aspectRatio;
+            
+            // Update bounds with new aspect ratio
+            this.millCamera.orthoLeft = -newOrthoWidth / 2;
+            this.millCamera.orthoRight = newOrthoWidth / 2;
+        }
+        
         // Dispose split camera
         if (this.splitCamera) {
             this.splitCamera.dispose();
@@ -423,13 +500,7 @@ class TheMillSystem {
     updateBladeEyeCamera() {
         if (!this.splitCamera || !this.blade) return;
         
-        // Debug marker
-        if (!this.cameraMarker) {
-            this.cameraMarker = BABYLON.MeshBuilder.CreateBox('cameraMarker', {size: 15}, this.millScene);
-            const markerMat = new BABYLON.StandardMaterial('cameraMarkerMat', this.millScene);
-            markerMat.diffuseColor = new BABYLON.Color3(0, 1, 0);
-            this.cameraMarker.material = markerMat;
-        }
+        
         
         // Get blade actual position and rotation
         const bladePos = this.blade.position.clone();
@@ -442,12 +513,15 @@ class TheMillSystem {
         const leftEndX = bladePos.x - halfWidth * Math.cos(miterAngle);
         const leftEndZ = bladePos.z + halfWidth * Math.sin(miterAngle);
         
-        // Put camera at right end looking at left end
-        this.splitCamera.position = new BABYLON.Vector3(rightEndX, bladePos.y, rightEndZ);
+        // Put camera slightly back from blade end to avoid clipping
+        // Offset by 10 units along the blade direction
+        const offsetDist = 10;
+        const offsetX = offsetDist * Math.cos(miterAngle);
+        const offsetZ = offsetDist * Math.sin(miterAngle);
+        this.splitCamera.position = new BABYLON.Vector3(rightEndX + offsetX, bladePos.y, rightEndZ - offsetZ);
         this.splitCamera.setTarget(new BABYLON.Vector3(leftEndX, bladePos.y, leftEndZ));
         
-        // Move marker to show where camera is
-        this.cameraMarker.position.copyFrom(this.splitCamera.position);
+        
         
         console.log('Miter angle:', (miterAngle * 180 / Math.PI).toFixed(1), '° Blade at:', bladePos.x, bladePos.y, bladePos.z, 'Camera at:', rightEndX, rightEndZ);
     }
@@ -533,168 +607,6 @@ class TheMillSystem {
         
         // Create smart toolbar
         this.createSmartToolbar();
-
-        // Create smart toolbar
-        const smartToolbar = document.createElement('div');
-        smartToolbar.id = 'mill-smart-toolbar';
-        smartToolbar.style.position = 'absolute';
-        smartToolbar.style.top = '60px';
-        smartToolbar.style.left = '0';
-        smartToolbar.style.right = '0';
-        smartToolbar.style.height = '120px';
-        smartToolbar.style.background = 'linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 100%)';
-        smartToolbar.style.borderBottom = '2px solid #555';
-        smartToolbar.style.display = 'flex';
-        smartToolbar.style.alignItems = 'center';
-        smartToolbar.style.justifyContent = 'space-around';
-        smartToolbar.style.padding = '10px 20px';
-        smartToolbar.style.boxShadow = '0 2px 10px rgba(0,0,0,0.3)';
-        smartToolbar.style.zIndex = '1000';
-        
-        // Laser toggle
-        const laserControl = document.createElement('div');
-        laserControl.style.cssText = 'display: flex; flex-direction: column; align-items: center;';
-        const laserToggle = document.createElement('button');
-        laserToggle.id = 'laser-toggle';
-        laserToggle.style.width = '60px';
-        laserToggle.style.height = '30px';
-        laserToggle.style.background = '#4CAF50';
-        laserToggle.style.border = 'none';
-        laserToggle.style.borderRadius = '15px';
-        laserToggle.style.color = 'white';
-        laserToggle.style.fontWeight = 'bold';
-        laserToggle.style.cursor = 'pointer';
-        laserToggle.style.transition = 'background 0.3s';
-        laserToggle.textContent = 'ON';
-        laserToggle.dataset.state = 'on';
-        laserToggle.onclick = () => {
-            if (laserToggle.dataset.state === 'on') {
-                laserToggle.dataset.state = 'off';
-                laserToggle.textContent = 'OFF';
-                laserToggle.style.background = '#666';
-                if (this.laserLine) this.laserLine.isVisible = false;
-            } else {
-                laserToggle.dataset.state = 'on';
-                laserToggle.textContent = 'ON';
-                laserToggle.style.background = '#4CAF50';
-                if (this.laserLine) this.laserLine.isVisible = true;
-            }
-        };
-        const laserLabel = document.createElement('div');
-        laserLabel.textContent = 'Laser';
-        laserLabel.style.cssText = 'color: #ccc; font-size: 12px; margin-top: 5px;';
-        laserControl.appendChild(laserToggle);
-        laserControl.appendChild(laserLabel);
-        smartToolbar.appendChild(laserControl);
-        
-        // View toggle
-        const viewControl = document.createElement('div');
-        viewControl.style.cssText = 'display: flex; flex-direction: column; align-items: center;';
-        const viewToggle = document.createElement('button');
-        viewToggle.id = 'view-toggle';
-        viewToggle.style.width = '80px';
-        viewToggle.style.height = '30px';
-        viewToggle.style.background = '#2196F3';
-        viewToggle.style.border = 'none';
-        viewToggle.style.borderRadius = '5px';
-        viewToggle.style.color = 'white';
-        viewToggle.style.fontSize = '11px';
-        viewToggle.style.cursor = 'pointer';
-        viewToggle.style.transition = 'background 0.3s';
-        viewToggle.textContent = 'ORTHO';
-        viewToggle.onclick = () => {
-            if (this.millCamera.mode === BABYLON.Camera.ORTHOGRAPHIC_CAMERA) {
-                this.millCamera.mode = BABYLON.Camera.PERSPECTIVE_CAMERA;
-                viewToggle.textContent = 'PERSP';
-                viewToggle.style.background = '#FF9800';
-            } else {
-                this.millCamera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
-                viewToggle.textContent = 'ORTHO';
-                viewToggle.style.background = '#2196F3';
-            }
-        };
-        const viewLabel = document.createElement('div');
-        viewLabel.textContent = 'View';
-        viewLabel.style.cssText = 'color: #ccc; font-size: 12px; margin-top: 5px;';
-        viewControl.appendChild(viewToggle);
-        viewControl.appendChild(viewLabel);
-        smartToolbar.appendChild(viewControl);
-        
-        // Miter angle control
-        const miterControl = this.createAngleControl('miter', 'Miter', -90, 90, 0, 
-            (angle) => {
-                this.bladeAngle = angle * Math.PI / 180;
-                if (this.blade) this.blade.rotation.y = this.bladeAngle;
-                if (this.laserLine) this.laserLine.rotation.y = this.bladeAngle;
-            });
-        smartToolbar.appendChild(miterControl);
-        
-        // Bevel angle control
-        const bevelControl = this.createAngleControl('bevel', 'Bevel', -45, 45, 0,
-            (angle) => {
-                this.bevelAngle = 90 - Math.abs(angle);  // Convert to 0-90 range
-                this.bevelDirection = angle < 0 ? -1 : 1;
-                this.updateBladeTilt();
-                // Show/hide PIP monitor
-                this.updateSplitScreen(angle !== 0);
-                // Update blade-eye camera when split screen is enabled
-                if (this.splitScreenEnabled) {
-                    this.updateBladeEyeCamera();
-                }
-            });
-        smartToolbar.appendChild(bevelControl);
-        
-        // CUT button
-        const cutButton = document.createElement('button');
-        cutButton.id = 'cut-button';
-        cutButton.style.width = '80px';
-        cutButton.style.height = '80px';
-        cutButton.style.background = 'radial-gradient(circle, #ff4444 0%, #cc0000 100%)';
-        cutButton.style.border = '3px solid #900';
-        cutButton.style.borderRadius = '50%';
-        cutButton.style.color = 'white';
-        cutButton.style.fontWeight = 'bold';
-        cutButton.style.fontSize = '18px';
-        cutButton.style.cursor = 'pointer';
-        cutButton.style.boxShadow = '0 4px 10px rgba(0,0,0,0.5)';
-        cutButton.style.transition = 'all 0.2s';
-        cutButton.textContent = 'CUT';
-        cutButton.onmouseover = () => {
-            cutButton.style.transform = 'scale(1.1)';
-            cutButton.style.boxShadow = '0 6px 15px rgba(255,0,0,0.5)';
-        };
-        cutButton.onmouseout = () => {
-            cutButton.style.transform = 'scale(1)';
-            cutButton.style.boxShadow = '0 4px 10px rgba(0,0,0,0.5)';
-        };
-        cutButton.onclick = () => this.executeCut();
-        smartToolbar.appendChild(cutButton);
-        
-        // Reset button
-        const resetButton = document.createElement('button');
-        resetButton.style.padding = '10px 20px';
-        resetButton.style.background = '#666';
-        resetButton.style.border = '1px solid #888';
-        resetButton.style.borderRadius = '5px';
-        resetButton.style.color = 'white';
-        resetButton.style.cursor = 'pointer';
-        resetButton.textContent = 'Reset';
-        resetButton.onclick = () => {
-            this.bladeAngle = 0;
-            this.bevelAngle = 90;
-            this.bevelDirection = 1;
-            if (this.blade) this.blade.rotation.y = 0;
-            if (this.laserLine) this.laserLine.rotation.y = 0;
-            this.updateBladeTilt();
-            // Update gauges
-            document.querySelector('#miter-gauge-needle').style.transform = 'rotate(0deg)';
-            document.querySelector('#bevel-gauge-needle').style.transform = 'rotate(0deg)';
-            document.querySelector('#miter-display').textContent = '0°';
-            document.querySelector('#bevel-display').textContent = '0°';
-        };
-        smartToolbar.appendChild(resetButton);
-        
-        this.millUI.appendChild(smartToolbar);
         
         
         // Create canvas container
@@ -779,7 +691,7 @@ class TheMillSystem {
         this.blade = BABYLON.MeshBuilder.CreateBox('blade', {
             width: 500,  // 500 inches long blade
             height: 12,     // Full 12 inch height
-            depth: 5  // TEMPORARILY THICK for testing camera angle
+            depth: 0.3175  // Correct 1/8" kerf
         }, this.millScene);
         this.blade.position.y = 0;  // Center at Y=0 so blade extends -6 to +6
         this.blade.position.z = 0;
@@ -1933,7 +1845,7 @@ class TheMillSystem {
             const blade = BABYLON.MeshBuilder.CreateBox('csgBlade', {
                 width: 500,
                 height: 12,
-                depth: 5  // TEMPORARILY THICK for testing camera angle
+                depth: 0.3175  // Correct 1/8" kerf
             }, this.millScene);
             
             // Position and rotate the CSG blade

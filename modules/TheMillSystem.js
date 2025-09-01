@@ -133,7 +133,24 @@ class TheMillSystem {
         });
         smartToolbar.appendChild(bevelControl);
         
-        // CANCEL button (red)
+        // CUT button (green) - FIRST
+        const cutButton = document.createElement('button');
+        cutButton.style.width = '80px';
+        cutButton.style.height = '80px';
+        cutButton.style.background = 'radial-gradient(circle, #44ff44 0%, #00cc00 100%)';
+        cutButton.style.border = '3px solid #090';
+        cutButton.style.borderRadius = '50%';
+        cutButton.style.color = 'black';  // Changed to black font
+        cutButton.style.fontWeight = 'bold';
+        cutButton.style.fontSize = '18px';
+        cutButton.style.cursor = 'pointer';
+        cutButton.style.boxShadow = '0 4px 10px rgba(0,0,0,0.5)';
+        cutButton.style.marginRight = '10px';
+        cutButton.textContent = 'CUT';
+        cutButton.onclick = () => this.executeCut();
+        smartToolbar.appendChild(cutButton);
+        
+        // CANCEL button (red) - SECOND
         const cancelButton = document.createElement('button');
         cancelButton.style.width = '80px';
         cancelButton.style.height = '80px';
@@ -145,7 +162,6 @@ class TheMillSystem {
         cancelButton.style.fontSize = '16px';
         cancelButton.style.cursor = 'pointer';
         cancelButton.style.boxShadow = '0 4px 10px rgba(0,0,0,0.5)';
-        cancelButton.style.marginRight = '10px';
         cancelButton.textContent = 'CANCEL';
         cancelButton.onclick = () => {
             // Reset everything
@@ -164,22 +180,6 @@ class TheMillSystem {
             console.log('Cut cancelled - all settings reset');
         };
         smartToolbar.appendChild(cancelButton);
-        
-        // CUT button (green)
-        const cutButton = document.createElement('button');
-        cutButton.style.width = '80px';
-        cutButton.style.height = '80px';
-        cutButton.style.background = 'radial-gradient(circle, #44ff44 0%, #00cc00 100%)';
-        cutButton.style.border = '3px solid #090';
-        cutButton.style.borderRadius = '50%';
-        cutButton.style.color = 'white';
-        cutButton.style.fontWeight = 'bold';
-        cutButton.style.fontSize = '18px';
-        cutButton.style.cursor = 'pointer';
-        cutButton.style.boxShadow = '0 4px 10px rgba(0,0,0,0.5)';
-        cutButton.textContent = 'CUT';
-        cutButton.onclick = () => this.executeCut();
-        smartToolbar.appendChild(cutButton);
         
         // Reset button
         const resetButton = document.createElement('button');
@@ -687,6 +687,11 @@ class TheMillSystem {
         // Create scene
         this.millScene = new BABYLON.Scene(this.millEngine);
         this.millScene.clearColor = new BABYLON.Color3(0.98, 0.98, 0.98);
+        // Enable edge rendering for better outlines
+        this.millScene.outlineRenderer = new BABYLON.OutlineRenderer(this.millScene);
+        this.millScene.outlineRenderer.borderColor = new BABYLON.Color4(0, 0.5, 1, 1); // Blue outline
+        this.millScene.outlineRenderer.borderWidth = 0.2;
+        
         // Create blade EARLY before physics
         this.blade = BABYLON.MeshBuilder.CreateBox('blade', {
             width: 500,  // 500 inches long blade
@@ -1036,11 +1041,8 @@ class TheMillSystem {
         
         // Add grid for reference
         this.createGrid();
-        // Create transform toolbar (no perma-gizmos)
-        this.createTransformToolbar();
-        
-        
-
+        // Transform toolbar removed - using right-click context menu instead
+        // this.createTransformToolbar();
         
         // Setup cutting line
         this.setupTurntableAndLaser();
@@ -1086,6 +1088,9 @@ class TheMillSystem {
         window.addEventListener('resize', () => {
             millEngine.resize();
         });
+        
+        // Setup right-click context menu after everything is initialized
+        this.setupRightClickContextMenu();
         }
     
 
@@ -2285,32 +2290,8 @@ class TheMillSystem {
         
         this.cutPieces.forEach((piece, index) => {
             piece.isPickable = true;
-            piece.actionManager = new BABYLON.ActionManager(this.millScene);
-            
-            // Add click action
-            piece.actionManager.registerAction(new BABYLON.ExecuteCodeAction(
-                BABYLON.ActionManager.OnPickTrigger,
-                () => {
-                    this.selectPiece(piece, index);
-                }
-            ));
-            
-            // Add hover effect
-            piece.actionManager.registerAction(new BABYLON.ExecuteCodeAction(
-                BABYLON.ActionManager.OnPointerOverTrigger,
-                () => {
-                    piece.renderOutline = true;
-                    piece.outlineColor = new BABYLON.Color3(0, 1, 0);
-                    piece.outlineWidth = 0.1;
-                }
-            ));
-            
-            piece.actionManager.registerAction(new BABYLON.ExecuteCodeAction(
-                BABYLON.ActionManager.OnPointerOutTrigger,
-                () => {
-                    piece.renderOutline = false;
-                }
-            ));
+            // ActionManager removed - using direct click handling instead
+            // This fixes cursor alignment issues
         });
     }
     
@@ -3153,6 +3134,245 @@ class TheMillSystem {
         btn.onmouseout = () => btn.style.background = 'rgba(70, 70, 70, 0.9)';
         btn.onclick = onClick;
         return btn;
+    }
+    
+    setupRightClickContextMenu() {
+        if (!this.millCanvas) {
+            console.error('Mill canvas not ready for context menu');
+            return;
+        }
+        
+        // Create context menu container
+        const contextMenu = document.createElement('div');
+        contextMenu.id = 'mill-context-menu';
+        contextMenu.style.cssText = `
+            position: fixed;
+            background: rgba(40, 40, 40, 0.95);
+            border: 1px solid rgba(100, 100, 100, 0.5);
+            border-radius: 6px;
+            padding: 8px 0;
+            display: none;
+            z-index: 10000;
+            min-width: 150px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        `;
+        
+        // Menu items
+        const menuItems = [
+            { text: 'Move', action: () => this.enableMove() },
+            { text: 'Rotate 90°', action: () => this.rotatePiece(90) },
+            { text: 'Rotate -90°', action: () => this.rotatePiece(-90) },
+            { text: 'Duplicate', action: () => this.duplicatePiece() },
+            { text: '─────────', action: null }, // Separator
+            { text: 'Keep', action: () => this.keepPiece() },
+            { text: 'Waste', action: () => this.wastePiece() }
+        ];
+        
+        menuItems.forEach(item => {
+            if (item.action === null) {
+                // Separator
+                const separator = document.createElement('div');
+                separator.style.cssText = `
+                    border-top: 1px solid rgba(100, 100, 100, 0.5);
+                    margin: 4px 0;
+                    pointer-events: none;
+                `;
+                contextMenu.appendChild(separator);
+            } else {
+                const menuItem = document.createElement('div');
+                menuItem.textContent = item.text;
+                menuItem.style.cssText = `
+                    padding: 8px 20px;
+                    color: white;
+                    cursor: pointer;
+                    font-size: 14px;
+                    transition: background 0.2s;
+                `;
+                menuItem.onmouseover = () => menuItem.style.background = 'rgba(70, 70, 70, 0.9)';
+                menuItem.onmouseout = () => menuItem.style.background = 'transparent';
+                menuItem.onclick = () => {
+                    contextMenu.style.display = 'none';
+                    if (item.action) item.action();
+                };
+                contextMenu.appendChild(menuItem);
+            }
+        });
+        
+        document.body.appendChild(contextMenu);
+        
+        // Add mouse move handler for cursor
+        this.millCanvas.addEventListener('mousemove', (e) => {
+            const pickResult = this.millScene.pick(e.offsetX, e.offsetY);
+            if (pickResult.hit) {
+                const mesh = pickResult.pickedMesh;
+                const isSelectablePiece = (this.currentBoard && mesh === this.currentBoard) || 
+                                         (this.cutPieces && this.cutPieces.includes(mesh));
+                
+                // Show pointer cursor only when over selectable pieces
+                this.millCanvas.style.cursor = isSelectablePiece ? 'pointer' : 'default';
+            } else {
+                this.millCanvas.style.cursor = 'default';
+            }
+        });
+        
+        // Add left-click selection handler
+        this.millCanvas.addEventListener('click', (e) => {
+            const pickResult = this.millScene.pick(e.offsetX, e.offsetY);
+            if (pickResult.hit) {
+                const mesh = pickResult.pickedMesh;
+                console.log('Click detected on:', mesh.name, 'isPickable:', mesh.isPickable);
+                
+                // Check if it's the current board or any cut piece
+                const isSelectablePiece = (this.currentBoard && mesh === this.currentBoard) || 
+                                         (this.cutPieces && this.cutPieces.includes(mesh));
+                
+                if (isSelectablePiece) {
+                    this.selectPiece(mesh);
+                }
+            } else {
+                this.clearSelection();
+            }
+        });
+        
+        // Right-click handler for mill canvas
+        this.millCanvas.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            console.log('Right-click detected');
+            
+            // Check if clicking on a piece
+            const pickResult = this.millScene.pick(e.offsetX, e.offsetY);
+            if (pickResult.hit) {
+                const mesh = pickResult.pickedMesh;
+                console.log('Right-clicked on mesh:', mesh.name);
+                
+                // Check if it's the current board or any cut piece
+                const isSelectablePiece = (this.currentBoard && mesh === this.currentBoard) || 
+                                         (this.cutPieces && this.cutPieces.includes(mesh));
+                
+                if (isSelectablePiece) {
+                    this.selectPiece(mesh);
+                    
+                    // Position menu at cursor
+                    contextMenu.style.left = e.clientX + 'px';
+                    contextMenu.style.top = e.clientY + 'px';
+                    contextMenu.style.display = 'block';
+                    console.log('Context menu shown at:', e.clientX, e.clientY);
+                }
+            }
+        });
+        
+        // Hide menu on click elsewhere
+        document.addEventListener('click', () => {
+            contextMenu.style.display = 'none';
+        });
+        
+        console.log('Right-click context menu initialized');
+    }
+    
+    selectPiece(mesh) {
+        // Clear previous selection
+        this.clearSelection();
+        
+        // Set new selection
+        this.selectedPiece = mesh;
+        
+        // Add visual feedback
+        if (!mesh.material) {
+            mesh.material = new BABYLON.StandardMaterial('selected_' + mesh.name, this.millScene);
+        }
+        
+        // Store original emissive color
+        if (!mesh.originalEmissiveColor) {
+            mesh.originalEmissiveColor = mesh.material.emissiveColor ? 
+                mesh.material.emissiveColor.clone() : new BABYLON.Color3(0, 0, 0);
+        }
+        
+        // Highlight with bright blue glow
+        mesh.material.emissiveColor = new BABYLON.Color3(0, 0.3, 1);
+        
+        // Enable edge rendering for blue edges
+        mesh.enableEdgesRendering();
+        mesh.edgesWidth = 8.0;
+        mesh.edgesColor = new BABYLON.Color4(0, 0.5, 1, 1); // Bright blue edges
+        console.log('Selected piece:', mesh.name);
+    }
+    
+    clearSelection() {
+        if (this.selectedPiece) {
+            // Restore original emissive color
+            if (this.selectedPiece.material && this.selectedPiece.originalEmissiveColor) {
+                this.selectedPiece.material.emissiveColor = this.selectedPiece.originalEmissiveColor;
+            }
+            // Disable edge rendering
+            this.selectedPiece.disableEdgesRendering();
+            this.selectedPiece = null;
+        }
+    }
+    
+    enableMove() {
+        if (this.selectedPiece) {
+            this.clearGizmos();
+            const gizmoManager = new BABYLON.GizmoManager(this.millScene);
+            gizmoManager.positionGizmoEnabled = true;
+            gizmoManager.attachToMesh(this.selectedPiece);
+            this.currentGizmo = gizmoManager;
+        }
+    }
+    
+    rotatePiece(degrees) {
+        if (this.selectedPiece) {
+            this.selectedPiece.rotation.y += degrees * Math.PI / 180;
+            console.log(`Rotated piece ${degrees} degrees`);
+        }
+    }
+    
+    duplicatePiece() {
+        if (this.selectedPiece) {
+            const clone = this.selectedPiece.clone(this.selectedPiece.name + '_copy');
+            clone.position.x += 20;  // Offset the duplicate
+            if (this.cutPieces) {
+                this.cutPieces.push(clone);
+            }
+            console.log('Duplicated piece');
+        }
+    }
+    
+    keepPiece() {
+        if (this.selectedPiece && this.selectedPiece.linkedPart) {
+            // Send this specific piece back to workbench
+            const part = this.selectedPiece.linkedPart;
+            if (window.drawingWorld && window.drawingWorld.handleMillCutResults) {
+                window.drawingWorld.handleMillCutResults([part], null);
+                console.log('Sent piece to workbench:', part.id);
+                
+                // Remove from mill
+                const index = this.cutPieces ? this.cutPieces.indexOf(this.selectedPiece) : -1;
+                if (index > -1) {
+                    this.cutPieces.splice(index, 1);
+                }
+                this.selectedPiece.dispose();
+            }
+        }
+    }
+    
+    wastePiece() {
+        if (this.selectedPiece) {
+            // Remove piece from arrays and dispose
+            if (this.cutPieces) {
+                const index = this.cutPieces.indexOf(this.selectedPiece);
+                if (index > -1) {
+                    this.cutPieces.splice(index, 1);
+                }
+            }
+            if (this.cutParts && this.selectedPiece.linkedPart) {
+                const index = this.cutParts.indexOf(this.selectedPiece.linkedPart);
+                if (index > -1) {
+                    this.cutParts.splice(index, 1);
+                }
+            }
+            this.selectedPiece.dispose();
+            console.log('Piece sent to waste');
+        }
     }
     
     clearGizmos() {

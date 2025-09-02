@@ -92,20 +92,23 @@ class TheMillSystem {
         // Laser toggle
         const laserToggle = this.createToggleButton('Laser', true, (state) => {
             if (this.laserLine) this.laserLine.isVisible = state;
+            
+            // Return to orthographic top-down view when laser is on
+            if (state && this.millCamera) {
+                this.millCamera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
+                // Reset camera to top-down position
+                this.millCamera.alpha = -Math.PI / 2;
+                this.millCamera.beta = 0;
+                console.log('Laser on - returned to orthographic view');
+            }
         });
         smartToolbar.appendChild(laserToggle);
         
-        // View toggle
-        const viewToggle = this.createToggleButton('View: ORTHO', true, (state) => {
-            if (state) {
-                this.millCamera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
-                viewToggle.querySelector('button').textContent = 'View: ORTHO';
-            } else {
-                this.millCamera.mode = BABYLON.Camera.PERSPECTIVE_CAMERA;
-                viewToggle.querySelector('button').textContent = 'View: PERSP';
-            }
-        });
-        smartToolbar.appendChild(viewToggle);
+        // Add keyboard shortcut info
+        const viewInfo = document.createElement('span');
+        viewInfo.style.cssText = 'color: #888; font-size: 12px; margin-left: 10px;';
+        viewInfo.textContent = 'T=Top view | Right-drag=3D inspect';
+        smartToolbar.appendChild(viewInfo);
         
         // Miter angle control
         const miterControl = this.createSliderControl('Miter', -90, 90, 0, (value) => {
@@ -742,11 +745,9 @@ class TheMillSystem {
         this.millCamera.minZ = 0.1;
         this.millCamera.maxZ = 1000;
         
-        // Attach camera to canvas
-        this.millCamera.attachControl(this.millCanvas, false);
-        
-        // Immediately detach default controls since we use manual
-        this.millCamera.detachControl();
+        // Don't attach camera controls at all - we handle everything manually
+        // this.millCamera.attachControl(this.millCanvas, false);
+        // this.millCamera.detachControl();
         
         // Don't attach default controls since we're using manual controls
         
@@ -1091,6 +1092,12 @@ class TheMillSystem {
         
         // Setup right-click context menu after everything is initialized
         this.setupRightClickContextMenu();
+        
+        // Prevent default context menu
+        this.millCanvas.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            return false;
+        });
         }
     
 
@@ -1105,26 +1112,8 @@ class TheMillSystem {
     
     // Setup event listeners for cutting
     setupCameraControls() {
-        // Set up pointer event handling for camera mode switching
-        this.millScene.onPointerObservable.add((pointerInfo) => {
-            // Handle right-click drag for camera rotation (which switches to perspective)
-            if (pointerInfo.type === BABYLON.PointerEventTypes.POINTERDOWN && 
-                pointerInfo.event.button === 2) {
-                // Right-click switches to perspective mode for rotation
-                if (this.millCamera.mode === BABYLON.Camera.ORTHOGRAPHIC_CAMERA) {
-                    // Calculate radius from ortho bounds to maintain zoom
-                    const orthoSize = Math.abs(this.millCamera.orthoRight - this.millCamera.orthoLeft);
-                    this.millCamera.radius = orthoSize * 0.7; // Adjust factor for similar view
-                    
-                    this.millCamera.mode = BABYLON.Camera.PERSPECTIVE_CAMERA;
-                    // Enable rotation gizmo in perspective
-                    if (this.gizmoManager) {
-                        this.gizmoManager.rotationGizmoEnabled = true;
-                    }
-                    console.log('Switched to perspective mode for camera rotation');
-                }
-            }
-        });
+        // Table saw stays in orthographic top-down view
+        // No camera mode switching needed
     }
     
     setupManualCameraControls() {
@@ -1146,16 +1135,24 @@ class TheMillSystem {
                 this.cameraState.lastY = e.clientY;
                 e.preventDefault();
             } else if (e.button === 2) {
-                // Right mouse - rotate (switches to perspective)
+                // Right mouse - rotate (switches to perspective for 3D inspection)
                 this.cameraState.isRotating = true;
                 this.cameraState.lastX = e.clientX;
                 this.cameraState.lastY = e.clientY;
                 
                 // Switch to perspective mode when starting rotation
                 if (this.millCamera.mode === BABYLON.Camera.ORTHOGRAPHIC_CAMERA) {
+                    // Calculate proper radius to match current zoom
                     const orthoSize = Math.abs(this.millCamera.orthoRight - this.millCamera.orthoLeft);
-                    this.millCamera.radius = orthoSize * 0.7;
+                    // Set radius based on orthographic size
+                    // Smaller value = closer camera (was 1.5, way too far)
+                    this.millCamera.radius = orthoSize * 0.5;  // Much closer
+                    
+                    // Ensure minimum radius so we don't get too close
+                    this.millCamera.radius = Math.max(50, this.millCamera.radius);
+                    
                     this.millCamera.mode = BABYLON.Camera.PERSPECTIVE_CAMERA;
+                    console.log('Switched to perspective for 3D inspection, orthoSize:', orthoSize, 'radius:', this.millCamera.radius);
                 }
                 e.preventDefault();
             }
@@ -1220,9 +1217,9 @@ class TheMillSystem {
             }
         });
         
-        // Mouse wheel - zoom
+        // Mouse wheel - zoom with improved sensitivity
         this.millCanvas.addEventListener('wheel', (e) => {
-            const zoomSensitivity = window.userPreferences?.zoomSensitivity || 0.00005; // Very slow for precise control
+            const zoomSensitivity = 0.0005; // Increased 10x from 0.00005 for better responsiveness
             const delta = e.deltaY * zoomSensitivity;
             if (this.millCamera.mode === BABYLON.Camera.ORTHOGRAPHIC_CAMERA) {
                 // Orthographic zoom - adjust ortho bounds
@@ -1233,12 +1230,13 @@ class TheMillSystem {
                 this.millCamera.orthoBottom *= zoomFactor;
             } else {
                 // Perspective zoom - adjust radius
-                const zoomSpeed = this.drawingWorld.preferences.zoomSpeed || 0.5;
+                const zoomSpeed = 1.0; // Increased from 0.5
                 this.millCamera.radius *= (1 + delta * zoomSpeed);
                 this.millCamera.radius = Math.max(10, Math.min(1000, this.millCamera.radius));
             }
             
             e.preventDefault();
+            e.stopPropagation();
         });
     }
     
@@ -2118,6 +2116,9 @@ class TheMillSystem {
             this.makePiecesSelectable();
             this.updateSelectionDisplay();
             
+            // Recalculate camera bounds for proper aspect ratio and picking
+            this.recalculateCameraBounds();
+            
             // Show success
             const cutData = {
                 miterAngle: miterAngleDegrees,
@@ -2127,6 +2128,10 @@ class TheMillSystem {
             };
             
             console.log('CSG cut completed successfully');
+            
+            // Return to single view after cut
+            this.disableSplitScreen();
+            
             // Hide blade after cut
             if (this.blade) {
                 this.blade.isVisible = false;
@@ -2818,6 +2823,51 @@ class TheMillSystem {
         if (bevelControl) bevelControl.style.display = 'block';
     }
 
+    recalculateCameraBounds() {
+        // Recalculate orthographic bounds to fix aspect ratio and picking after cut
+        if (this.millCamera.mode !== BABYLON.Camera.ORTHOGRAPHIC_CAMERA) {
+            return;
+        }
+        
+        // Get canvas aspect ratio
+        const aspectRatio = this.millCanvas.width / this.millCanvas.height;
+        
+        // Calculate bounds for all pieces
+        if (this.cutPieces && this.cutPieces.length > 0) {
+            let minX = Infinity, maxX = -Infinity;
+            let minZ = Infinity, maxZ = -Infinity;
+            
+            this.cutPieces.forEach(piece => {
+                piece.computeWorldMatrix(true);
+                const bounds = piece.getBoundingInfo().boundingBox;
+                minX = Math.min(minX, bounds.minimumWorld.x);
+                maxX = Math.max(maxX, bounds.maximumWorld.x);
+                minZ = Math.min(minZ, bounds.minimumWorld.z);
+                maxZ = Math.max(maxZ, bounds.maximumWorld.z);
+            });
+            
+            const sizeX = maxX - minX;
+            const sizeZ = maxZ - minZ;
+            const maxSize = Math.max(sizeX, sizeZ);
+            const paddedSize = maxSize * 1.1; // 90% of viewport
+            
+            // Update orthographic bounds with correct aspect ratio
+            this.millCamera.orthoLeft = -paddedSize * aspectRatio / 2;
+            this.millCamera.orthoRight = paddedSize * aspectRatio / 2;
+            this.millCamera.orthoTop = paddedSize / 2;
+            this.millCamera.orthoBottom = -paddedSize / 2;
+            
+            // Center camera on pieces
+            this.millCamera.target = new BABYLON.Vector3((minX + maxX) / 2, 0, (minZ + maxZ) / 2);
+        }
+        
+        // Force camera update
+        this.millCamera.getProjectionMatrix(true);
+        this.millScene.render();
+        
+        console.log('Camera bounds recalculated - aspect ratio fixed');
+    }
+    
     frameBoard(boardMesh) {
         // Get board bounds
         boardMesh.computeWorldMatrix(true);
@@ -3137,9 +3187,19 @@ class TheMillSystem {
     }
     
     setupRightClickContextMenu() {
+        console.log('=== SETTING UP RIGHT CLICK MENU ===');
+        console.log('Mill canvas exists:', !!this.millCanvas);
+        
         if (!this.millCanvas) {
             console.error('Mill canvas not ready for context menu');
             return;
+        }
+        
+        // Check if menu already exists
+        let existingMenu = document.getElementById('mill-context-menu');
+        if (existingMenu) {
+            console.log('Removing existing menu');
+            existingMenu.remove();
         }
         
         // Create context menu container
@@ -3147,15 +3207,19 @@ class TheMillSystem {
         contextMenu.id = 'mill-context-menu';
         contextMenu.style.cssText = `
             position: fixed;
-            background: rgba(40, 40, 40, 0.95);
-            border: 1px solid rgba(100, 100, 100, 0.5);
+            background: red;
+            border: 2px solid white;
             border-radius: 6px;
-            padding: 8px 0;
+            padding: 8px;
             display: none;
-            z-index: 10000;
+            z-index: 100000;
             min-width: 150px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            color: white;
+            font-size: 16px;
         `;
+        
+        console.log('Creating context menu element');
         
         // Menu items
         const menuItems = [
@@ -3199,6 +3263,9 @@ class TheMillSystem {
         });
         
         document.body.appendChild(contextMenu);
+        console.log('Context menu appended to body. Testing visibility...');
+        
+        // Context menu is ready
         
         // Add mouse move handler for cursor
         this.millCanvas.addEventListener('mousemove', (e) => {
@@ -3234,39 +3301,65 @@ class TheMillSystem {
             }
         });
         
-        // Right-click handler for mill canvas
-        this.millCanvas.addEventListener('contextmenu', (e) => {
+        // Prevent default browser context menu on the canvas
+        this.millCanvas.oncontextmenu = (e) => {
             e.preventDefault();
-            console.log('Right-click detected');
-            
-            // Check if clicking on a piece
-            const pickResult = this.millScene.pick(e.offsetX, e.offsetY);
-            if (pickResult.hit) {
-                const mesh = pickResult.pickedMesh;
-                console.log('Right-clicked on mesh:', mesh.name);
+            return false;
+        };
+        
+        // Right-click handler for mill canvas
+        this.millCanvas.addEventListener('mousedown', (e) => {
+            if (e.button === 2) { // Right click
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Right-click detected via mousedown');
                 
-                // Check if it's the current board or any cut piece
-                const isSelectablePiece = (this.currentBoard && mesh === this.currentBoard) || 
-                                         (this.cutPieces && this.cutPieces.includes(mesh));
-                
-                if (isSelectablePiece) {
-                    this.selectPiece(mesh);
+                // Check if clicking on a piece
+                const pickResult = this.millScene.pick(e.offsetX, e.offsetY);
+                if (pickResult.hit) {
+                    const mesh = pickResult.pickedMesh;
+                    console.log('Right-clicked on mesh:', mesh.name);
                     
-                    // Position menu at cursor
-                    contextMenu.style.left = e.clientX + 'px';
-                    contextMenu.style.top = e.clientY + 'px';
-                    contextMenu.style.display = 'block';
-                    console.log('Context menu shown at:', e.clientX, e.clientY);
+                    // Check if it's the current board or any cut piece
+                    const isSelectablePiece = (this.currentBoard && mesh === this.currentBoard) || 
+                                             (this.cutPieces && this.cutPieces.includes(mesh));
+                    
+                    if (isSelectablePiece) {
+                        this.selectPiece(mesh);
+                        
+                        // Position menu at cursor
+                        contextMenu.style.left = e.clientX + 'px';
+                        contextMenu.style.top = e.clientY + 'px';
+                        contextMenu.style.display = 'block';
+                        contextMenu.style.visibility = 'visible';
+                        
+                        // Force to top
+                        contextMenu.style.zIndex = '999999';
+                        
+                        console.log('Context menu should be visible at:', e.clientX, e.clientY);
+                        console.log('Menu display:', contextMenu.style.display);
+                        console.log('Menu visibility:', contextMenu.style.visibility);
+                        console.log('Menu element exists:', document.getElementById('mill-context-menu'));
+                    } else {
+                        console.log('Not a selectable piece');
+                    }
+                } else {
+                    console.log('No mesh hit');
                 }
             }
         });
         
-        // Hide menu on click elsewhere
-        document.addEventListener('click', () => {
-            contextMenu.style.display = 'none';
+        // Hide menu on click elsewhere (but not on the menu itself)
+        document.addEventListener('click', (e) => {
+            // Don't hide if clicking on the menu itself
+            if (!contextMenu.contains(e.target)) {
+                contextMenu.style.display = 'none';
+            }
         });
         
         console.log('Right-click context menu initialized');
+        console.log('Mill canvas element:', this.millCanvas);
+        console.log('Context menu element created:', document.getElementById('mill-context-menu'));
     }
     
     selectPiece(mesh) {
@@ -3295,6 +3388,8 @@ class TheMillSystem {
         mesh.edgesWidth = 8.0;
         mesh.edgesColor = new BABYLON.Color4(0, 0.5, 1, 1); // Bright blue edges
         console.log('Selected piece:', mesh.name);
+        
+        // Don't recalculate bounds on selection - it's already done after cut
     }
     
     clearSelection() {

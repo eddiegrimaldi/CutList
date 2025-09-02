@@ -1135,6 +1135,20 @@ class TheMillSystem {
                 this.cameraState.lastY = e.clientY;
                 e.preventDefault();
             } else if (e.button === 2) {
+                // Right mouse - check if clicking on a piece first
+                const pickResult = this.millScene.pick(e.offsetX, e.offsetY);
+                if (pickResult.hit) {
+                    const mesh = pickResult.pickedMesh;
+                    const isSelectablePiece = (this.currentBoard && mesh === this.currentBoard) || 
+                                             (this.cutPieces && this.cutPieces.includes(mesh));
+                    
+                    if (isSelectablePiece) {
+                        // Don't start camera rotation - let context menu handler deal with it
+                        console.log('Right-click on piece detected - skipping camera rotation');
+                        return;
+                    }
+                }
+                
                 // Right mouse - rotate (switches to perspective for 3D inspection)
                 this.cameraState.isRotating = true;
                 this.cameraState.lastX = e.clientX;
@@ -2295,8 +2309,17 @@ class TheMillSystem {
         
         this.cutPieces.forEach((piece, index) => {
             piece.isPickable = true;
-            // ActionManager removed - using direct click handling instead
-            // This fixes cursor alignment issues
+            
+            // Enable blue edges for visual feedback
+            piece.enableEdgesRendering();
+            piece.edgesWidth = 4.0;
+            piece.edgesColor = new BABYLON.Color4(0, 0, 1, 1); // Blue edges
+            
+            // Add blue glow effect
+            if (!piece.material) {
+                piece.material = new BABYLON.StandardMaterial('pieceMat_' + index, this.millScene);
+            }
+            piece.material.emissiveColor = new BABYLON.Color3(0, 0, 0.2); // Subtle blue glow
         });
     }
     
@@ -3207,16 +3230,16 @@ class TheMillSystem {
         contextMenu.id = 'mill-context-menu';
         contextMenu.style.cssText = `
             position: fixed;
-            background: red;
-            border: 2px solid white;
+            background: #333;
+            border: 2px solid #fff;
             border-radius: 6px;
-            padding: 8px;
+            padding: 0;
             display: none;
             z-index: 100000;
             min-width: 150px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
             color: white;
-            font-size: 16px;
+            font-size: 14px;
         `;
         
         console.log('Creating context menu element');
@@ -3265,6 +3288,15 @@ class TheMillSystem {
         document.body.appendChild(contextMenu);
         console.log('Context menu appended to body. Testing visibility...');
         
+        // Test visibility briefly
+        contextMenu.style.display = 'block';
+        contextMenu.style.left = '100px';
+        contextMenu.style.top = '100px';
+        setTimeout(() => {
+            contextMenu.style.display = 'none';
+            console.log('Context menu test complete - should have been visible briefly');
+        }, 1000);
+        
         // Context menu is ready
         
         // Add mouse move handler for cursor
@@ -3307,24 +3339,32 @@ class TheMillSystem {
             return false;
         };
         
-        // Right-click handler for mill canvas
-        this.millCanvas.addEventListener('mousedown', (e) => {
+        // Right-click handler for mill canvas - use pointerdown to match camera controls
+        this.millCanvas.addEventListener('pointerdown', (e) => {
+            console.log('Context menu pointerdown, button:', e.button);
             if (e.button === 2) { // Right click
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('Right-click detected via mousedown');
+                console.log('Right-click detected for context menu');
                 
                 // Check if clicking on a piece
                 const pickResult = this.millScene.pick(e.offsetX, e.offsetY);
+                console.log('Pick result:', pickResult.hit ? 'hit on ' + pickResult.pickedMesh.name : 'miss');
+                
                 if (pickResult.hit) {
                     const mesh = pickResult.pickedMesh;
-                    console.log('Right-clicked on mesh:', mesh.name);
+                    console.log('Checking mesh:', mesh.name);
+                    console.log('Current board:', this.currentBoard ? this.currentBoard.name : 'none');
+                    console.log('Cut pieces count:', this.cutPieces ? this.cutPieces.length : 0);
                     
                     // Check if it's the current board or any cut piece
                     const isSelectablePiece = (this.currentBoard && mesh === this.currentBoard) || 
                                              (this.cutPieces && this.cutPieces.includes(mesh));
                     
+                    console.log('Is selectable:', isSelectablePiece);
+                    
                     if (isSelectablePiece) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
                         this.selectPiece(mesh);
                         
                         // Position menu at cursor
@@ -3336,18 +3376,22 @@ class TheMillSystem {
                         // Force to top
                         contextMenu.style.zIndex = '999999';
                         
-                        console.log('Context menu should be visible at:', e.clientX, e.clientY);
-                        console.log('Menu display:', contextMenu.style.display);
-                        console.log('Menu visibility:', contextMenu.style.visibility);
-                        console.log('Menu element exists:', document.getElementById('mill-context-menu'));
+                        console.log('=== CONTEXT MENU SHOWN ===');
+                        console.log('Position:', e.clientX, e.clientY);
+                        console.log('Display:', contextMenu.style.display);
+                        console.log('Visibility:', contextMenu.style.visibility);
+                        console.log('Z-index:', contextMenu.style.zIndex);
+                        console.log('Element in DOM:', !!document.getElementById('mill-context-menu'));
                     } else {
                         console.log('Not a selectable piece');
+                        contextMenu.style.display = 'none';
                     }
                 } else {
                     console.log('No mesh hit');
+                    contextMenu.style.display = 'none';
                 }
             }
-        });
+        }, true); // Use capture phase to run before other handlers
         
         // Hide menu on click elsewhere (but not on the menu itself)
         document.addEventListener('click', (e) => {

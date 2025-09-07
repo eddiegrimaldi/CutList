@@ -3030,13 +3030,25 @@ class TheMillSystem {
     closeMill(cutData = null) {
         console.log('Closing The Mill');
         
-        // If we have cut Parts, return them to the main scene
-        if (this.cutParts && this.cutParts.length === 2) {
-            console.log('Returning cut Parts to main scene:', this.cutParts);
+        try {
+            // Handle any remaining cut pieces that weren't kept or wasted
+            if (this.cutPieces && this.cutPieces.length > 0) {
+                console.log('Cleaning up remaining cut pieces:', this.cutPieces.length);
+                this.cutPieces.forEach(piece => {
+                    if (piece && !piece.isDisposed()) {
+                        piece.dispose();
+                    }
+                });
+                this.cutPieces = [];
+            }
             
-            // Call the main scene to handle the cut results
-            if (this.drawingWorld.handleMillCutResults) {
-                this.drawingWorld.handleMillCutResults(this.cutParts, this.originalMesh);
+            // Legacy support: If we have cut Parts, return them to the main scene
+            if (this.cutParts && this.cutParts.length === 2) {
+                console.log('Returning cut Parts to main scene:', this.cutParts);
+                
+                // Call the main scene to handle the cut results
+                if (this.drawingWorld && this.drawingWorld.handleMillCutResults) {
+                    this.drawingWorld.handleMillCutResults(this.cutParts, this.originalMesh);
             } else {
                 console.warn('Main scene does not have handleMillCutResults method');
                 // For now, just log what we would do
@@ -3075,6 +3087,31 @@ class TheMillSystem {
         this.originalMesh = null;
         this.currentOperation = null;
         this.cutParts = null;
+        this.cutPieces = null;
+        this.selectedPiece = null;
+        
+        } catch (error) {
+            console.error('Error closing The Mill:', error);
+            // Ensure we still clean up even if there's an error
+            if (this.millScene) {
+                try {
+                    this.millScene.dispose();
+                } catch (e) {
+                    console.error('Error disposing mill scene:', e);
+                }
+            }
+            if (this.millUI) {
+                try {
+                    this.millUI.remove();
+                } catch (e) {
+                    console.error('Error removing mill UI:', e);
+                }
+            }
+            if (this.drawingWorld && this.drawingWorld.canvas) {
+                this.drawingWorld.canvas.style.display = 'block';
+            }
+            this.isActive = false;
+        }
         
         // Legacy cutData support
         if (cutData && !this.cutParts) {
@@ -3477,21 +3514,71 @@ class TheMillSystem {
     }
     
     keepPiece() {
-        if (this.selectedPiece && this.selectedPiece.linkedPart) {
-            // Send this specific piece back to workbench
-            const part = this.selectedPiece.linkedPart;
-            if (window.drawingWorld && window.drawingWorld.handleMillCutResults) {
-                window.drawingWorld.handleMillCutResults([part], null);
-                console.log('Sent piece to workbench:', part.id);
-                
-                // Remove from mill
-                const index = this.cutPieces ? this.cutPieces.indexOf(this.selectedPiece) : -1;
-                if (index > -1) {
-                    this.cutPieces.splice(index, 1);
-                }
-                this.selectedPiece.dispose();
-            }
+        if (!this.selectedPiece) {
+            console.warn('No piece selected for KEEP');
+            return;
         }
+        
+        console.log('Keeping piece:', this.selectedPiece.name);
+        
+        // Create a simple part data structure from the mesh
+        const partData = {
+            id: this.selectedPiece.name || 'kept_piece_' + Date.now(),
+            dimensions: {
+                length: this.selectedPiece.getBoundingInfo().boundingBox.extendSize.z * 2 / 2.54,  // Convert cm to inches
+                width: this.selectedPiece.getBoundingInfo().boundingBox.extendSize.x * 2 / 2.54,
+                thickness: this.selectedPiece.getBoundingInfo().boundingBox.extendSize.y * 2 / 2.54
+            },
+            position: {
+                x: this.selectedPiece.position.x,
+                y: this.selectedPiece.position.y,
+                z: this.selectedPiece.position.z
+            },
+            rotation: {
+                x: this.selectedPiece.rotation.x,
+                y: this.selectedPiece.rotation.y,
+                z: this.selectedPiece.rotation.z
+            },
+            material: this.selectedPiece.material ? {
+                id: this.selectedPiece.material.name,
+                name: this.selectedPiece.material.name
+            } : null,
+            location: 'workbench'  // Set location to workbench when keeping
+        };
+        
+        // Send piece back to main scene
+        if (window.drawingWorld) {
+            // Clone the mesh to the main scene
+            const clonedMesh = this.selectedPiece.clone(partData.id);
+            
+            // Switch to main scene
+            clonedMesh._scene = window.drawingWorld.scene;
+            window.drawingWorld.scene.addMesh(clonedMesh);
+            
+            // Make it a workbench part
+            clonedMesh.isWorkBenchPart = true;
+            clonedMesh.partData = partData;
+            
+            // Add to workBenchParts if it exists
+            if (window.drawingWorld.workBenchParts) {
+                window.drawingWorld.workBenchParts.push(clonedMesh);
+            }
+            
+            console.log('Successfully sent piece to workbench:', partData.id);
+        }
+        
+        // Remove from mill
+        const index = this.cutPieces ? this.cutPieces.indexOf(this.selectedPiece) : -1;
+        if (index > -1) {
+            this.cutPieces.splice(index, 1);
+        }
+        
+        // Dispose the mill piece
+        this.selectedPiece.dispose();
+        this.selectedPiece = null;
+        
+        // Update display
+        this.updateSelectionDisplay();
     }
     
     wastePiece() {

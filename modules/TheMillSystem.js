@@ -3521,51 +3521,82 @@ class TheMillSystem {
         
         console.log('Keeping piece:', this.selectedPiece.name);
         
-        // Create a simple part data structure from the mesh
+        // Get material info from the original board or piece
+        let materialToUse = null;
+        if (this.currentMaterial && this.currentMaterial.material) {
+            materialToUse = this.currentMaterial.material;
+            console.log('Using original board material');
+        } else if (this.selectedPiece.material) {
+            materialToUse = this.selectedPiece.material;
+            console.log('Using piece material');
+        }
+        
+        // Create part data
+        const bounds = this.selectedPiece.getBoundingInfo().boundingBox;
         const partData = {
-            id: this.selectedPiece.name || 'kept_piece_' + Date.now(),
+            id: 'kept_' + Date.now(),
             dimensions: {
-                length: this.selectedPiece.getBoundingInfo().boundingBox.extendSize.z * 2 / 2.54,  // Convert cm to inches
-                width: this.selectedPiece.getBoundingInfo().boundingBox.extendSize.x * 2 / 2.54,
-                thickness: this.selectedPiece.getBoundingInfo().boundingBox.extendSize.y * 2 / 2.54
+                length: bounds.extendSize.z * 2 / 2.54,  // Convert cm to inches
+                width: bounds.extendSize.x * 2 / 2.54,
+                thickness: bounds.extendSize.y * 2 / 2.54
             },
-            position: {
-                x: this.selectedPiece.position.x,
-                y: this.selectedPiece.position.y,
-                z: this.selectedPiece.position.z
-            },
-            rotation: {
-                x: this.selectedPiece.rotation.x,
-                y: this.selectedPiece.rotation.y,
-                z: this.selectedPiece.rotation.z
-            },
-            material: this.selectedPiece.material ? {
-                id: this.selectedPiece.material.name,
-                name: this.selectedPiece.material.name
+            position: { x: 0, y: 0, z: 0 },  // Reset position for workbench
+            rotation: { x: 0, y: 0, z: 0 },  // Reset rotation
+            material: materialToUse ? {
+                id: materialToUse.name,
+                name: materialToUse.name
             } : null,
-            location: 'workbench'  // Set location to workbench when keeping
+            location: 'workbench'
         };
         
-        // Send piece back to main scene
+        // Send piece back to main scene with CSG geometry preservation
         if (window.drawingWorld) {
-            // Clone the mesh to the main scene
-            const clonedMesh = this.selectedPiece.clone(partData.id);
+            // Use CSG to preserve exact geometry including cuts
+            console.log('Creating CSG from selected piece...');
+            const csg = BABYLON.CSG.FromMesh(this.selectedPiece);
+            const keptMesh = csg.toMesh(partData.id, null, window.drawingWorld.scene);
             
-            // Switch to main scene
-            clonedMesh._scene = window.drawingWorld.scene;
-            window.drawingWorld.scene.addMesh(clonedMesh);
+            // Position at origin on workbench
+            keptMesh.position = new BABYLON.Vector3(0, 0, 0);
+            keptMesh.rotation = new BABYLON.Vector3(0, 0, 0);
             
-            // Make it a workbench part
-            clonedMesh.isWorkBenchPart = true;
-            clonedMesh.partData = partData;
-            
-            // Add to workBenchParts if it exists
-            if (window.drawingWorld.workBenchParts) {
-                window.drawingWorld.workBenchParts.push(clonedMesh);
+            // Apply texture from material
+            if (materialToUse) {
+                const newMat = new BABYLON.StandardMaterial(partData.id + '_mat', window.drawingWorld.scene);
+                
+                // Transfer diffuse texture if it exists
+                if (materialToUse.diffuseTexture) {
+                    const texUrl = materialToUse.diffuseTexture.url || 
+                                  (materialToUse.diffuseTexture._texture && materialToUse.diffuseTexture._texture.url);
+                    if (texUrl) {
+                        console.log('Applying texture:', texUrl);
+                        newMat.diffuseTexture = new BABYLON.Texture(texUrl, window.drawingWorld.scene);
+                    }
+                }
+                
+                // Set material properties
+                newMat.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1);  // Low shine for wood
+                if (materialToUse.diffuseColor) {
+                    newMat.diffuseColor = materialToUse.diffuseColor.clone();
+                }
+                
+                keptMesh.material = newMat;
             }
             
-            console.log('Successfully sent piece to workbench:', partData.id);
+            // Make it a workbench part
+            keptMesh.isWorkBenchPart = true;
+            keptMesh.partData = partData;
+            
+            // Add to workBenchParts
+            if (window.drawingWorld.workBenchParts) {
+                window.drawingWorld.workBenchParts.push(keptMesh);
+            }
+            
+            console.log('Successfully sent piece to workbench with geometry:', partData.id);
         }
+        
+        // Hide piece in mill immediately
+        this.selectedPiece.isVisible = false;
         
         // Remove from mill
         const index = this.cutPieces ? this.cutPieces.indexOf(this.selectedPiece) : -1;
@@ -3573,8 +3604,14 @@ class TheMillSystem {
             this.cutPieces.splice(index, 1);
         }
         
-        // Dispose the mill piece
-        this.selectedPiece.dispose();
+        // Dispose the mill piece after delay
+        const pieceToDispose = this.selectedPiece;
+        setTimeout(() => {
+            if (pieceToDispose && !pieceToDispose.isDisposed()) {
+                pieceToDispose.dispose();
+            }
+        }, 100);
+        
         this.selectedPiece = null;
         
         // Update display

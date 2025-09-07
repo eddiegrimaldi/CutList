@@ -403,6 +403,10 @@
             <span class="context-icon">⚙</span>
             <span class="context-label">Send to Mill</span>
         </div>
+        <div class="context-menu-item" id="context-send-to-router">
+            <span class="context-icon">🪵</span>
+            <span class="context-label">Send to Router</span>
+        </div>
         <div class="context-menu-separator"></div>
         <div class="context-menu-item" id="context-properties">
             <span class="context-icon">📋</span>
@@ -1047,6 +1051,12 @@
                     this.hideContextMenu();
                 });
                 
+                document.getElementById('context-send-to-router').addEventListener('click', () => {
+                    console.log('Router menu item clicked!');
+                    this.sendToRouter();
+                    this.hideContextMenu();
+                });
+                
                 document.getElementById('context-properties').addEventListener('click', () => {
                     this.showProperties();
                     this.hideContextMenu();
@@ -1312,6 +1322,53 @@
                     window.drawingWorld.theMillSystem.openMill(partMesh, 'cut');
                 } else {
                     console.error('The Mill System not initialized');
+                }
+            },
+            
+            sendToRouter() {
+                console.log('sendToRouter called');
+                
+                if (!this.selectedPart) {
+                    console.error('No selectedPart');
+                    return;
+                }
+                
+                if (!window.drawingWorld) {
+                    console.error('No drawingWorld');
+                    return;
+                }
+                
+                console.log('Sending to Router Table:', this.selectedPart.materialName);
+                
+                // Get the mesh
+                let partMesh = this.selectedMesh || this.selectedPart.mesh;
+                
+                if (!partMesh) {
+                    const scene = window.drawingWorld.scene;
+                    partMesh = scene.getMeshByName(this.selectedPart.id);
+                }
+                
+                if (!partMesh) {
+                    console.error('Could not find mesh for router:', this.selectedPart);
+                    return;
+                }
+                
+                // Hide from workbench
+                partMesh.isVisible = false;
+                console.log('Board sent to router and hidden from workbench');
+                
+                // Open Router Table
+                if (window.drawingWorld.theRouterTable) {
+                    console.log('Opening router table with mesh:', partMesh);
+                    try {
+                        window.drawingWorld.theRouterTable.openRouterTable(partMesh, 'route');
+                        console.log('Router table opened successfully');
+                    } catch (error) {
+                        console.error('Error opening router table:', error);
+                    }
+                } else {
+                    console.error('Router Table System not initialized');
+                    console.log('Available:', Object.keys(window.drawingWorld));
                 }
             },
             

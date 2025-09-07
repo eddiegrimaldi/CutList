@@ -4,6 +4,8 @@ import { GridSystem } from './grid/GridSystem.js';
 import { Shape2D } from './modules/Shape2D.js?v=20250112001';
 import { CutToolSystem } from './modules/CutToolSystem.js';
 import { TheMillSystem } from './modules/TheMillSystem.js';
+import { TheRouterTable } from './modules/TheRouterTable.js';
+import { WorkspaceNavigator } from './modules/WorkspaceNavigator.js';
 import { ViewCube } from './modules/ViewCube.js';
 import { RouterBitSystem } from './modules/RouterBitSystem.js';
 import { ScrollCuttingSystem } from './modules/ScrollCuttingSystem.js';
@@ -950,6 +952,8 @@ class DrawingWorld {
         // Initialize cut tool system
         this.cutToolSystem = new CutToolSystem(this);
         this.theMillSystem = new TheMillSystem(this);
+        this.theRouterTable = new TheRouterTable(this);
+        this.navigator = new WorkspaceNavigator(this);
         
         // Initialize router bit system
         this.routerBitSystem = new RouterBitSystem(this);

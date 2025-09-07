@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Parts System Test</title>
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script type="module">
+        import { PartsManager } from './modules/PartsManager.js';
+        
+        window.addEventListener('DOMContentLoaded', () => {
+            console.log('Testing PartsManager...');
+            
+            // Create PartsManager
+            const pm = new PartsManager();
+            
+            // Add a test part
+            const part = pm.addPart({
+                type: 'board',
+                location: 'work',
+                dimensions: { length: 96, width: 6, thickness: 0.75 },
+                material: { id: 'pine', name: 'Pine' }
+            });
+            
+            console.log('Added part:', part);
+            console.log('All parts:', pm.getAllParts());
+            console.log('Parts at work:', pm.getPartsAtLocation('work'));
+            
+            // Update location
+            pm.updatePart(part.id, { location: 'mill' });
+            console.log('After moving to mill:', pm.getPartsAtLocation('mill'));
+            
+            // Test complete
+            document.body.innerHTML = '<h1>Test Complete - Check Console</h1>';
+        });
+    </script>
+</head>
+<body>
+    <h1>Testing...</h1>
+</body>
+</html>

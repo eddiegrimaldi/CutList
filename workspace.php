@@ -1303,6 +1303,10 @@
                     return;
                 }
                 
+                // Hide the board from workbench (it's in the mill now)
+                partMesh.isVisible = false;
+                console.log('Board sent to mill and hidden from workbench');
+                
                 // Open The Mill with the selected part mesh
                 if (window.drawingWorld.theMillSystem) {
                     window.drawingWorld.theMillSystem.openMill(partMesh, 'cut');

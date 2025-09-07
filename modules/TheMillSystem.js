@@ -56,6 +56,7 @@ class TheMillSystem {
         this.currentMaterial = material;
         this.currentOperation = operation;
         this.isActive = true;
+        this.hasKeptPiece = false;  // Track if user kept any pieces
         
         // Hide main 3D view
         this.drawingWorld.canvas.style.display = 'none';
@@ -3042,9 +3043,9 @@ class TheMillSystem {
                 this.cutPieces = [];
             }
             
-            // Legacy support: If we have cut Parts, return them to the main scene
-            if (this.cutParts && this.cutParts.length === 2) {
-                console.log('Returning cut Parts to main scene:', this.cutParts);
+            // Only return cut parts if user didn't manually keep them
+            if (this.cutParts && this.cutParts.length === 2 && !this.hasKeptPiece) {
+                console.log('Returning cut Parts to main scene (no manual keeps):', this.cutParts);
                 
                 // Call the main scene to handle the cut results
                 if (this.drawingWorld && this.drawingWorld.handleMillCutResults) {
@@ -3520,6 +3521,7 @@ class TheMillSystem {
         }
         
         console.log('Keeping piece:', this.selectedPiece.name);
+        this.hasKeptPiece = true;  // Mark that we kept a piece
         
         // Get material info from the original board or piece
         let materialToUse = null;

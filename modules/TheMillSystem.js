@@ -57,6 +57,8 @@ class TheMillSystem {
         this.currentOperation = operation;
         this.isActive = true;
         this.hasKeptPiece = false;  // Track if user kept any pieces
+        this.hasWastedPiece = false;  // Track if user wasted any pieces
+        this.piecesInMill = [];  // Track pieces that stay in mill
         
         // Hide main 3D view
         this.drawingWorld.canvas.style.display = 'none';
@@ -948,16 +950,28 @@ class TheMillSystem {
             width: boardWidth 
         });
         
-        // Create a FLAT board in the Mill scene
-        const materialClone = BABYLON.MeshBuilder.CreateBox('millMaterial', {
-            width: boardLength,     // X: length of board
-            height: boardThickness, // Y: thickness (small)
-            depth: boardWidth,      // Z: width of board
-            wrap: true
-        }, this.millScene);
+        // Use CSG to preserve exact geometry (including cuts) when bringing to mill
+        let materialClone;
+        
+        try {
+            // Always use CSG to preserve cut geometry
+            console.log('Creating exact geometry copy for mill using CSG...');
+            const csg = BABYLON.CSG.FromMesh(this.currentMaterial);
+            materialClone = csg.toMesh('millMaterial', null, this.millScene);
+            console.log('CSG geometry preserved successfully');
+        } catch (error) {
+            console.warn('CSG failed, creating new box:', error);
+            // Fallback to creating a new box
+            materialClone = BABYLON.MeshBuilder.CreateBox('millMaterial', {
+                width: boardLength,     // X: length of board
+                height: boardThickness, // Y: thickness (small)
+                depth: boardWidth,      // Z: width of board
+                wrap: true
+            }, this.millScene);
+        }
         
         // Position at origin, flat on table
-        materialClone.position = new BABYLON.Vector3(0, boardThickness / 2, 0); // Position board ON TOP of grid
+        materialClone.position = new BABYLON.Vector3(0, boardThickness / 2, 0);
         materialClone.rotation = new BABYLON.Vector3(0, 0, 0);
         
         // Create a material with texture for visualization
@@ -3032,15 +3046,17 @@ class TheMillSystem {
         console.log('Closing The Mill');
         
         try {
-            // Handle any remaining cut pieces that weren't kept or wasted
+            // Pieces that weren't kept or wasted stay in the mill
             if (this.cutPieces && this.cutPieces.length > 0) {
-                console.log('Cleaning up remaining cut pieces:', this.cutPieces.length);
-                this.cutPieces.forEach(piece => {
-                    if (piece && !piece.isDisposed()) {
-                        piece.dispose();
-                    }
-                });
-                this.cutPieces = [];
+                console.log('Pieces remaining in mill:', this.cutPieces.length);
+                // Store their data for next time mill opens
+                this.piecesInMill = this.cutPieces.map(piece => ({
+                    geometry: piece.geometry ? piece.geometry.serialize() : null,
+                    position: piece.position.clone(),
+                    rotation: piece.rotation.clone(),
+                    material: piece.material
+                }));
+                console.log('Pieces will remain in mill for next session');
             }
             
             // Only return cut parts if user didn't manually keep them
@@ -3621,23 +3637,52 @@ class TheMillSystem {
     }
     
     wastePiece() {
-        if (this.selectedPiece) {
-            // Remove piece from arrays and dispose
-            if (this.cutPieces) {
-                const index = this.cutPieces.indexOf(this.selectedPiece);
-                if (index > -1) {
-                    this.cutPieces.splice(index, 1);
-                }
-            }
-            if (this.cutParts && this.selectedPiece.linkedPart) {
-                const index = this.cutParts.indexOf(this.selectedPiece.linkedPart);
-                if (index > -1) {
-                    this.cutParts.splice(index, 1);
-                }
-            }
-            this.selectedPiece.dispose();
-            console.log('Piece sent to waste');
+        if (!this.selectedPiece) {
+            console.warn('No piece selected for WASTE');
+            return;
         }
+        
+        console.log('Wasting piece:', this.selectedPiece.name);
+        
+        // Track that we wasted a piece
+        this.hasWastedPiece = true;
+        
+        // If we had a Part system, we'd set location to 'scrap-bin' here
+        // For now, just track it
+        const wasteData = {
+            id: this.selectedPiece.name + '_waste_' + Date.now(),
+            dimensions: {
+                length: this.selectedPiece.getBoundingInfo().boundingBox.extendSize.z * 2 / 2.54,
+                width: this.selectedPiece.getBoundingInfo().boundingBox.extendSize.x * 2 / 2.54,
+                thickness: this.selectedPiece.getBoundingInfo().boundingBox.extendSize.y * 2 / 2.54
+            },
+            location: 'scrap-bin',
+            wastedAt: Date.now()
+        };
+        
+        console.log('Piece moved to scrap-bin:', wasteData);
+        
+        // Hide immediately
+        this.selectedPiece.isVisible = false;
+        
+        // Remove from cutPieces array
+        if (this.cutPieces) {
+            const index = this.cutPieces.indexOf(this.selectedPiece);
+            if (index > -1) {
+                this.cutPieces.splice(index, 1);
+            }
+        }
+        
+        // Dispose after delay
+        const toDispose = this.selectedPiece;
+        setTimeout(() => {
+            if (toDispose && !toDispose.isDisposed()) {
+                toDispose.dispose();
+            }
+        }, 100);
+        
+        this.selectedPiece = null;
+        this.updateSelectionDisplay();
     }
     
     clearGizmos() {

@@ -1,85 +1,38 @@
-// The Router Table System - Edge profiling workspace
-// Handles roundovers, chamfers, and other edge treatments
-
-export class TheRouterTable {
+class TheRouterTable {
     constructor(drawingWorld) {
         this.drawingWorld = drawingWorld;
         this.isActive = false;
-        this.routerScene = null;
-        this.routerEngine = null;
+        this.routerContainer = null;
         this.routerCanvas = null;
+        this.routerEngine = null;
+        this.routerScene = null;
         this.routerCamera = null;
-        this.routerUI = null;
-        
-        // Current state
         this.currentBoard = null;
+        this.currentPartId = null;
+        this.originalMesh = null;
         this.selectedEdge = null;
-        this.currentBit = 'roundover_1_4'; // Default bit
-        this.bitDepth = 0.25; // inches
-        
-        // Available router bits
-        this.routerBits = {
-            'roundover_1_4': { name: '1/4" Roundover', radius: 0.25 },
-            'roundover_1_2': { name: '1/2" Roundover', radius: 0.5 },
-            'roundover_3_4': { name: '3/4" Roundover', radius: 0.75 },
-            'chamfer_45': { name: '45° Chamfer', angle: 45 },
-            'ogee': { name: 'Ogee', type: 'complex' },
-            'cove': { name: 'Cove', radius: 0.5 },
-            'rabbet': { name: 'Rabbet', width: 0.5, depth: 0.25 }
-        };
-        
-        // Track what we've done
-        this.routedEdges = [];
-        this.hasRoutedEdge = false;
-        
-        console.log('🪵 Router Table System initialized');
+        this.routerBit = 'roundover';
+        this.bitDepth = 0.25;
+        this.highlightedEdges = [];
+        this.init();
     }
     
-    openRouterTable(mesh, operation = 'route') {
-        console.log('openRouterTable called');
-        
-        if (!mesh) {
-            console.error('No mesh provided to Router Table');
-            return;
-        }
-        
-        console.log('Opening Router Table with mesh:', mesh.name);
-        console.log('Mesh details:', {
-            name: mesh.name,
-            hasGeometry: !!mesh.geometry,
-            hasMaterial: !!mesh.material,
-            position: mesh.position
-        });
-        
-        this.currentMaterial = mesh;
-        this.originalMesh = mesh;
-        console.log('Stored currentMaterial:', this.currentMaterial);
-        console.log('Mesh properties:', {
-            name: mesh.name,
-            isVisible: mesh.isVisible,
-            isEnabled: mesh.isEnabled(),
-            vertices: mesh.getTotalVertices()
-        });
-        this.currentOperation = operation;
-        this.isActive = true;
-        this.hasRoutedEdge = false;
-        
-        // Hide main 3D view
-        this.drawingWorld.canvas.style.display = 'none';
-        
-        // Create router interface
-        this.createRouterInterface();
-        
-        // Setup router scene
-        this.setupRouterScene();
+    init() {
+        console.log('TheRouterTable initialized');
     }
-
+    
     setupRouterScene() {
-        console.log('Setting up simplified router scene...');
+        console.log('Setting up router scene...');
         
         if (!this.routerCanvas) {
             console.error('Router canvas not found!');
             return;
+        }
+        
+        // Make sure canvas has size
+        if (this.routerCanvas.width === 0 || this.routerCanvas.height === 0) {
+            this.routerCanvas.width = this.routerCanvas.offsetWidth || 800;
+            this.routerCanvas.height = this.routerCanvas.offsetHeight || 600;
         }
         
         // Create engine
@@ -89,7 +42,7 @@ export class TheRouterTable {
         this.routerScene = new BABYLON.Scene(this.routerEngine);
         this.routerScene.clearColor = new BABYLON.Color3(0.95, 0.95, 0.95);
         
-        // Create ArcRotateCamera for ViewCube-style control
+        // Create camera
         this.routerCamera = new BABYLON.ArcRotateCamera(
             'routerCamera',
             Math.PI / 4,
@@ -104,490 +57,488 @@ export class TheRouterTable {
         this.routerCamera.wheelPrecision = 15;
         this.routerCamera.attachControl(this.routerCanvas, true);
         
-        // Simple lighting
+        // Fix mouse controls: middle button (1) for pan, right button (2) for rotate
+        this.routerCamera.inputs.attached.pointers.buttons = [2, 0, 1]; // right=rotate, left=none, middle=pan
+        
+        // Add light
         const light = new BABYLON.HemisphericLight('light1', 
             new BABYLON.Vector3(0, 1, 0), this.routerScene);
         light.intensity = 0.9;
         
-        // Create board from source mesh
-        if (this.currentMaterial) {
-            console.log('Creating ACTUAL board from:', this.currentMaterial.name);
-            console.log('Source vertices:', this.currentMaterial.getTotalVertices());
+        console.log('Router scene ready');
+    }
+    
+    openRouterTable(boardMesh, operation = 'route') {
+        console.log('Opening router table with board:', boardMesh?.name);
+        
+        // Hide the board in workbench
+        if (boardMesh && boardMesh.isVisible !== undefined) {
+            boardMesh.isVisible = false;
+        }
+        
+        // Create container if it doesn't exist
+        if (!this.routerContainer) {
+            this.routerContainer = document.createElement('div');
+            this.routerContainer.id = 'routerTableContainer';
+            this.routerContainer.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: #f0f0f0;
+                z-index: 1000;
+                display: none;
+                flex-direction: column;
+            `;
             
-            try {
-                // Method 1: Try CSG first for exact geometry preservation
-                const csg = BABYLON.CSG.FromMesh(this.currentMaterial);
-                this.currentBoard = csg.toMesh('routerBoard', null, this.routerScene);
-                console.log('CSG successful - board created with vertices:', this.currentBoard.getTotalVertices());
-            } catch (csgError) {
-                console.warn('CSG failed, trying serialization:', csgError);
-                
-                try {
-                    // Method 2: Serialize and recreate
-                    const serialized = BABYLON.SceneSerializer.SerializeMesh(this.currentMaterial, false, false);
+            // Add header
+            const header = document.createElement('div');
+            header.style.cssText = `
+                background: #333;
+                color: white;
+                padding: 10px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            `;
+            header.innerHTML = `
+                <h2>Router Table</h2>
+                <div style="display: flex; gap: 20px; align-items: center;">
+                    <select id="routerBitSelect" onchange="window.drawingWorld.theRouterTable.selectBit(this.value)" style="
+                        padding: 5px;
+                        background: white;
+                        border: 1px solid #ccc;
+                    ">
+                        <option value="roundover">Roundover</option>
+                        <option value="chamfer">Chamfer</option>
+                        <option value="ogee">Ogee</option>
+                        <option value="cove">Cove</option>
+                    </select>
                     
-                    // Create new mesh in router scene from serialized data
-                    this.currentBoard = BABYLON.Mesh.Parse(serialized, this.routerScene, '');
-                    console.log('Serialization successful - board created');
-                } catch (serError) {
-                    console.warn('Serialization failed, using direct clone:', serError);
+                    <label style="color: white;">
+                        Depth:
+                        <input type="range" id="bitDepth" min="0.1" max="0.5" step="0.05" value="0.25" 
+                               onchange="window.drawingWorld.theRouterTable.setBitDepth(this.value)"
+                               style="width: 100px;">
+                        <span id="depthValue">0.25"</span>
+                    </label>
                     
-                    // Method 3: Direct clone with manual scene transfer
-                    this.currentBoard = this.currentMaterial.clone('routerBoard', null, false, true);
+                    <button onclick="window.drawingWorld.theRouterTable.routeSelectedEdge()" style="
+                        background: #28a745;
+                        color: white;
+                        border: none;
+                        padding: 5px 15px;
+                        cursor: pointer;
+                    ">Route Edge</button>
                     
-                    // Force transfer to router scene
-                    if (this.currentBoard._scene !== this.routerScene) {
-                        this.currentBoard._scene = this.routerScene;
-                        this.routerScene.addMesh(this.currentBoard);
-                    }
-                    console.log('Clone successful - board created');
-                }
-            }
+                    <button onclick="window.drawingWorld.theRouterTable.keepRoutedBoard()" style="
+                        background: #007bff;
+                        color: white;
+                        border: none;
+                        padding: 5px 15px;
+                        cursor: pointer;
+                    ">KEEP</button>
+                    
+                    <button onclick="window.drawingWorld.theRouterTable.closeRouterTable()" style="
+                        background: #555;
+                        color: white;
+                        border: none;
+                        padding: 5px 10px;
+                        cursor: pointer;
+                    ">Close</button>
+                </div>
+            `;
             
-            // Apply material
-            const mat = new BABYLON.StandardMaterial('routerMat', this.routerScene);
+            // Canvas container
+            const canvasContainer = document.createElement('div');
+            canvasContainer.style.cssText = `
+                flex: 1;
+                position: relative;
+            `;
             
-            // Copy material properties from source
-            if (this.currentMaterial.material) {
-                // Copy diffuse color
-                if (this.currentMaterial.material.diffuseColor) {
-                    mat.diffuseColor = this.currentMaterial.material.diffuseColor.clone();
-                } else {
-                    mat.diffuseColor = new BABYLON.Color3(0.7, 0.5, 0.3);
-                }
-                
-                // Try to copy texture
-                if (this.currentMaterial.material.diffuseTexture) {
-                    try {
-                        const textureUrl = this.currentMaterial.material.diffuseTexture.url || 
-                                          this.currentMaterial.material.diffuseTexture._texture?.url ||
-                                          'data/materials/walnut_001/walnut_001_texture.jpg';
-                        console.log('Loading texture from:', textureUrl);
-                        mat.diffuseTexture = new BABYLON.Texture(textureUrl, this.routerScene);
-                    } catch (e) {
-                        console.warn('Could not load texture:', e);
-                    }
-                }
+            // Create canvas
+            this.routerCanvas = document.createElement('canvas');
+            this.routerCanvas.id = 'routerCanvas';
+            this.routerCanvas.style.cssText = `
+                width: 100%;
+                height: 100%;
+                display: block;
+            `;
+            
+            canvasContainer.appendChild(this.routerCanvas);
+            this.routerContainer.appendChild(header);
+            this.routerContainer.appendChild(canvasContainer);
+            document.body.appendChild(this.routerContainer);
+        }
+        
+        // Show router
+        this.routerContainer.style.display = 'flex';
+        
+        // Setup scene
+        this.setupRouterScene();
+        
+        // Transfer the actual board
+        if (boardMesh && boardMesh.name) {
+            console.log('Transferring board to router:', boardMesh.name);
+            console.log('Board vertices:', boardMesh.getTotalVertices());
+            
+            // Use CSG to preserve exact geometry
+            let boardCSG;
+            if (boardMesh.getCSG) {
+                boardCSG = boardMesh.getCSG();
+                console.log('Got existing CSG');
             } else {
-                mat.diffuseColor = new BABYLON.Color3(0.7, 0.5, 0.3);
+                boardCSG = BABYLON.CSG.FromMesh(boardMesh);
+                console.log('Created new CSG from mesh');
             }
             
-            mat.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1);
-            mat.backFaceCulling = false;
-            this.currentBoard.material = mat;
+            // Create mesh in router scene
+            this.currentBoard = boardCSG.toMesh('routerBoard', null, this.routerScene);
+            
+            // Copy material
+            if (boardMesh.material) {
+                const mat = new BABYLON.StandardMaterial('routerBoardMat', this.routerScene);
+                
+                // Copy color
+                if (boardMesh.material.diffuseColor) {
+                    mat.diffuseColor = boardMesh.material.diffuseColor.clone();
+                } else {
+                    mat.diffuseColor = new BABYLON.Color3(0.6, 0.3, 0.1); // Default wood color
+                }
+                
+                // Copy texture if exists
+                if (boardMesh.material.diffuseTexture) {
+                    try {
+                        const texUrl = boardMesh.material.diffuseTexture.url || 
+                                      boardMesh.material.diffuseTexture._texture?.url;
+                        if (texUrl) {
+                            mat.diffuseTexture = new BABYLON.Texture(texUrl, this.routerScene);
+                        }
+                    } catch (e) {
+                        console.log('Could not copy texture:', e);
+                    }
+                }
+                
+                mat.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1);
+                this.currentBoard.material = mat;
+            } else {
+                // Default material if none exists
+                const mat = new BABYLON.StandardMaterial('routerBoardMat', this.routerScene);
+                mat.diffuseColor = new BABYLON.Color3(0.6, 0.3, 0.1);
+                this.currentBoard.material = mat;
+            }
             
             // Position at origin
             this.currentBoard.position = BABYLON.Vector3.Zero();
-            this.currentBoard.rotation = new BABYLON.Vector3(0, 0, 0);
-            this.currentBoard.scaling = new BABYLON.Vector3(1, 1, 1);
-            this.currentBoard.isVisible = true;
-            this.currentBoard.isPickable = true;
+            this.currentBoard.rotation = BABYLON.Vector3.Zero();
             
-            // Force update
-            this.currentBoard.computeWorldMatrix(true);
-            this.currentBoard.refreshBoundingInfo();
+            console.log('Board transferred successfully');
+            console.log('Router board vertices:', this.currentBoard.getTotalVertices());
             
-            // Auto-frame camera
-            const bounds = this.currentBoard.getBoundingInfo();
-            if (bounds && this.routerCamera) {
-                const size = bounds.boundingBox.extendSize;
-                const maxDim = Math.max(size.x, size.y, size.z);
-                this.routerCamera.radius = maxDim * 2.5;
-                this.routerCamera.setTarget(BABYLON.Vector3.Zero());
-                console.log('Camera framed to board size:', maxDim);
-            }
+            // Store reference to original
+            this.originalMesh = boardMesh;
             
-            console.log('ACTUAL board ready! Vertices:', this.currentBoard.getTotalVertices());
+            // Setup edge selection
+            this.setupEdgeSelection();
+            
+        } else {
+            console.log('No board mesh provided, creating test board');
+            // Fallback to test board
+            const box = BABYLON.MeshBuilder.CreateBox('board', {
+                width: 48,
+                height: 2,
+                depth: 8
+            }, this.routerScene);
+            
+            box.position = BABYLON.Vector3.Zero();
+            
+            const mat = new BABYLON.StandardMaterial('boardMat', this.routerScene);
+            mat.diffuseColor = new BABYLON.Color3(0.6, 0.3, 0.1);
+            box.material = mat;
+            
+            this.currentBoard = box;
         }
+        
+        // Set camera
+        this.routerCamera.radius = 100;
+        this.routerCamera.setTarget(BABYLON.Vector3.Zero());
         
         // Start render loop
-        this.routerEngine.runRenderLoop(() => {
-            this.routerScene.render();
-        });
-        
-        console.log('Router scene ready');
-    }
-
-    
-    createRouterInterface() {
-        // Create container for router UI
-        this.routerUI = document.createElement('div');
-        this.routerUI.id = 'router-interface';
-        this.routerUI.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #f5f5f5;
-            z-index: 10000;
-            display: flex;
-            flex-direction: column;
-        `;
-        
-        // Create header with title and controls
-        const header = document.createElement('div');
-        header.style.cssText = `
-            background: linear-gradient(135deg, #8B4513 0%, #654321 100%);
-            color: white;
-            padding: 15px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-        `;
-        
-        const title = document.createElement('h2');
-        title.textContent = '🪵 Router Table';
-        title.style.margin = '0';
-        title.style.fontFamily = 'Arial, sans-serif';
-        
-        const closeBtn = document.createElement('button');
-        closeBtn.textContent = '✕ Exit Router';
-        closeBtn.style.cssText = `
-            background: rgba(255,255,255,0.2);
-            border: 1px solid rgba(255,255,255,0.3);
-            color: white;
-            padding: 8px 16px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-        `;
-        closeBtn.addEventListener('click', () => this.closeRouterTable());
-        
-        header.appendChild(title);
-        header.appendChild(closeBtn);
-        
-        // Create main content area
-        const content = document.createElement('div');
-        content.style.cssText = `
-            flex: 1;
-            display: flex;
-            position: relative;
-        `;
-        
-        // Create left panel for router controls
-        const controlPanel = document.createElement('div');
-        controlPanel.style.cssText = `
-            width: 300px;
-            background: white;
-            padding: 20px;
-            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
-            overflow-y: auto;
-        `;
-        
-        // Router bit selection
-        const bitSection = document.createElement('div');
-        bitSection.innerHTML = `
-            <h3 style="margin-top: 0;">Router Bit</h3>
-            <select id="router-bit-select" style="width: 100%; padding: 8px; margin-bottom: 15px;">
-                ${Object.entries(this.routerBits).map(([key, bit]) => 
-                    `<option value="${key}">${bit.name}</option>`
-                ).join('')}
-            </select>
-            
-            <h3>Bit Depth</h3>
-            <input type="range" id="bit-depth" min="0" max="100" value="50" style="width: 100%;">
-            <div id="depth-display" style="text-align: center; margin-top: 5px;">0.25"</div>
-            
-            <h3 style="margin-top: 20px;">Instructions</h3>
-            <ol style="font-size: 14px; line-height: 1.6;">
-                <li>Select a router bit</li>
-                <li>Click on an edge to route</li>
-                <li>Right-click for options</li>
-                <li>Click "Apply & Keep" when done</li>
-            </ol>
-        `;
-        controlPanel.appendChild(bitSection);
-        
-        // Canvas container
-        const canvasContainer = document.createElement('div');
-        canvasContainer.style.cssText = `
-            flex: 1;
-            position: relative;
-        `;
-        
-        // Create canvas for router scene
-        this.routerCanvas = document.createElement('canvas');
-        this.routerCanvas.id = 'routerCanvas';
-        this.routerCanvas.style.cssText = `
-            width: 100%;
-            height: 100%;
-            display: block;
-        `;
-        canvasContainer.appendChild(this.routerCanvas);
-        
-        // Edge highlight overlay
-        const edgeInfo = document.createElement('div');
-        edgeInfo.id = 'edge-info';
-        edgeInfo.style.cssText = `
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: rgba(0,0,0,0.8);
-            color: white;
-            padding: 10px;
-            border-radius: 5px;
-            font-family: monospace;
-            display: none;
-        `;
-        canvasContainer.appendChild(edgeInfo);
-        
-        // Assemble UI
-        content.appendChild(controlPanel);
-        content.appendChild(canvasContainer);
-        
-        this.routerUI.appendChild(header);
-        this.routerUI.appendChild(content);
-        
-        document.body.appendChild(this.routerUI);
-    }
-    
-    
-    setupEventListeners() {
-        // Router bit selection
-        const bitSelect = document.getElementById('router-bit-select');
-        if (bitSelect) {
-            bitSelect.addEventListener('change', (e) => {
-                this.currentBit = e.target.value;
-                console.log('Selected router bit:', this.currentBit);
+        if (this.routerEngine) {
+            this.routerEngine.runRenderLoop(() => {
+                this.routerScene.render();
             });
+            this.routerEngine.resize();
         }
         
-        // Depth control
-        const depthSlider = document.getElementById('bit-depth');
-        const depthDisplay = document.getElementById('depth-display');
-        if (depthSlider) {
-            depthSlider.addEventListener('input', (e) => {
-                this.bitDepth = (e.target.value / 100) * 0.5; // 0 to 0.5 inches
-                depthDisplay.textContent = this.bitDepth.toFixed(3) + '"';
-            });
-        }
-        
-        // Edge selection
-        this.routerScene.onPointerObservable.add((pointerInfo) => {
-            switch (pointerInfo.type) {
-                case BABYLON.PointerEventTypes.POINTERPICK:
-                    if (pointerInfo.pickInfo.hit && pointerInfo.pickInfo.pickedMesh === this.currentBoard) {
-                        this.selectEdge(pointerInfo.pickInfo);
-                    }
-                    break;
-                    
-                case BABYLON.PointerEventTypes.POINTERDOWN:
-                    if (pointerInfo.event.button === 2) { // Right click
-                        this.showContextMenu(pointerInfo.event);
-                    }
-                    break;
-            }
-        });
-        
-        // Window resize
-        window.addEventListener('resize', () => {
-            if (this.routerEngine) {
-                this.routerEngine.resize();
-            }
-        });
-    }
-    
-    selectEdge(pickInfo) {
-        // This is simplified - in reality we'd need edge detection
-        console.log('Edge selected at:', pickInfo.pickedPoint);
-        
-        // Highlight the edge
-        const edgeInfo = document.getElementById('edge-info');
-        if (edgeInfo) {
-            edgeInfo.style.display = 'block';
-            edgeInfo.innerHTML = `
-                <strong>Selected Edge</strong><br>
-                Bit: ${this.routerBits[this.currentBit].name}<br>
-                Depth: ${this.bitDepth.toFixed(3)}"<br>
-                <button onclick="window.currentRouterTable.applyRoute()">Apply Route</button>
-            `;
-        }
-        
-        this.selectedEdge = pickInfo.pickedPoint;
-        
-        // Store reference for button click
-        window.currentRouterTable = this;
-    }
-    
-    applyRoute() {
-        if (!this.selectedEdge || !this.currentBoard) {
-            console.warn('No edge selected');
-            return;
-        }
-        
-        console.log('Applying router profile:', this.currentBit, 'at depth:', this.bitDepth);
-        
-        // This is where we'd use CSG to modify the edge
-        // For now, just track it
-        this.routedEdges.push({
-            edge: this.selectedEdge,
-            bit: this.currentBit,
-            depth: this.bitDepth,
-            timestamp: Date.now()
-        });
-        
-        this.hasRoutedEdge = true;
-        
-        // Visual feedback
-        const edgeInfo = document.getElementById('edge-info');
-        if (edgeInfo) {
-            edgeInfo.innerHTML += '<br><span style="color: #4CAF50;">✓ Route Applied</span>';
-        }
-    }
-    
-    showContextMenu(event) {
-        event.preventDefault();
-        
-        // Remove existing menu
-        const existingMenu = document.getElementById('router-context-menu');
-        if (existingMenu) {
-            existingMenu.remove();
-        }
-        
-        // Create context menu
-        const menu = document.createElement('div');
-        menu.id = 'router-context-menu';
-        menu.style.cssText = `
-            position: absolute;
-            left: ${event.clientX}px;
-            top: ${event.clientY}px;
-            background: white;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            padding: 5px 0;
-            box-shadow: 2px 2px 10px rgba(0,0,0,0.2);
-            z-index: 10001;
-        `;
-        
-        const menuItems = [
-            { text: 'Apply & Keep', action: () => this.keepRoutedPiece() },
-            { text: 'Send to Mill', action: () => this.sendToMill() },
-            { text: 'Send to Workbench', action: () => this.sendToWorkbench() },
-            { text: 'Reset Edges', action: () => this.resetEdges() }
-        ];
-        
-        menuItems.forEach(item => {
-            const menuItem = document.createElement('div');
-            menuItem.textContent = item.text;
-            menuItem.style.cssText = `
-                padding: 8px 20px;
-                cursor: pointer;
-                hover: background: #f0f0f0;
-            `;
-            menuItem.onmouseover = () => menuItem.style.background = '#f0f0f0';
-            menuItem.onmouseout = () => menuItem.style.background = 'white';
-            menuItem.onclick = () => {
-                item.action();
-                menu.remove();
-            };
-            menu.appendChild(menuItem);
-        });
-        
-        document.body.appendChild(menu);
-        
-        // Remove menu on click outside
-        setTimeout(() => {
-            document.addEventListener('click', function removeMenu() {
-                menu.remove();
-                document.removeEventListener('click', removeMenu);
-            });
-        }, 100);
-    }
-    
-    keepRoutedPiece() {
-        if (!this.currentBoard) return;
-        
-        console.log('Keeping routed piece with', this.routedEdges.length, 'routed edges');
-        
-        // Use CSG to get exact geometry
-        const csg = BABYLON.CSG.FromMesh(this.currentBoard);
-        const routedMesh = csg.toMesh('routed_' + Date.now(), null, this.drawingWorld.scene);
-        
-        // Position on workbench
-        routedMesh.position = new BABYLON.Vector3(0, 0, 0);
-        routedMesh.rotation = new BABYLON.Vector3(0, 0, 0);
-        
-        // Apply material
-        if (this.currentBoard.material) {
-            const mat = this.currentBoard.material.clone('routedMat');
-            mat._scene = this.drawingWorld.scene;
-            if (mat.diffuseTexture) {
-                const texUrl = mat.diffuseTexture.url || mat.diffuseTexture._texture.url;
-                if (texUrl) {
-                    mat.diffuseTexture = new BABYLON.Texture(texUrl, this.drawingWorld.scene);
-                }
-            }
-            routedMesh.material = mat;
-        }
-        
-        // Add to workbench
-        routedMesh.isWorkBenchPart = true;
-        if (this.drawingWorld.workBenchParts) {
-            this.drawingWorld.workBenchParts.push(routedMesh);
-        }
-        
-        // Hide original
-        if (this.originalMesh) {
-            this.originalMesh.isVisible = false;
-        }
-        
-        console.log('Routed piece sent to workbench');
-        
-        // Close router table
-        this.closeRouterTable();
-    }
-    
-    sendToMill() {
-        console.log('Sending routed piece to mill...');
-        // Would send current board with routed edges to mill
-        // Location would change to 'mill'
-    }
-    
-    sendToWorkbench() {
-        console.log('Sending to workbench...');
-        // Similar to keep but doesn't close router
-    }
-    
-    resetEdges() {
-        console.log('Resetting all routed edges');
-        this.routedEdges = [];
-        this.hasRoutedEdge = false;
-        
-        // Would restore original geometry
+        console.log('Router table opened');
     }
     
     closeRouterTable() {
-        console.log('Closing Router Table');
+        console.log('Closing router table...');
         
-        // Clean up scene
-        if (this.routerScene) {
-            this.routerScene.dispose();
+        if (this.routerContainer) {
+            this.routerContainer.style.display = 'none';
         }
         
         if (this.routerEngine) {
-            this.routerEngine.dispose();
+            this.routerEngine.stopRenderLoop();
         }
         
-        // Remove UI
-        if (this.routerUI) {
-            this.routerUI.remove();
-        }
-        
-        // Show main canvas
-        this.drawingWorld.canvas.style.display = 'block';
-        
-        // Reset state
-        this.isActive = false;
         this.currentBoard = null;
-        this.selectedEdge = null;
-        this.routedEdges = [];
+    }
+selectBit(bitType) {
+        this.routerBit = bitType;
+        console.log('Selected router bit:', bitType);
+    }
+    
+    setBitDepth(depth) {
+        this.bitDepth = parseFloat(depth);
+        document.getElementById('depthValue').textContent = depth + '"';
+        console.log('Set bit depth:', this.bitDepth);
+    }
+    
+    setupEdgeSelection() {
+        if (!this.currentBoard) return;
         
-        // Remove global reference
-        if (window.currentRouterTable === this) {
-            delete window.currentRouterTable;
+        console.log('Setting up edge selection...');
+        
+        // Create edge highlight meshes for the 4 top edges
+        const bounds = this.currentBoard.getBoundingInfo().boundingBox;
+        const size = bounds.maximumWorld.subtract(bounds.minimumWorld);
+        
+        // Top edges (assuming board is flat on XZ plane)
+        const edgeThickness = 0.5;
+        const edgeColor = new BABYLON.Color3(1, 1, 0); // Yellow for highlighting
+        
+        // Create edge highlight boxes
+        const edges = [
+            { name: 'front', width: size.x, height: edgeThickness, depth: edgeThickness, 
+              position: new BABYLON.Vector3(0, size.y/2, size.z/2) },
+            { name: 'back', width: size.x, height: edgeThickness, depth: edgeThickness,
+              position: new BABYLON.Vector3(0, size.y/2, -size.z/2) },
+            { name: 'left', width: edgeThickness, height: edgeThickness, depth: size.z,
+              position: new BABYLON.Vector3(-size.x/2, size.y/2, 0) },
+            { name: 'right', width: edgeThickness, height: edgeThickness, depth: size.z,
+              position: new BABYLON.Vector3(size.x/2, size.y/2, 0) }
+        ];
+        
+        edges.forEach(edge => {
+            const highlight = BABYLON.MeshBuilder.CreateBox(edge.name + '_highlight', {
+                width: edge.width,
+                height: edge.height,
+                depth: edge.depth
+            }, this.routerScene);
+            
+            highlight.position = edge.position;
+            highlight.isVisible = false;
+            highlight.isPickable = true;
+            highlight.metadata = { edgeName: edge.name }
+            
+            const mat = new BABYLON.StandardMaterial(edge.name + '_mat', this.routerScene);
+            mat.diffuseColor = edgeColor;
+            mat.emissiveColor = edgeColor.scale(0.5);
+            highlight.material = mat;
+            
+            this.highlightedEdges.push(highlight);
+        });
+        
+        // Set up click handler
+        this.routerScene.onPointerObservable.add((pointerInfo) => {
+            if (pointerInfo.type === BABYLON.PointerEventTypes.POINTERPICK) {
+                const pickedMesh = pointerInfo.pickInfo.pickedMesh;
+                
+                if (pickedMesh && pickedMesh.metadata?.edgeName) {
+                    // Hide all edge highlights
+                    this.highlightedEdges.forEach(e => e.isVisible = false);
+                    
+                    // Show selected edge
+                    pickedMesh.isVisible = true;
+                    this.selectedEdge = pickedMesh.metadata.edgeName;
+                    console.log('Selected edge:', this.selectedEdge);
+                } else if (pickedMesh === this.currentBoard) {
+                    // Clicking on board shows all edges
+                    this.highlightedEdges.forEach(e => e.isVisible = true);
+                    setTimeout(() => {
+                        this.highlightedEdges.forEach(e => e.isVisible = false);
+                    }, 2000);
+                }
+            }
+        });
+        
+        console.log('Edge selection ready - click on board to see edges');
+    }
+    
+    routeSelectedEdge() {
+        if (!this.selectedEdge || !this.currentBoard) {
+            alert('Please select an edge first by clicking on the board');
+            return;
         }
+        
+        console.log('Routing edge:', this.selectedEdge, 'with bit:', this.routerBit, 'depth:', this.bitDepth);
+        
+        // Get the current board as CSG
+        const boardCSG = BABYLON.CSG.FromMesh(this.currentBoard);
+        
+        // Create router bit profile based on selection
+        let routerPath;
+        const depth = this.bitDepth;
+        
+        // Create the cutting profile based on bit type
+        switch(this.routerBit) {
+            case 'roundover':
+                // Quarter circle profile
+                routerPath = [];
+                for (let i = 0; i <= 8; i++) {
+                    const angle = (Math.PI / 2) * (i / 8);
+                    routerPath.push(new BABYLON.Vector3(
+                        Math.cos(angle) * depth,
+                        Math.sin(angle) * depth,
+                        0
+                    ));
+                }
+                break;
+                
+            case 'chamfer':
+                // 45 degree angle
+                routerPath = [
+                    new BABYLON.Vector3(0, 0, 0),
+                    new BABYLON.Vector3(depth, depth, 0)
+                ];
+                break;
+                
+            case 'ogee':
+                // S-curve profile
+                routerPath = [];
+                for (let i = 0; i <= 8; i++) {
+                    const t = i / 8;
+                    const x = depth * t;
+                    const y = depth * (Math.sin(t * Math.PI) * 0.5 + t * 0.5);
+                    routerPath.push(new BABYLON.Vector3(x, y, 0));
+                }
+                break;
+                
+            case 'cove':
+                // Concave quarter circle
+                routerPath = [];
+                for (let i = 0; i <= 8; i++) {
+                    const angle = (Math.PI / 2) * (1 - i / 8);
+                    routerPath.push(new BABYLON.Vector3(
+                        depth - Math.cos(angle) * depth,
+                        Math.sin(angle) * depth,
+                        0
+                    ));
+                }
+                break;
+        }
+        
+        // Get board dimensions
+        const bounds = this.currentBoard.getBoundingInfo().boundingBox;
+        const size = bounds.maximumWorld.subtract(bounds.minimumWorld);
+        
+        // Create cutting geometry based on selected edge
+        let cutterMesh;
+        
+        if (this.selectedEdge === 'front' || this.selectedEdge === 'back') {
+            // Extrude along X axis
+            const shape = routerPath;
+            cutterMesh = BABYLON.MeshBuilder.ExtrudeShape('cutter', {
+                shape: shape,
+                path: [
+                    new BABYLON.Vector3(-size.x/2 - 1, 0, 0),
+                    new BABYLON.Vector3(size.x/2 + 1, 0, 0)
+                ],
+                sideOrientation: BABYLON.Mesh.DOUBLESIDE
+            }, this.routerScene);
+            
+            // Position for front or back edge
+            const zPos = this.selectedEdge === 'front' ? size.z/2 : -size.z/2;
+            cutterMesh.position = new BABYLON.Vector3(0, size.y/2 - depth/2, zPos);
+            
+        } else {
+            // Left or right edge - extrude along Z axis
+            const shape = routerPath;
+            cutterMesh = BABYLON.MeshBuilder.ExtrudeShape('cutter', {
+                shape: shape,
+                path: [
+                    new BABYLON.Vector3(0, 0, -size.z/2 - 1),
+                    new BABYLON.Vector3(0, 0, size.z/2 + 1)
+                ],
+                sideOrientation: BABYLON.Mesh.DOUBLESIDE
+            }, this.routerScene);
+            
+            // Position for left or right edge
+            const xPos = this.selectedEdge === 'right' ? size.x/2 : -size.x/2;
+            cutterMesh.position = new BABYLON.Vector3(xPos, size.y/2 - depth/2, 0);
+            
+            // Rotate for side edges
+            cutterMesh.rotation.y = this.selectedEdge === 'right' ? -Math.PI/2 : Math.PI/2;
+        }
+        
+        // Perform CSG subtraction
+        const cutterCSG = BABYLON.CSG.FromMesh(cutterMesh);
+        const resultCSG = boardCSG.subtract(cutterCSG);
+        
+        // Dispose of old board mesh
+        this.currentBoard.dispose();
+        
+        // Create new routed board
+        this.currentBoard = resultCSG.toMesh('routedBoard', null, this.routerScene);
+        
+        // Reapply material
+        if (this.originalMesh && this.originalMesh.material) {
+            const mat = new BABYLON.StandardMaterial('routedMat', this.routerScene);
+            mat.diffuseColor = this.originalMesh.material.diffuseColor ? 
+                              this.originalMesh.material.diffuseColor.clone() :
+                              new BABYLON.Color3(0.6, 0.3, 0.1);
+            this.currentBoard.material = mat;
+        }
+        
+        // Clean up
+        cutterMesh.dispose();
+        this.highlightedEdges.forEach(e => e.dispose());
+        this.highlightedEdges = [];
+        this.selectedEdge = null;
+        
+        // Recreate edge selection for the new board
+        this.setupEdgeSelection();
+        
+        console.log('Edge routed successfully!');
+    }
+    
+    keepRoutedBoard() {
+        if (!this.currentBoard) return;
+        
+        console.log('Keeping routed board...');
+        
+        // Transfer back to workbench
+        const boardCSG = BABYLON.CSG.FromMesh(this.currentBoard);
+        const routedMesh = boardCSG.toMesh('routed_' + Date.now(), null, this.drawingWorld.scene);
+        
+        // Position in workbench
+        if (this.originalMesh) {
+            routedMesh.position = this.originalMesh.position.clone();
+            routedMesh.rotation = this.originalMesh.rotation.clone();
+            
+            // Hide original
+            this.originalMesh.isVisible = false;
+            
+            // Copy material
+            if (this.originalMesh.material) {
+                routedMesh.material = this.originalMesh.material.clone();
+            }
+        }
+        
+        // Make it pickable and add to workbench
+        routedMesh.isPickable = true;
+        routedMesh.isWorkBenchPart = true;
+        
+        // Close router
+        this.closeRouterTable();
+        
+        console.log('Routed board returned to workbench');
     }
 }
 
+export { TheRouterTable };

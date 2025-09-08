@@ -278,7 +278,47 @@ class TheRouterTable {
         this.routerCamera.radius = 100;
         this.routerCamera.setTarget(BABYLON.Vector3.Zero());
         
-        // Start render loop
+        // Add keyboard listener for blade toggle
+        this.routerScene.actionManager = new BABYLON.ActionManager(this.routerScene);
+        this.routerScene.actionManager.registerAction(
+            new BABYLON.ExecuteCodeAction(
+                BABYLON.ActionManager.OnKeyDownTrigger,
+                (evt) => {
+                    // H key toggles blade visibility
+                    if (evt.sourceEvent.key === 'h' || evt.sourceEvent.key === 'H') {
+                        this.toggleBladeVisibility();
+                    }
+                    // C key clears all blades
+                    if (evt.sourceEvent.key === 'c' || evt.sourceEvent.key === 'C') {
+                        this.clearAllBlades();
+                    }
+                }
+            )
+        );
+        
+        // Display help text
+        const helpDiv = document.createElement('div');
+        helpDiv.style.position = 'absolute';
+        helpDiv.style.bottom = '10px';
+        helpDiv.style.left = '10px';
+        helpDiv.style.color = '#666';
+        helpDiv.style.fontFamily = 'Arial, sans-serif';
+        helpDiv.style.fontSize = '12px';
+        helpDiv.style.zIndex = '1000';
+        helpDiv.innerHTML = 'Press H to toggle blade visibility | Press C to clear all blades';
+        helpDiv.id = 'router-help-text';
+        
+        // Append to the router container which we know exists
+        if (this.routerContainer) {
+            // Remove old help text if exists
+            const oldHelp = document.getElementById('router-help-text');
+            if (oldHelp) {
+                oldHelp.remove();
+            }
+            this.routerContainer.appendChild(helpDiv);
+        }
+        
+                // Start render loop
         if (this.routerEngine) {
             this.routerEngine.runRenderLoop(() => {
                 this.routerScene.render();
@@ -288,7 +328,38 @@ class TheRouterTable {
         
         console.log('Router table opened');
     }
+ 
     
+    toggleBladeVisibility() {
+        // Toggle visibility of all router cutters
+        if (this.routerCutters && this.routerCutters.length > 0) {
+            this.routerCutters.forEach(cutter => {
+                if (cutter && !cutter.isDisposed()) {
+                    cutter.isVisible = !cutter.isVisible;
+                }
+            });
+            
+            const state = this.routerCutters[0]?.isVisible ? 'visible' : 'hidden';
+            console.log(`Router blades are now ${state}`);
+        } else {
+            console.log('No router blades to toggle');
+        }
+    }
+    
+    clearAllBlades() {
+        // Dispose all router cutters
+        if (this.routerCutters && this.routerCutters.length > 0) {
+            this.routerCutters.forEach(cutter => {
+                if (cutter && !cutter.isDisposed()) {
+                    cutter.dispose();
+                }
+            });
+            this.routerCutters = [];
+            console.log('All router blades cleared');
+        } else {
+            console.log('No router blades to clear');
+        }
+    }   
     closeRouterTable() {
         console.log('Closing router table...');
         

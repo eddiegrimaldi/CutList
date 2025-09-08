@@ -53,8 +53,8 @@ class TheRouterTable {
             this.routerScene
         );
         
-        this.routerCamera.lowerRadiusLimit = 10;
-        this.routerCamera.upperRadiusLimit = 500;
+        this.routerCamera.lowerRadiusLimit = 50;   // Don't allow too close
+        this.routerCamera.upperRadiusLimit = 600;  // Allow farther out
         this.routerCamera.wheelPrecision = 15;
         this.routerCamera.minZ = 0.1;
         this.routerCamera.maxZ = 10000;
@@ -864,6 +864,8 @@ selectBit(bitType) {
         }
         console.log('Creating cutter for edge:', selectedEdge);
         
+
+        
         // Create a simple chamfer cutter for testing
         if (this.routerBit === 'chamfer') {
             // Create a triangular prism to cut a 45-degree chamfer
@@ -931,21 +933,33 @@ selectBit(bitType) {
                 } else if (selectedEdge === 'top-right') {
                     cutterMesh.position = new BABYLON.Vector3(size.x/2 - chamferInset, size.y/2 - chamferInset, 0);
                     cutterMesh.rotation.y = -Math.PI/2;
+                // Force update world matrix after rotation
+                cutterMesh.computeWorldMatrix(true);
                 }
             }
         } else if (this.routerBit === 'roundover') {
             // Create a roundover profile using box minus cylinder
             const radius = this.bitDepth * 2; // Roundover radius
+            
+            // Create red semi-transparent material for the cutter
+            const cutterMaterial = new BABYLON.StandardMaterial('cutterMat', this.routerScene);
+            cutterMaterial.diffuseColor = new BABYLON.Color3(1, 0, 0);  // Red
+            cutterMaterial.alpha = 0.5;  // Semi-transparent
+            cutterMaterial.backFaceCulling = false;
             let length = selectedEdge.includes('front') || selectedEdge.includes('back') ? size.x : size.z;
             length += 20; // Extend beyond board
             
             // Create main box for the cutter
             const boxSize = radius * 2;
+            
+            // ALWAYS create blade extending along X axis initially
             cutterMesh = BABYLON.MeshBuilder.CreateBox('roundoverBase', {
-                width: selectedEdge.includes('front') || selectedEdge.includes('back') ? length : boxSize,
-                height: boxSize,
-                depth: selectedEdge.includes('left') || selectedEdge.includes('right') ? length : boxSize
+                width: length,    // Always extend along width (X)
+                height: boxSize,  // Height
+                depth: boxSize    // Depth (Z)
             }, this.routerScene);
+            
+            console.log('Created cutter mesh with length:', length);
             
             // Create cylinder to subtract (creates the round profile)
             const cylinder = BABYLON.MeshBuilder.CreateCylinder('roundoverCyl', {
@@ -954,13 +968,23 @@ selectBit(bitType) {
                 tessellation: 16
             }, this.routerScene);
             
-            // Position cylinder at corner of box
-            if (selectedEdge.includes('front') || selectedEdge.includes('back')) {
-                cylinder.rotation.z = Math.PI/2;
-                cylinder.position = new BABYLON.Vector3(0, -boxSize/2, -boxSize/2);
-            } else {
-                cylinder.rotation.x = Math.PI/2;
+            // CRITICAL: For left/right edges, rotate BOTH meshes BEFORE CSG
+            if (selectedEdge.includes('left') || selectedEdge.includes('right')) {
+                console.log('Rotating blade and cylinder for left/right edge BEFORE CSG');
+                
+                // Rotate the box 90 degrees around Y
+                cutterMesh.rotation.y = Math.PI/2;
+                cutterMesh.computeWorldMatrix(true);
+                
+                // Position and rotate cylinder for Z-axis orientation
+                cylinder.rotation.x = Math.PI/2;  // Lay cylinder horizontal along Z
                 cylinder.position = new BABYLON.Vector3(-boxSize/2, -boxSize/2, 0);
+                cylinder.computeWorldMatrix(true);
+            } else {
+                // For front/back edges, cylinder runs along X axis
+                cylinder.rotation.z = Math.PI/2;  // Lay cylinder horizontal along X
+                cylinder.position = new BABYLON.Vector3(0, -boxSize/2, -boxSize/2);
+                cylinder.computeWorldMatrix(true);
             }
             
             // Use CSG to create the roundover cutter shape
@@ -974,7 +998,10 @@ selectBit(bitType) {
                 cylinder.dispose();
                 
                 // Create the final cutter mesh
-                cutterMesh = resultCSG.toMesh('roundoverCutter', null, this.routerScene);
+                cutterMesh = resultCSG.toMesh('roundoverCutter', cutterMaterial, this.routerScene);
+                
+                // Ensure material is applied
+                cutterMesh.material = cutterMaterial;
                 
                 // Update mesh for CSG
                 cutterMesh.computeWorldMatrix(true);
@@ -989,18 +1016,59 @@ selectBit(bitType) {
             // Position at corner - cutter inside board
             const inset = boxSize / 2;
             
+            // CRITICAL: For left/right edges, the blade shape itself needs rotation
+            // The blade was created for front/back edges (along X axis)
+            // For left/right edges (along Z axis), rotate the blade 90 degrees
+            
             if (selectedEdge === 'top-front') {
+                // Front edge runs along X axis - blade default orientation is correct
                 cutterMesh.position = new BABYLON.Vector3(0, size.y/2 - inset, size.z/2 - inset);
             } else if (selectedEdge === 'top-back') {
+                // Back edge runs along X axis - rotate 180 degrees
                 cutterMesh.position = new BABYLON.Vector3(0, size.y/2 - inset, -size.z/2 + inset);
                 cutterMesh.rotation.y = Math.PI;
             } else if (selectedEdge === 'top-left') {
+                // Left edge runs along Z axis - rotate blade 90 degrees
                 cutterMesh.position = new BABYLON.Vector3(-size.x/2 + inset, size.y/2 - inset, 0);
                 cutterMesh.rotation.y = Math.PI/2;
             } else if (selectedEdge === 'top-right') {
-                cutterMesh.position = new BABYLON.Vector3(size.x/2 - inset, size.y/2 - inset, 0);
-                cutterMesh.rotation.y = -Math.PI/2;
+                // Right edge runs along Z at max X
+                // Use board size directly (size variable is already defined from bounds)
+                cutterMesh.position = new BABYLON.Vector3(
+                    size.x/2 - inset,                // Right face minus inset
+                    size.y/2 - inset,                // Top of board minus inset
+                    0                                // Center along Z
+                );
+                
+                // CRITICAL: Apply rotation to align blade with Z axis
+                cutterMesh.rotation = new BABYLON.Vector3(0, Math.PI/2, 0);
+                cutterMesh.computeWorldMatrix(true);  // Force matrix update
+                console.log('Top-right: Applied 90 degree rotation');
+                
+
+            } else if (selectedEdge === 'bottom-front') {
+                // Bottom front edge
+                cutterMesh.position = new BABYLON.Vector3(0, -size.y/2 + inset, size.z/2 - inset);
+                cutterMesh.rotation.x = Math.PI; // Flip for bottom
+            } else if (selectedEdge === 'bottom-back') {
+                // Bottom back edge
+                cutterMesh.position = new BABYLON.Vector3(0, -size.y/2 + inset, -size.z/2 + inset);
+                cutterMesh.rotation.x = Math.PI; // Flip for bottom
+                cutterMesh.rotation.y = Math.PI; // Rotate 180
+            } else if (selectedEdge === 'bottom-left') {
+                // Bottom left edge
+                cutterMesh.position = new BABYLON.Vector3(-size.x/2 + inset, -size.y/2 + inset, 0);
+                cutterMesh.rotation.x = Math.PI; // Flip for bottom
+                cutterMesh.rotation.y = Math.PI/2; // Rotate 90
+            } else if (selectedEdge === 'bottom-right') {
+                // Bottom right edge
+                cutterMesh.position = new BABYLON.Vector3(size.x/2 - inset, -size.y/2 + inset, 0);
+                cutterMesh.rotation.x = Math.PI; // Flip for bottom
+                cutterMesh.rotation.y = Math.PI/2; // Rotate 90
             }
+            
+            // Force update world matrix after rotation
+            cutterMesh.computeWorldMatrix(true);
             
             console.log('Roundover cutter created with profile');
         } else if (this.routerBit === 'cove') {

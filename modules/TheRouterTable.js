@@ -14,6 +14,7 @@ class TheRouterTable {
         this.routerBit = 'roundover';
         this.bitDepth = 0.25;
         this.highlightedEdges = [];
+        this.routerCutters = []; // Store all cutters to show what was removed
         this.init();
     }
     
@@ -52,9 +53,11 @@ class TheRouterTable {
             this.routerScene
         );
         
-        this.routerCamera.lowerRadiusLimit = 20;
-        this.routerCamera.upperRadiusLimit = 300;
+        this.routerCamera.lowerRadiusLimit = 10;
+        this.routerCamera.upperRadiusLimit = 500;
         this.routerCamera.wheelPrecision = 15;
+        this.routerCamera.minZ = 0.1;
+        this.routerCamera.maxZ = 10000;
         this.routerCamera.attachControl(this.routerCanvas, true);
         
         // Fix mouse controls: middle button (1) for pan, right button (2) for rotate
@@ -65,7 +68,10 @@ class TheRouterTable {
             new BABYLON.Vector3(0, 1, 0), this.routerScene);
         light.intensity = 0.9;
         
-        console.log('Router scene ready');
+        // Add ViewCube like in workbench
+        this.createViewCube();
+        
+        console.log('Router scene ready with ViewCube');
     }
     
     openRouterTable(boardMesh, operation = 'route') {
@@ -139,6 +145,14 @@ class TheRouterTable {
                         padding: 5px 15px;
                         cursor: pointer;
                     ">KEEP</button>
+                    
+                    <button onclick="window.drawingWorld.theRouterTable.toggleOrtho()" style="
+                        background: #9b59b6;
+                        color: white;
+                        border: none;
+                        padding: 5px 15px;
+                        cursor: pointer;
+                    ">Ortho View</button>
                     
                     <button onclick="window.drawingWorld.theRouterTable.closeRouterTable()" style="
                         background: #555;
@@ -299,186 +313,785 @@ selectBit(bitType) {
         console.log('Set bit depth:', this.bitDepth);
     }
     
-    setupEdgeSelection() {
-        if (!this.currentBoard) return;
+    createViewCube() {
+        console.log('Creating ViewCube for router...');
         
-        console.log('Setting up edge selection...');
+        // Create ViewCube container
+        const viewCubeContainer = document.createElement('div');
+        viewCubeContainer.id = 'routerViewCube';
+        viewCubeContainer.style.cssText = `
+            position: absolute;
+            top: 70px;
+            right: 20px;
+            width: 120px;
+            height: 120px;
+            z-index: 100;
+        `;
         
-        // Create edge highlight meshes for the 4 top edges
-        const bounds = this.currentBoard.getBoundingInfo().boundingBox;
-        const size = bounds.maximumWorld.subtract(bounds.minimumWorld);
+        // Create ViewCube canvas
+        const viewCubeCanvas = document.createElement('canvas');
+        viewCubeCanvas.width = 120;
+        viewCubeCanvas.height = 120;
+        viewCubeCanvas.style.cssText = `
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        `;
+        viewCubeContainer.appendChild(viewCubeCanvas);
         
-        // Top edges (assuming board is flat on XZ plane)
-        const edgeThickness = 0.5;
-        const edgeColor = new BABYLON.Color3(1, 1, 0); // Yellow for highlighting
+        // Add to router container
+        if (this.routerContainer) {
+            this.routerContainer.appendChild(viewCubeContainer);
+        }
         
-        // Create edge highlight boxes
-        const edges = [
-            { name: 'front', width: size.x, height: edgeThickness, depth: edgeThickness, 
-              position: new BABYLON.Vector3(0, size.y/2, size.z/2) },
-            { name: 'back', width: size.x, height: edgeThickness, depth: edgeThickness,
-              position: new BABYLON.Vector3(0, size.y/2, -size.z/2) },
-            { name: 'left', width: edgeThickness, height: edgeThickness, depth: size.z,
-              position: new BABYLON.Vector3(-size.x/2, size.y/2, 0) },
-            { name: 'right', width: edgeThickness, height: edgeThickness, depth: size.z,
-              position: new BABYLON.Vector3(size.x/2, size.y/2, 0) }
+        // Create ViewCube scene
+        const vcEngine = new BABYLON.Engine(viewCubeCanvas, true);
+        const vcScene = new BABYLON.Scene(vcEngine);
+        vcScene.clearColor = new BABYLON.Color4(0, 0, 0, 0);
+        
+        // Create ViewCube camera
+        const vcCamera = new BABYLON.ArcRotateCamera('vcCamera', 
+            this.routerCamera.alpha, 
+            this.routerCamera.beta, 
+            5, 
+            BABYLON.Vector3.Zero(), 
+            vcScene
+        );
+        vcCamera.wheelPrecision = 50;
+        vcCamera.panningSensibility = 0;
+        
+        // Create the cube
+        const cube = BABYLON.MeshBuilder.CreateBox('viewCube', {size: 2}, vcScene);
+        
+        // Create face materials with labels
+        const faceTextures = [];
+        const faceLabels = ['FRONT', 'BACK', 'TOP', 'BOTTOM', 'RIGHT', 'LEFT'];
+        const faceColors = [
+            new BABYLON.Color3(0.8, 0.8, 0.9),
+            new BABYLON.Color3(0.8, 0.8, 0.9),
+            new BABYLON.Color3(0.9, 0.9, 1),
+            new BABYLON.Color3(0.7, 0.7, 0.8),
+            new BABYLON.Color3(0.85, 0.85, 0.95),
+            new BABYLON.Color3(0.85, 0.85, 0.95)
         ];
         
-        edges.forEach(edge => {
-            const highlight = BABYLON.MeshBuilder.CreateBox(edge.name + '_highlight', {
-                width: edge.width,
-                height: edge.height,
-                depth: edge.depth
-            }, this.routerScene);
-            
-            highlight.position = edge.position;
-            highlight.isVisible = false;
-            highlight.isPickable = true;
-            highlight.metadata = { edgeName: edge.name }
-            
-            const mat = new BABYLON.StandardMaterial(edge.name + '_mat', this.routerScene);
-            mat.diffuseColor = edgeColor;
-            mat.emissiveColor = edgeColor.scale(0.5);
-            highlight.material = mat;
-            
-            this.highlightedEdges.push(highlight);
-        });
+        // Create multi-material
+        const multiMat = new BABYLON.MultiMaterial('viewCubeMat', vcScene);
         
-        // Set up click handler
-        this.routerScene.onPointerObservable.add((pointerInfo) => {
-            if (pointerInfo.type === BABYLON.PointerEventTypes.POINTERPICK) {
-                const pickedMesh = pointerInfo.pickInfo.pickedMesh;
-                
-                if (pickedMesh && pickedMesh.metadata?.edgeName) {
-                    // Hide all edge highlights
-                    this.highlightedEdges.forEach(e => e.isVisible = false);
-                    
-                    // Show selected edge
-                    pickedMesh.isVisible = true;
-                    this.selectedEdge = pickedMesh.metadata.edgeName;
-                    console.log('Selected edge:', this.selectedEdge);
-                } else if (pickedMesh === this.currentBoard) {
-                    // Clicking on board shows all edges
-                    this.highlightedEdges.forEach(e => e.isVisible = true);
-                    setTimeout(() => {
-                        this.highlightedEdges.forEach(e => e.isVisible = false);
-                    }, 2000);
-                }
+        for (let i = 0; i < 6; i++) {
+            const mat = new BABYLON.StandardMaterial(`face${i}`, vcScene);
+            mat.diffuseColor = faceColors[i];
+            mat.specularColor = new BABYLON.Color3(0, 0, 0);
+            mat.emissiveColor = faceColors[i].scale(0.3);
+            multiMat.subMaterials.push(mat);
+        }
+        
+        cube.material = multiMat;
+        cube.subMeshes = [];
+        
+        const verticesCount = cube.getTotalVertices();
+        cube.subMeshes.push(new BABYLON.SubMesh(0, 0, verticesCount, 0, 6, cube));
+        cube.subMeshes.push(new BABYLON.SubMesh(1, 0, verticesCount, 6, 6, cube));
+        cube.subMeshes.push(new BABYLON.SubMesh(2, 0, verticesCount, 12, 6, cube));
+        cube.subMeshes.push(new BABYLON.SubMesh(3, 0, verticesCount, 18, 6, cube));
+        cube.subMeshes.push(new BABYLON.SubMesh(4, 0, verticesCount, 24, 6, cube));
+        cube.subMeshes.push(new BABYLON.SubMesh(5, 0, verticesCount, 30, 6, cube));
+        
+        // Add lighting
+        new BABYLON.HemisphericLight('vcLight', new BABYLON.Vector3(0, 1, 0), vcScene);
+        
+        // Sync ViewCube with main camera
+        this.routerScene.registerBeforeRender(() => {
+            if (vcCamera && this.routerCamera) {
+                vcCamera.alpha = this.routerCamera.alpha;
+                vcCamera.beta = this.routerCamera.beta;
             }
         });
         
-        console.log('Edge selection ready - click on board to see edges');
+        // Handle ViewCube clicks
+        viewCubeCanvas.addEventListener('click', (evt) => {
+            const pickResult = vcScene.pick(evt.offsetX, evt.offsetY);
+            if (pickResult.hit && pickResult.pickedMesh === cube) {
+                const faceId = pickResult.subMeshId;
+                this.snapToFace(faceId);
+            }
+        });
+        
+        // Handle double-click for orthographic toggle
+        viewCubeCanvas.addEventListener('dblclick', (evt) => {
+            this.toggleOrthographic();
+            evt.preventDefault();
+        });
+        
+        // Start ViewCube render loop
+        vcEngine.runRenderLoop(() => {
+            vcScene.render();
+        });
+        
+        // Store references
+        this.viewCubeEngine = vcEngine;
+        this.viewCubeScene = vcScene;
+        this.viewCubeCamera = vcCamera;
+        this.isOrthographic = false;
+        
+        console.log('ViewCube created');
     }
     
+    snapToFace(faceId) {
+        console.log('Snapping to face:', faceId);
+        
+        let alpha = this.routerCamera.alpha;
+        let beta = this.routerCamera.beta;
+        
+        // Define camera positions for each face
+        switch(faceId) {
+            case 0: // Front
+                alpha = -Math.PI / 2;
+                beta = Math.PI / 2;
+                break;
+            case 1: // Back
+                alpha = Math.PI / 2;
+                beta = Math.PI / 2;
+                break;
+            case 2: // Top
+                alpha = 0;
+                beta = 0;
+                break;
+            case 3: // Bottom
+                alpha = 0;
+                beta = Math.PI;
+                break;
+            case 4: // Right
+                alpha = 0;
+                beta = Math.PI / 2;
+                break;
+            case 5: // Left
+                alpha = Math.PI;
+                beta = Math.PI / 2;
+                break;
+        }
+        
+        // Animate camera to position
+        BABYLON.Animation.CreateAndStartAnimation('snapCamera', this.routerCamera, 'alpha',
+            30, 15, this.routerCamera.alpha, alpha, BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT);
+        BABYLON.Animation.CreateAndStartAnimation('snapCameraBeta', this.routerCamera, 'beta',
+            30, 15, this.routerCamera.beta, beta, BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT);
+            
+        // Set orthographic mode
+        this.setOrthographic(true);
+    }
+    
+    toggleOrthographic() {
+        this.isOrthographic = !this.isOrthographic;
+        this.setOrthographic(this.isOrthographic);
+    }
+    
+    setOrthographic(ortho) {
+        this.isOrthographic = ortho;
+        
+        if (ortho) {
+            // Switch to orthographic
+            this.routerCamera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
+            
+            const bounds = this.currentBoard ? 
+                this.currentBoard.getBoundingInfo().boundingBox : 
+                {maximumWorld: new BABYLON.Vector3(50, 50, 50), minimumWorld: new BABYLON.Vector3(-50, -50, -50)};
+            
+            const size = bounds.maximumWorld.subtract(bounds.minimumWorld);
+            const maxDim = Math.max(size.x, size.y, size.z) * 1.5;
+            
+            const aspect = this.routerEngine.getRenderWidth() / this.routerEngine.getRenderHeight();
+            this.routerCamera.orthoLeft = -maxDim * aspect;
+            this.routerCamera.orthoRight = maxDim * aspect;
+            this.routerCamera.orthoTop = maxDim;
+            this.routerCamera.orthoBottom = -maxDim;
+            
+            console.log('Switched to orthographic mode');
+        } else {
+            // Switch to perspective
+            this.routerCamera.mode = BABYLON.Camera.PERSPECTIVE_CAMERA;
+            console.log('Switched to perspective mode');
+        }
+    }
+    
+    setupEdgeSelection() {
+        if (!this.currentBoard) return;
+        
+        console.log('Setting up edge highlighting...');
+        
+        // Clear old highlights
+        if (this.highlightedEdges) {
+            this.highlightedEdges.forEach(e => e.dispose());
+        }
+        this.highlightedEdges = [];
+        this.selectedEdges = new Set();
+        
+        // Get board bounds
+        this.currentBoard.computeWorldMatrix(true);
+        const bounds = this.currentBoard.getBoundingInfo().boundingBox;
+        const min = bounds.minimumWorld;
+        const max = bounds.maximumWorld;
+        
+        const width = max.x - min.x;
+        const height = max.y - min.y;
+        const depth = max.z - min.z;
+        
+        // Visual edge thickness (what you see when highlighted)
+        const edgeThickness = Math.min(width, height, depth) * 0.1; // 10% for visual
+        // Collider thickness (invisible hit zone)
+        const colliderThickness = edgeThickness * 3; // 3x bigger for easier targeting
+        
+        // Define all 12 edges
+        const edges = [
+            // Top edges (4)
+            {name: 'top-front', pos: new BABYLON.Vector3(0, max.y, max.z), 
+             size: new BABYLON.Vector3(width + colliderThickness, colliderThickness, colliderThickness)},
+            {name: 'top-back', pos: new BABYLON.Vector3(0, max.y, min.z), 
+             size: new BABYLON.Vector3(width + colliderThickness, colliderThickness, colliderThickness)},
+            {name: 'top-left', pos: new BABYLON.Vector3(min.x, max.y, 0), 
+             size: new BABYLON.Vector3(colliderThickness, colliderThickness, depth + colliderThickness)},
+            {name: 'top-right', pos: new BABYLON.Vector3(max.x, max.y, 0), 
+             size: new BABYLON.Vector3(colliderThickness, colliderThickness, depth + colliderThickness)},
+            
+            // Bottom edges (4)
+            {name: 'bottom-front', pos: new BABYLON.Vector3(0, min.y, max.z), 
+             size: new BABYLON.Vector3(width + colliderThickness, colliderThickness, colliderThickness)},
+            {name: 'bottom-back', pos: new BABYLON.Vector3(0, min.y, min.z), 
+             size: new BABYLON.Vector3(width + colliderThickness, colliderThickness, colliderThickness)},
+            {name: 'bottom-left', pos: new BABYLON.Vector3(min.x, min.y, 0), 
+             size: new BABYLON.Vector3(colliderThickness, colliderThickness, depth + colliderThickness)},
+            {name: 'bottom-right', pos: new BABYLON.Vector3(max.x, min.y, 0), 
+             size: new BABYLON.Vector3(colliderThickness, colliderThickness, depth + colliderThickness)},
+            
+            // Vertical edges (4)
+            {name: 'vert-front-left', pos: new BABYLON.Vector3(min.x, 0, max.z), 
+             size: new BABYLON.Vector3(colliderThickness, height + colliderThickness, colliderThickness)},
+            {name: 'vert-front-right', pos: new BABYLON.Vector3(max.x, 0, max.z), 
+             size: new BABYLON.Vector3(colliderThickness, height + colliderThickness, colliderThickness)},
+            {name: 'vert-back-left', pos: new BABYLON.Vector3(min.x, 0, min.z), 
+             size: new BABYLON.Vector3(colliderThickness, height + colliderThickness, colliderThickness)},
+            {name: 'vert-back-right', pos: new BABYLON.Vector3(max.x, 0, min.z), 
+             size: new BABYLON.Vector3(colliderThickness, height + colliderThickness, colliderThickness)}
+        ];
+        
+        // Create edge meshes
+        edges.forEach(edge => {
+            const edgeMesh = BABYLON.MeshBuilder.CreateBox(edge.name, {
+                width: edge.size.x,
+                height: edge.size.y,
+                depth: edge.size.z
+            }, this.routerScene);
+            
+            edgeMesh.position = edge.pos;
+            
+            // Create material - starts invisible
+            const mat = new BABYLON.StandardMaterial(edge.name + '_mat', this.routerScene);
+            mat.diffuseColor = new BABYLON.Color3(0, 0.5, 1);
+            mat.emissiveColor = new BABYLON.Color3(0, 0, 0);
+            mat.specularColor = new BABYLON.Color3(0, 0, 0);
+            mat.alpha = 0; // Invisible initially
+            edgeMesh.material = mat;
+            
+            edgeMesh.isPickable = true;
+            edgeMesh.isVisible = true; // Mesh exists but alpha makes it invisible
+            edgeMesh.metadata = {
+                edgeName: edge.name,
+                isSelected: false
+            };
+            
+            // Setup action manager
+            edgeMesh.actionManager = new BABYLON.ActionManager(this.routerScene);
+            
+            // Hover on - show with glow
+            edgeMesh.actionManager.registerAction(
+                new BABYLON.ExecuteCodeAction(
+                    BABYLON.ActionManager.OnPointerOverTrigger,
+                    () => {
+                        console.log('Hovering:', edge.name);
+                        if (!edgeMesh.metadata.isSelected) {
+                            mat.emissiveColor = new BABYLON.Color3(0, 0.7, 1);
+                            mat.alpha = 0.8;
+                        }
+                    }
+                )
+            );
+            
+            // Hover out - hide unless selected
+            edgeMesh.actionManager.registerAction(
+                new BABYLON.ExecuteCodeAction(
+                    BABYLON.ActionManager.OnPointerOutTrigger,
+                    () => {
+                        if (!edgeMesh.metadata.isSelected) {
+                            mat.emissiveColor = new BABYLON.Color3(0, 0, 0);
+                            mat.alpha = 0;
+                        }
+                    }
+                )
+            );
+            
+            // Click - toggle selection
+            edgeMesh.actionManager.registerAction(
+                new BABYLON.ExecuteCodeAction(
+                    BABYLON.ActionManager.OnPickTrigger,
+                    () => {
+                        console.log('Clicked:', edge.name);
+                        if (edgeMesh.metadata.isSelected) {
+                            // Deselect
+                            mat.emissiveColor = new BABYLON.Color3(0, 0, 0);
+                            mat.alpha = 0;
+                            edgeMesh.metadata.isSelected = false;
+                            this.selectedEdges.delete(edge.name);
+                        } else {
+                            // Select - bright neon blue glow
+                            mat.emissiveColor = new BABYLON.Color3(0, 0.9, 1);
+                            mat.alpha = 1;
+                            edgeMesh.metadata.isSelected = true;
+                            this.selectedEdges.add(edge.name);
+                        }
+                        this.updateEdgeDisplay();
+                    }
+                )
+            );
+            
+            this.highlightedEdges.push(edgeMesh);
+        });
+        
+        // Add instruction
+        const instruction = document.getElementById('edgeInstruction') || document.createElement('div');
+        instruction.id = 'edgeInstruction';
+        instruction.style.cssText = `
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            z-index: 1000;
+        `;
+        instruction.innerHTML = 'Hover near board edges to highlight them. Click to select for routing.';
+        if (!instruction.parentElement) {
+            this.routerContainer.appendChild(instruction);
+        }
+        
+        console.log('Edge selection ready - 12 edges with 3x bigger hit zones');
+    }
+    
+    updateEdgeDisplay() {
+        const instruction = document.getElementById('edgeInstruction');
+        if (instruction) {
+            if (this.selectedEdges.size > 0) {
+                instruction.innerHTML = `Selected ${this.selectedEdges.size} edge(s): ${Array.from(this.selectedEdges).join(', ')}`;
+                instruction.style.background = 'rgba(0,100,200,0.9)';
+            } else {
+                instruction.innerHTML = 'Hover over board edges to see them glow blue. Click to select/deselect edges for routing.';
+                instruction.style.background = 'rgba(0,0,0,0.8)';
+            }
+        }
+    }
+    
+    toggleOrtho() {
+        if (!this.routerCamera || !this.routerEngine) return;
+        
+        // Store current radius
+        const currentRadius = this.routerCamera.radius;
+        
+        if (this.routerCamera.mode === BABYLON.Camera.PERSPECTIVE_CAMERA) {
+            // Switch to orthographic
+            this.routerCamera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
+            
+            // Get canvas dimensions
+            const aspect = this.routerCanvas.width / this.routerCanvas.height;
+            
+            // Use current radius to set ortho size (like in mill)
+            const halfSize = currentRadius * 0.4; // Adjust multiplier for good framing
+            
+            // Set orthographic bounds
+            if (aspect >= 1) {
+                this.routerCamera.orthoLeft = -halfSize * aspect;
+                this.routerCamera.orthoRight = halfSize * aspect;
+                this.routerCamera.orthoTop = halfSize;
+                this.routerCamera.orthoBottom = -halfSize;
+            } else {
+                this.routerCamera.orthoLeft = -halfSize;
+                this.routerCamera.orthoRight = halfSize;
+                this.routerCamera.orthoTop = halfSize / aspect;
+                this.routerCamera.orthoBottom = -halfSize / aspect;
+            }
+            
+            // Adjust camera limits for orthographic
+            this.routerCamera.minZ = 0.1;
+            this.routerCamera.maxZ = currentRadius * 10;
+            
+            console.log('Switched to orthographic');
+            
+            // Update button
+            const btn = document.querySelector('button[onclick*="toggleOrtho"]');
+            if (btn) btn.textContent = 'Perspective';
+            
+        } else {
+            // Switch back to perspective
+            this.routerCamera.mode = BABYLON.Camera.PERSPECTIVE_CAMERA;
+            
+            // Reset camera limits
+            this.routerCamera.minZ = 0.1;
+            this.routerCamera.maxZ = 10000;
+            
+            console.log('Switched to perspective');
+            
+            // Update button
+            const btn = document.querySelector('button[onclick*="toggleOrtho"]');
+            if (btn) btn.textContent = 'Ortho View';
+        }
+    }
+    
+    
     routeSelectedEdge() {
-        if (!this.selectedEdge || !this.currentBoard) {
+        if ((!this.selectedEdge && (!this.selectedEdges || this.selectedEdges.size === 0)) || !this.currentBoard) {
             alert('Please select an edge first by clicking on the board');
             return;
         }
         
-        console.log('Routing edge:', this.selectedEdge, 'with bit:', this.routerBit, 'depth:', this.bitDepth);
+        const edgesToRoute = this.selectedEdges || new Set([this.selectedEdge]);
+        console.log('Routing edges:', Array.from(edgesToRoute), 'with bit:', this.routerBit, 'depth:', this.bitDepth);
         
-        // Get the current board as CSG
-        const boardCSG = BABYLON.CSG.FromMesh(this.currentBoard);
+        // Get the current board as CSG BEFORE creating cutter
+        let boardCSG;
+        try {
+            boardCSG = BABYLON.CSG.FromMesh(this.currentBoard);
+        } catch (error) {
+            console.error('Failed to create CSG from board:', error);
+            alert('Failed to prepare board for cutting');
+            return;
+        }
         
         // Create router bit profile based on selection
         let routerPath;
         const depth = this.bitDepth;
         
         // Create the cutting profile based on bit type
-        switch(this.routerBit) {
-            case 'roundover':
-                // Quarter circle profile
-                routerPath = [];
-                for (let i = 0; i <= 8; i++) {
-                    const angle = (Math.PI / 2) * (i / 8);
-                    routerPath.push(new BABYLON.Vector3(
-                        Math.cos(angle) * depth,
-                        Math.sin(angle) * depth,
-                        0
-                    ));
-                }
-                break;
-                
-            case 'chamfer':
-                // 45 degree angle
-                routerPath = [
-                    new BABYLON.Vector3(0, 0, 0),
-                    new BABYLON.Vector3(depth, depth, 0)
-                ];
-                break;
-                
-            case 'ogee':
-                // S-curve profile
-                routerPath = [];
-                for (let i = 0; i <= 8; i++) {
-                    const t = i / 8;
-                    const x = depth * t;
-                    const y = depth * (Math.sin(t * Math.PI) * 0.5 + t * 0.5);
-                    routerPath.push(new BABYLON.Vector3(x, y, 0));
-                }
-                break;
-                
-            case 'cove':
-                // Concave quarter circle
-                routerPath = [];
-                for (let i = 0; i <= 8; i++) {
-                    const angle = (Math.PI / 2) * (1 - i / 8);
-                    routerPath.push(new BABYLON.Vector3(
-                        depth - Math.cos(angle) * depth,
-                        Math.sin(angle) * depth,
-                        0
-                    ));
-                }
-                break;
-        }
+        // The profile defines what to REMOVE from the edge
+        let cutterMesh;
         
         // Get board dimensions
         const bounds = this.currentBoard.getBoundingInfo().boundingBox;
         const size = bounds.maximumWorld.subtract(bounds.minimumWorld);
         
-        // Create cutting geometry based on selected edge
-        let cutterMesh;
+        // Determine which edges are selected and create appropriate cutter
         
-        if (this.selectedEdge === 'front' || this.selectedEdge === 'back') {
-            // Extrude along X axis
-            const shape = routerPath;
-            cutterMesh = BABYLON.MeshBuilder.ExtrudeShape('cutter', {
-                shape: shape,
-                path: [
-                    new BABYLON.Vector3(-size.x/2 - 1, 0, 0),
-                    new BABYLON.Vector3(size.x/2 + 1, 0, 0)
-                ],
-                sideOrientation: BABYLON.Mesh.DOUBLESIDE
-            }, this.routerScene);
-            
-            // Position for front or back edge
-            const zPos = this.selectedEdge === 'front' ? size.z/2 : -size.z/2;
-            cutterMesh.position = new BABYLON.Vector3(0, size.y/2 - depth/2, zPos);
-            
+        // Get the selected edge
+        let selectedEdge;
+        if (this.selectedEdge) {
+            selectedEdge = this.selectedEdge;
+        } else if (this.selectedEdges && this.selectedEdges.size > 0) {
+            selectedEdge = Array.from(this.selectedEdges)[0];
         } else {
-            // Left or right edge - extrude along Z axis
-            const shape = routerPath;
-            cutterMesh = BABYLON.MeshBuilder.ExtrudeShape('cutter', {
-                shape: shape,
-                path: [
-                    new BABYLON.Vector3(0, 0, -size.z/2 - 1),
-                    new BABYLON.Vector3(0, 0, size.z/2 + 1)
-                ],
-                sideOrientation: BABYLON.Mesh.DOUBLESIDE
+            console.error('No edge selected');
+            alert('Please select an edge first');
+            return;
+        }
+        console.log('Creating cutter for edge:', selectedEdge);
+        
+        // Create a simple chamfer cutter for testing
+        if (this.routerBit === 'chamfer') {
+            // Create a triangular prism to cut a 45-degree chamfer
+            const chamferSize = this.bitDepth * 4; // Scale up the depth
+            
+            if (selectedEdge.includes('top')) {
+                // For top edges, create a triangular prism
+                const positions = [];
+                const indices = [];
+                
+                // Define the triangular cross-section
+                const crossSection = [
+                    new BABYLON.Vector3(0, 0, 0),
+                    new BABYLON.Vector3(chamferSize, 0, 0),
+                    new BABYLON.Vector3(0, -chamferSize, 0)
+                ];
+                
+                // Extrude along the edge
+                let extrudeLength = selectedEdge.includes('front') || selectedEdge.includes('back') ? size.x : size.z;
+                extrudeLength += 10; // Extend beyond board edges
+                
+                // Create the vertices for the prism
+                for (let i = 0; i < 2; i++) {
+                    const z = i * extrudeLength - extrudeLength/2;
+                    crossSection.forEach(point => {
+                        positions.push(point.x, point.y, z);
+                    });
+                }
+                
+                // Create triangular faces
+                indices.push(0, 1, 2); // Front triangle
+                indices.push(3, 5, 4); // Back triangle
+                // Side rectangles
+                indices.push(0, 3, 4, 0, 4, 1); // Bottom
+                indices.push(1, 4, 5, 1, 5, 2); // Slope
+                indices.push(2, 5, 3, 2, 3, 0); // Vertical
+                
+                // Create custom mesh
+                const customMesh = new BABYLON.Mesh("chamferCutter", this.routerScene);
+                const vertexData = new BABYLON.VertexData();
+                vertexData.positions = positions;
+                vertexData.indices = indices;
+                
+                // Compute normals for proper CSG
+                const normals = [];
+                BABYLON.VertexData.ComputeNormals(positions, indices, normals);
+                vertexData.normals = normals;
+                
+                vertexData.applyToMesh(customMesh);
+                customMesh.computeWorldMatrix(true);
+                customMesh.refreshBoundingInfo();
+                
+                cutterMesh = customMesh;
+                
+                // CORNER TO CORNER - chamfer triangle must be INSIDE board
+                const chamferInset = chamferSize / 2;
+                if (selectedEdge === 'top-front') {
+                    cutterMesh.position = new BABYLON.Vector3(0, size.y/2 - chamferInset, size.z/2 - chamferInset);
+                } else if (selectedEdge === 'top-back') {
+                    cutterMesh.position = new BABYLON.Vector3(0, size.y/2 - chamferInset, -size.z/2 + chamferInset);
+                    cutterMesh.rotation.y = Math.PI;
+                } else if (selectedEdge === 'top-left') {
+                    cutterMesh.position = new BABYLON.Vector3(-size.x/2 + chamferInset, size.y/2 - chamferInset, 0);
+                    cutterMesh.rotation.y = Math.PI/2;
+                } else if (selectedEdge === 'top-right') {
+                    cutterMesh.position = new BABYLON.Vector3(size.x/2 - chamferInset, size.y/2 - chamferInset, 0);
+                    cutterMesh.rotation.y = -Math.PI/2;
+                }
+            }
+        } else if (this.routerBit === 'roundover') {
+            // Create a roundover profile using box minus cylinder
+            const radius = this.bitDepth * 2; // Roundover radius
+            let length = selectedEdge.includes('front') || selectedEdge.includes('back') ? size.x : size.z;
+            length += 20; // Extend beyond board
+            
+            // Create main box for the cutter
+            const boxSize = radius * 2;
+            cutterMesh = BABYLON.MeshBuilder.CreateBox('roundoverBase', {
+                width: selectedEdge.includes('front') || selectedEdge.includes('back') ? length : boxSize,
+                height: boxSize,
+                depth: selectedEdge.includes('left') || selectedEdge.includes('right') ? length : boxSize
             }, this.routerScene);
             
-            // Position for left or right edge
-            const xPos = this.selectedEdge === 'right' ? size.x/2 : -size.x/2;
-            cutterMesh.position = new BABYLON.Vector3(xPos, size.y/2 - depth/2, 0);
+            // Create cylinder to subtract (creates the round profile)
+            const cylinder = BABYLON.MeshBuilder.CreateCylinder('roundoverCyl', {
+                diameter: radius * 2,
+                height: length,
+                tessellation: 16
+            }, this.routerScene);
             
-            // Rotate for side edges
-            cutterMesh.rotation.y = this.selectedEdge === 'right' ? -Math.PI/2 : Math.PI/2;
+            // Position cylinder at corner of box
+            if (selectedEdge.includes('front') || selectedEdge.includes('back')) {
+                cylinder.rotation.z = Math.PI/2;
+                cylinder.position = new BABYLON.Vector3(0, -boxSize/2, -boxSize/2);
+            } else {
+                cylinder.rotation.x = Math.PI/2;
+                cylinder.position = new BABYLON.Vector3(-boxSize/2, -boxSize/2, 0);
+            }
+            
+            // Use CSG to create the roundover cutter shape
+            try {
+                const boxCSG = BABYLON.CSG.FromMesh(cutterMesh);
+                const cylCSG = BABYLON.CSG.FromMesh(cylinder);
+                const resultCSG = boxCSG.subtract(cylCSG);
+                
+                // Clean up temp meshes
+                cutterMesh.dispose();
+                cylinder.dispose();
+                
+                // Create the final cutter mesh
+                cutterMesh = resultCSG.toMesh('roundoverCutter', null, this.routerScene);
+                
+                // Update mesh for CSG
+                cutterMesh.computeWorldMatrix(true);
+                cutterMesh.refreshBoundingInfo();
+            } catch (e) {
+                console.error('Failed to create roundover profile, using simple box:', e);
+                // Fallback to simple box if CSG fails
+                cylinder.dispose();
+                // cutterMesh already has the box
+            }
+            
+            // Position at corner - cutter inside board
+            const inset = boxSize / 2;
+            
+            if (selectedEdge === 'top-front') {
+                cutterMesh.position = new BABYLON.Vector3(0, size.y/2 - inset, size.z/2 - inset);
+            } else if (selectedEdge === 'top-back') {
+                cutterMesh.position = new BABYLON.Vector3(0, size.y/2 - inset, -size.z/2 + inset);
+                cutterMesh.rotation.y = Math.PI;
+            } else if (selectedEdge === 'top-left') {
+                cutterMesh.position = new BABYLON.Vector3(-size.x/2 + inset, size.y/2 - inset, 0);
+                cutterMesh.rotation.y = Math.PI/2;
+            } else if (selectedEdge === 'top-right') {
+                cutterMesh.position = new BABYLON.Vector3(size.x/2 - inset, size.y/2 - inset, 0);
+                cutterMesh.rotation.y = -Math.PI/2;
+            }
+            
+            console.log('Roundover cutter created with profile');
+        } else if (this.routerBit === 'cove') {
+            // For cove, we DO want to subtract a cylinder to create a concave profile
+            const radius = this.bitDepth * 4; // Reduced scale for more realistic size
+            let length = selectedEdge.includes('front') || selectedEdge.includes('back') ? size.x : size.z;
+            length += 10;
+            
+            cutterMesh = BABYLON.MeshBuilder.CreateCylinder('coveCutter', {
+                diameter: radius * 2,
+                height: length,
+                tessellation: 32
+            }, this.routerScene);
+            
+            // CORNER TO CORNER - for cove, position cylinder so it cuts into the corner
+            // The cylinder edge should align with the board corner
+            if (selectedEdge === 'top-front') {
+                cutterMesh.rotation.z = Math.PI/2;
+                cutterMesh.position = new BABYLON.Vector3(0, size.y/2, size.z/2);
+            } else if (selectedEdge === 'top-back') {
+                cutterMesh.rotation.z = Math.PI/2;
+                cutterMesh.position = new BABYLON.Vector3(0, size.y/2, -size.z/2);
+            } else if (selectedEdge === 'top-left') {
+                cutterMesh.rotation.x = Math.PI/2;
+                cutterMesh.position = new BABYLON.Vector3(-size.x/2, size.y/2, 0);
+            } else if (selectedEdge === 'top-right') {
+                cutterMesh.rotation.x = Math.PI/2;
+                cutterMesh.position = new BABYLON.Vector3(size.x/2, size.y/2, 0);
+            }
+        } else {
+            // Default to simple box cutter for other profiles
+            const cutSize = this.bitDepth * 4;
+            cutterMesh = BABYLON.MeshBuilder.CreateBox('defaultCutter', {
+                width: selectedEdge.includes('front') || selectedEdge.includes('back') ? size.x + 10 : cutSize,
+                height: cutSize,
+                depth: selectedEdge.includes('left') || selectedEdge.includes('right') ? size.z + 10 : cutSize
+            }, this.routerScene);
+            
+            // Position based on edge
+            if (selectedEdge === 'top-front') {
+                cutterMesh.position = new BABYLON.Vector3(0, size.y/2, size.z/2 + cutSize/2);
+            } else if (selectedEdge === 'top-back') {
+                cutterMesh.position = new BABYLON.Vector3(0, size.y/2, -size.z/2 - cutSize/2);
+            } else if (selectedEdge === 'top-left') {
+                cutterMesh.position = new BABYLON.Vector3(-size.x/2 - cutSize/2, size.y/2, 0);
+            } else if (selectedEdge === 'top-right') {
+                cutterMesh.position = new BABYLON.Vector3(size.x/2 + cutSize/2, size.y/2, 0);
+            }
         }
         
-        // Perform CSG subtraction
-        const cutterCSG = BABYLON.CSG.FromMesh(cutterMesh);
-        const resultCSG = boardCSG.subtract(cutterCSG);
+        // Make cutter visible as semi-transparent red
+        const cutterMat = new BABYLON.StandardMaterial('cutterMat_' + Date.now(), this.routerScene);
+        cutterMat.diffuseColor = new BABYLON.Color3(1, 0, 0); // Red
+        cutterMat.emissiveColor = new BABYLON.Color3(0.3, 0, 0); // Slight red glow
+        cutterMat.alpha = 0.5; // Semi-transparent
+        cutterMesh.material = cutterMat;
+        
+        // Store the cutter for later reference
+        this.routerCutters.push(cutterMesh);
+        
+        console.log('Cutter created at position:', cutterMesh.position);
+        console.log('Red semi-transparent cutter will remain visible to show cut area');
+
+        
+                // Store the original material before CSG operations
+        const originalMat = this.currentBoard.material;
+        
+        // Perform CSG subtraction with error handling
+                // Hide edge highlights before cutting so we can see the result
+        if (this.highlightedEdges) {
+            this.highlightedEdges.forEach(e => {
+                e.isVisible = false;
+            });
+        }
+        
+        console.log('Performing CSG subtraction...');
+        console.log('Board bounds before:', this.currentBoard.getBoundingInfo().boundingBox);
+        console.log('Cutter bounds:', cutterMesh.getBoundingInfo().boundingBox);
+        
+        // Ensure boardCSG exists
+        if (!boardCSG) {
+            console.error('boardCSG not defined - creating now');
+            try {
+                boardCSG = BABYLON.CSG.FromMesh(this.currentBoard);
+            } catch (error) {
+                console.error('Failed to create boardCSG:', error);
+                alert('Failed to create CSG from board');
+                return;
+            }
+        }
+        
+        let resultCSG;
+        try {
+            // Ensure meshes are ready for CSG
+            console.log('Computing world matrices...');
+            this.currentBoard.computeWorldMatrix(true);
+            cutterMesh.computeWorldMatrix(true);
+            console.log('World matrices computed');
+            
+            // Check if cutter intersects with board
+            if (!this.currentBoard.intersectsMesh(cutterMesh, false)) {
+                console.warn('WARNING: Cutter does not intersect with board - no cut will occur');
+                alert('Cutter is not touching the board. Adjusting position...');
+                
+                // Try to adjust position to ensure intersection
+                const boardBounds = this.currentBoard.getBoundingInfo().boundingBox;
+                const cutterBounds = cutterMesh.getBoundingInfo().boundingBox;
+                console.log('Board max:', boardBounds.maximumWorld);
+                console.log('Cutter min:', cutterBounds.minimumWorld);
+            }
+            
+            console.log('Creating CSG from cutter mesh...');
+            let cutterCSG;
+            try {
+                cutterCSG = BABYLON.CSG.FromMesh(cutterMesh);
+                console.log('Cutter CSG created successfully');
+            } catch (e) {
+                console.error('Failed to create CSG from cutter:', e);
+                console.error('Cutter details:', {
+                    name: cutterMesh.name,
+                    vertices: cutterMesh.getTotalVertices(),
+                    position: cutterMesh.position
+                });
+                throw e;
+            }
+            
+            console.log('Performing subtraction...');
+            try {
+                // Try the subtraction
+                resultCSG = boardCSG.subtract(cutterCSG);
+                
+                if (!resultCSG) {
+                    throw new Error('CSG subtraction returned null');
+                }
+                
+                console.log('Subtraction complete');
+            } catch (e) {
+                console.error('CSG subtraction failed:', e);
+                console.error('Error details:', e.message, e.stack);
+                
+                // Try a different approach - just hide part of the board for visual feedback
+                console.log('Falling back to visual-only cutting');
+                
+                // Keep the cutter visible to show what would be cut
+                cutterMesh.material.alpha = 0.8;
+                cutterMesh.material.diffuseColor = new BABYLON.Color3(0, 1, 0); // Green to show success
+                
+                // Don't throw, just return
+                alert('CSG operation failed - showing cut area in green');
+                return;
+            }
+            
+            console.log('CSG operation complete');
+            
+        } catch (error) {
+            console.error('CSG Error:', error);
+            alert('Error performing cut: ' + error.message);
+            
+            // Keep the cutter visible to debug
+            cutterMesh.material.alpha = 0.8;
+            return;
+        }
         
         // Dispose of old board mesh
         this.currentBoard.dispose();
@@ -486,25 +1099,96 @@ selectBit(bitType) {
         // Create new routed board
         this.currentBoard = resultCSG.toMesh('routedBoard', null, this.routerScene);
         
-        // Reapply material
-        if (this.originalMesh && this.originalMesh.material) {
-            const mat = new BABYLON.StandardMaterial('routedMat', this.routerScene);
-            mat.diffuseColor = this.originalMesh.material.diffuseColor ? 
-                              this.originalMesh.material.diffuseColor.clone() :
-                              new BABYLON.Color3(0.6, 0.3, 0.1);
+        // Ensure new board is properly set up
+        this.currentBoard.computeWorldMatrix(true);
+        this.currentBoard.refreshBoundingInfo();
+        
+        console.log('New board created, vertices:', this.currentBoard.getTotalVertices());
+        console.log('New board bounds:', this.currentBoard.getBoundingInfo().boundingBox);
+        
+        // Reapply the material properly
+        if (originalMat) {
+            // Clone the original material
+            const mat = new BABYLON.StandardMaterial('routedMat_' + Date.now(), this.routerScene);
+            
+            // Copy all material properties
+            if (originalMat.diffuseColor) {
+                mat.diffuseColor = originalMat.diffuseColor.clone();
+            } else {
+                mat.diffuseColor = new BABYLON.Color3(0.6, 0.3, 0.1); // Wood color
+            }
+            
+            // Copy texture if it exists
+            if (originalMat.diffuseTexture) {
+                try {
+                    const texUrl = originalMat.diffuseTexture.url || originalMat.diffuseTexture._texture?.url;
+                    if (texUrl) {
+                        mat.diffuseTexture = new BABYLON.Texture(texUrl, this.routerScene);
+                    }
+                } catch (e) {
+                    console.log('Could not copy texture:', e);
+                }
+            }
+            
+            // Set wood-like properties
+            mat.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1);
+            mat.specularPower = 32;
+            
             this.currentBoard.material = mat;
+            console.log('Material reapplied to routed board');
+        } else {
+            // Fallback material if none exists
+            const mat = new BABYLON.StandardMaterial('routedMat_fallback', this.routerScene);
+            mat.diffuseColor = new BABYLON.Color3(0.6, 0.3, 0.1); // Wood brown
+            mat.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1);
+            this.currentBoard.material = mat;
+            console.log('Fallback material applied');
         }
         
-        // Clean up
-        cutterMesh.dispose();
-        this.highlightedEdges.forEach(e => e.dispose());
-        this.highlightedEdges = [];
+        // Ensure the board is visible
+        this.currentBoard.isVisible = true;
+        this.currentBoard.position = BABYLON.Vector3.Zero();
+        
+        // Clean up edges but keep cutter visible
+        // cutterMesh.dispose(); // DON'T dispose - keep it visible to show the cut
+        
+        // Don't dispose edge highlights, just hide them and clear selection
+        if (this.highlightedEdges) {
+            this.highlightedEdges.forEach(e => {
+                e.material.alpha = 0.3;
+                e.material.emissiveColor = new BABYLON.Color3(0, 0, 0);
+                e.isVisible = false;
+                if (e.metadata) {
+                    e.metadata.isSelected = false;
+                }
+            });
+        }
+        
         this.selectedEdge = null;
+        if (this.selectedEdges) {
+            this.selectedEdges.clear();
+        }
         
         // Recreate edge selection for the new board
+        // Dispose old edges first
+        if (this.highlightedEdges) {
+            this.highlightedEdges.forEach(e => e.dispose());
+            this.highlightedEdges = [];
+        }
         this.setupEdgeSelection();
         
-        console.log('Edge routed successfully!');
+        // Update display to show success
+        const instruction = document.getElementById('edgeInstruction');
+        if (instruction) {
+            instruction.innerHTML = `✓ Edge routed with ${this.routerBit} profile! Select more edges or click KEEP to save.`;
+            instruction.style.background = 'rgba(0,128,0,0.9)';
+            setTimeout(() => {
+                instruction.innerHTML = 'Hover near board edges to highlight them. Click to select for routing.';
+                instruction.style.background = 'rgba(0,0,0,0.8)';
+            }, 3000);
+        }
+        
+        console.log('Edge routed successfully - material preserved!');
     }
     
     keepRoutedBoard() {

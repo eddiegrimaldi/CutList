@@ -1030,7 +1030,7 @@ selectBit(bitType) {
             } else if (selectedEdge === 'top-left') {
                 // Left edge runs along Z axis - rotate blade 90 degrees
                 cutterMesh.position = new BABYLON.Vector3(-size.x/2 + inset, size.y/2 - inset, 0);
-                cutterMesh.rotation.y = Math.PI/2;
+                cutterMesh.rotation.y = -Math.PI/2;
             } else if (selectedEdge === 'top-right') {
                 // Right edge runs along Z at max X
                 // Use board size directly (size variable is already defined from bounds)
@@ -1128,9 +1128,140 @@ selectBit(bitType) {
         
         // Store the cutter for later reference
         this.routerCutters.push(cutterMesh);
+
+        // AUDIT FUNCTION - Verify router bit positioning rules
+        const auditRouterBitPosition = () => {
+            console.log('\n=== ROUTER BIT POSITION AUDIT ===');
+            console.log('\n=== ROUTER BIT POSITION AUDIT ===');
+            // Get the selected edge highlight geometry to find actual edge coordinates
+            let edgeHighlight = null;
+            if (this.highlightedEdges && this.highlightedEdges.length > 0) {
+                // Find the highlight for the selected edge
+                edgeHighlight = this.highlightedEdges.find(h => h.name && h.name.includes(selectedEdge));
+            }
+            
+            if (!edgeHighlight) {
+                console.error('AUDIT FAILED: No edge highlight found for', selectedEdge);
+                return false;
+            }
+            
+            // Get the actual world-space position of the edge from the highlight
+            const edgeWorldPos = edgeHighlight.getAbsolutePosition();
+            const edgeDirection = new BABYLON.Vector3(0, 0, 0);
+            
+            // Determine edge direction based on edge name
+            if (selectedEdge.includes('front') || selectedEdge.includes('back')) {
+                edgeDirection.x = 1; // Edge runs along X axis
+            } else if (selectedEdge.includes('left') || selectedEdge.includes('right')) {
+                edgeDirection.z = 1; // Edge runs along Z axis
+            }
+            
+            console.log('Selected Edge:', selectedEdge);
+            console.log('Edge Highlight Position:', edgeWorldPos);
+            console.log('Edge Direction:', edgeDirection);
+            
+            // Get cutter mesh bounds and position
+            const cutterBounds = cutterMesh.getBoundingInfo().boundingBox;
+            const cutterPos = cutterMesh.getAbsolutePosition();
+            const cutterWorldMin = cutterBounds.minimumWorld;
+            const cutterWorldMax = cutterBounds.maximumWorld;
+            
+            console.log('Cutter Position:', cutterPos);
+            console.log('Cutter World Min:', cutterWorldMin);
+            console.log('Cutter World Max:', cutterWorldMax);
+            
+            // Get board bounds for reference
+            const boardBounds = this.currentBoard.getBoundingInfo().boundingBox;
+            const boardMin = boardBounds.minimumWorld;
+            const boardMax = boardBounds.maximumWorld;
+            const boardCenter = boardMin.add(boardMax).scale(0.5);
+            
+            console.log('Board Center:', boardCenter);
+            console.log('Board Min:', boardMin);
+            console.log('Board Max:', boardMax);
+            
+            // RULE 1: Verify flat back face is away from the board center (orientation check)
+            // The cutter should be positioned with its cutting face toward the board
+            let backFaceAwayFromBoard = false;
+            const tolerance = 0.5; // Allow some tolerance for positioning
+            
+            if (selectedEdge.includes('top')) {
+                // For top edges, check that cutter is positioned correctly relative to board center
+                if (selectedEdge.includes('front')) {
+                    // For front edge, cutter should be at or slightly outside the edge (Z >= edge Z)
+                    backFaceAwayFromBoard = cutterWorldMax.z >= edgeWorldPos.z - tolerance;
+                    console.log('RULE 1 (top-front): Back face Z', cutterWorldMax.z, 'should be >= edge Z', edgeWorldPos.z, '=', backFaceAwayFromBoard);
+                } else if (selectedEdge.includes('back')) {
+                    // For back edge, cutter should be at or slightly outside the edge (Z <= edge Z)
+                    backFaceAwayFromBoard = cutterWorldMin.z <= edgeWorldPos.z + tolerance;
+                    console.log('RULE 1 (top-back): Back face Z', cutterWorldMin.z, 'should be <= edge Z', edgeWorldPos.z, '=', backFaceAwayFromBoard);
+                } else if (selectedEdge.includes('left')) {
+                    // For left edge, cutter should be at or slightly outside the edge (X <= edge X)
+                    backFaceAwayFromBoard = cutterWorldMin.x <= edgeWorldPos.x + tolerance;
+                    console.log('RULE 1 (top-left): Back face X', cutterWorldMin.x, 'should be <= edge X', edgeWorldPos.x, '=', backFaceAwayFromBoard);
+                } else if (selectedEdge.includes('right')) {
+                    // For right edge, cutter should be at or slightly outside the edge (X >= edge X)
+                    backFaceAwayFromBoard = cutterWorldMax.x >= edgeWorldPos.x - tolerance;
+                    console.log('RULE 1 (top-right): Back face X', cutterWorldMax.x, 'should be >= edge X', edgeWorldPos.x, '=', backFaceAwayFromBoard);
+                }
+            }
+            
+            // RULE 2: Verify top rear edge aligns with selected board edge
+            // The top-rear edge is where the back face meets the top face
+            let topRearEdgeAligned = false;
+            const alignmentTolerance = 0.1; // Allow small tolerance for floating point comparison
+            
+            if (selectedEdge.includes('top')) {
+                // Check Y alignment (top of cutter should align with top of board edge)
+                const yAligned = Math.abs(cutterWorldMax.y - edgeWorldPos.y) < alignmentTolerance;
+                
+                // Check horizontal alignment based on edge
+                let horizontalAligned = false;
+                if (selectedEdge.includes('front')) {
+                    horizontalAligned = Math.abs(cutterWorldMax.z - edgeWorldPos.z) < alignmentTolerance;
+                    console.log('RULE 2 (top-front): Y alignment:', yAligned, 'Z alignment:', horizontalAligned);
+                } else if (selectedEdge.includes('back')) {
+                    horizontalAligned = Math.abs(cutterWorldMin.z - edgeWorldPos.z) < alignmentTolerance;
+                    console.log('RULE 2 (top-back): Y alignment:', yAligned, 'Z alignment:', horizontalAligned);
+                } else if (selectedEdge.includes('left')) {
+                    horizontalAligned = Math.abs(cutterWorldMin.x - edgeWorldPos.x) < alignmentTolerance;
+                    console.log('RULE 2 (top-left): Y alignment:', yAligned, 'X alignment:', horizontalAligned);
+                } else if (selectedEdge.includes('right')) {
+                    horizontalAligned = Math.abs(cutterWorldMax.x - edgeWorldPos.x) < alignmentTolerance;
+                    console.log('RULE 2 (top-right): Y alignment:', yAligned, 'X alignment:', horizontalAligned);
+                }
+                
+                topRearEdgeAligned = yAligned && horizontalAligned;
+            }
+            
+            // Final audit results
+            console.log('\\n=== AUDIT RESULTS ===');
+            console.log('RULE 1 - Back face away from board:', backFaceAwayFromBoard ? 'PASS ✓' : 'FAIL ✗');
+            console.log('RULE 2 - Top rear edge aligned:', topRearEdgeAligned ? 'PASS ✓' : 'FAIL ✗');
+            
+            if (!backFaceAwayFromBoard || !topRearEdgeAligned) {
+                console.error('\\n⚠️ ROUTER BIT POSITIONING FAILED AUDIT ⚠️');
+                console.error('The router bit is NOT correctly positioned according to the rules.');
+                
+                // Highlight the cutter in bright red to show the problem
+                const errorMat = new BABYLON.StandardMaterial('errorMat', this.routerScene);
+                errorMat.diffuseColor = new BABYLON.Color3(1, 0, 0);
+                errorMat.emissiveColor = new BABYLON.Color3(1, 0, 0);
+                errorMat.alpha = 0.8;
+                cutterMesh.material = errorMat;
+            } else {
+                console.log('\\n✅ ROUTER BIT POSITIONING PASSED AUDIT ✅');
+                console.log('The router bit is correctly positioned according to both rules.');
+            }
+            
+            console.log('=== END AUDIT ===\\n');
+            console.log('=== END AUDIT ===\\n');
+            return backFaceAwayFromBoard && topRearEdgeAligned;
+        };
         
-        console.log('Cutter created at position:', cutterMesh.position);
-        console.log('Red semi-transparent cutter will remain visible to show cut area');
+        // Run the audit BEFORE hiding highlights
+        auditRouterBitPosition();
+
 
         
                 // Store the original material before CSG operations

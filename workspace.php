@@ -727,7 +727,7 @@
                 console.log('WorkBench parts count:', drawingWorld.workBenchParts ? drawingWorld.workBenchParts.length : 0);
                 
 
-                const preservedWorkBenchParts = (drawingWorld.workBenchParts || []).map(part => {
+                const preservedWorkBenchParts = (drawingWorld.workBenchParts || []).filter(part => part.id && !part.id.startsWith("kept_")).map(part => {
                     // CRITICAL FIX: Properly serialize Part class instances to avoid circular references
                     const partCopy = {
                         id: part.id,

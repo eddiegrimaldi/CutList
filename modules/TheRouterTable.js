@@ -1013,59 +1013,105 @@ selectBit(bitType) {
                 // cutterMesh already has the box
             }
             
-            // Position at corner - cutter inside board
+            // Position based on ACTUAL world-space edge position, not hardcoded names
             const inset = boxSize / 2;
             
-            // CRITICAL: For left/right edges, the blade shape itself needs rotation
-            // The blade was created for front/back edges (along X axis)
-            // For left/right edges (along Z axis), rotate the blade 90 degrees
-            
-            if (selectedEdge === 'top-front') {
-                // Front edge runs along X axis - blade default orientation is correct
-                cutterMesh.position = new BABYLON.Vector3(0, size.y/2 - inset, size.z/2 - inset);
-            } else if (selectedEdge === 'top-back') {
-                // Back edge runs along X axis - rotate 180 degrees
-                cutterMesh.position = new BABYLON.Vector3(0, size.y/2 - inset, -size.z/2 + inset);
-                cutterMesh.rotation.y = Math.PI;
-            } else if (selectedEdge === 'top-left') {
-                // Left edge runs along Z axis - rotate blade 90 degrees
-                cutterMesh.position = new BABYLON.Vector3(-size.x/2 + inset, size.y/2 - inset, 0);
-                cutterMesh.rotation.y = -Math.PI/2;
-            } else if (selectedEdge === 'top-right') {
-                // Right edge runs along Z at max X
-                // Use board size directly (size variable is already defined from bounds)
-                cutterMesh.position = new BABYLON.Vector3(
-                    size.x/2 - inset,                // Right face minus inset
-                    size.y/2 - inset,                // Top of board minus inset
-                    0                                // Center along Z
-                );
-                
-                // CRITICAL: Apply rotation to align blade with Z axis
-                cutterMesh.rotation = new BABYLON.Vector3(0, Math.PI/2, 0);
-                cutterMesh.computeWorldMatrix(true);  // Force matrix update
-                console.log('Top-right: Applied 90 degree rotation');
-                
-
-            } else if (selectedEdge === 'bottom-front') {
-                // Bottom front edge
-                cutterMesh.position = new BABYLON.Vector3(0, -size.y/2 + inset, size.z/2 - inset);
-                cutterMesh.rotation.x = Math.PI; // Flip for bottom
-            } else if (selectedEdge === 'bottom-back') {
-                // Bottom back edge
-                cutterMesh.position = new BABYLON.Vector3(0, -size.y/2 + inset, -size.z/2 + inset);
-                cutterMesh.rotation.x = Math.PI; // Flip for bottom
-                cutterMesh.rotation.y = Math.PI; // Rotate 180
-            } else if (selectedEdge === 'bottom-left') {
-                // Bottom left edge
-                cutterMesh.position = new BABYLON.Vector3(-size.x/2 + inset, -size.y/2 + inset, 0);
-                cutterMesh.rotation.x = Math.PI; // Flip for bottom
-                cutterMesh.rotation.y = Math.PI/2; // Rotate 90
-            } else if (selectedEdge === 'bottom-right') {
-                // Bottom right edge
-                cutterMesh.position = new BABYLON.Vector3(size.x/2 - inset, -size.y/2 + inset, 0);
-                cutterMesh.rotation.x = Math.PI; // Flip for bottom
-                cutterMesh.rotation.y = Math.PI/2; // Rotate 90
+            // Get the actual edge position from the highlight
+            let actualEdgePos = null;
+            if (this.highlightedEdges && this.highlightedEdges.length > 0) {
+                const edgeHighlight = this.highlightedEdges.find(h => h.name && h.name.includes(selectedEdge));
+                if (edgeHighlight) {
+                    actualEdgePos = edgeHighlight.getAbsolutePosition();
+                    console.log('Using actual edge position:', actualEdgePos, 'for edge:', selectedEdge);
+                }
             }
+            
+            if (!actualEdgePos) {
+                // Fallback to hardcoded if no highlight found
+                console.warn('No highlight found, using hardcoded position for:', selectedEdge);
+                actualEdgePos = new BABYLON.Vector3(0, size.y/2, 0);
+            }
+            
+            // Determine blade orientation based on ACTUAL position relative to board center
+            const boardCenter = bounds.centerWorld;
+            const edgeVector = actualEdgePos.subtract(boardCenter);
+            
+            // Determine which axis the edge runs along and position blade accordingly
+            const absX = Math.abs(edgeVector.x);
+            const absZ = Math.abs(edgeVector.z);
+            
+            // Get the edge highlight's actual geometry to find the edge endpoints
+            let edgeDir = new BABYLON.Vector3(0, 0, 0);
+            let edgeNormal = new BABYLON.Vector3(0, 0, 0);
+            
+            // The highlight tube shows us the edge direction
+            if (this.highlightedEdges && this.highlightedEdges.length > 0) {
+                const edgeHighlight = this.highlightedEdges.find(h => h.name && h.name.includes(selectedEdge));
+                if (edgeHighlight && edgeHighlight.getBoundingInfo) {
+                    // Get the edge endpoints from the highlight tube bounds
+                    const highlightBounds = edgeHighlight.getBoundingInfo().boundingBox;
+                    const highlightMin = highlightBounds.minimumWorld;
+                    const highlightMax = highlightBounds.maximumWorld;
+                    
+                    // Determine which axis the edge runs along by checking the extent
+                    const xExtent = Math.abs(highlightMax.x - highlightMin.x);
+                    const zExtent = Math.abs(highlightMax.z - highlightMin.z);
+                    
+                    if (xExtent > zExtent) {
+                        // Edge runs along X axis
+                        edgeDir.x = 1;
+                        // Normal points in Z direction - determine which way
+                        edgeNormal.z = (actualEdgePos.z > boardCenter.z) ? 1 : -1;
+                    } else {
+                        // Edge runs along Z axis  
+                        edgeDir.z = 1;
+                        // Normal points in X direction - determine which way
+                        edgeNormal.x = (actualEdgePos.x > boardCenter.x) ? 1 : -1;
+                    }
+                }
+            }
+            
+            console.log('Edge direction:', edgeDir, 'Edge normal:', edgeNormal);
+            
+            // Position the cutter so its REAR edge aligns with the board edge
+            // The blade needs to be positioned INSIDE the board
+            // Since edgeNormal points AWAY from the board, we move OPPOSITE to it (negative)
+            // This positions the blade's center inside the board with rear edge at the board edge
+            cutterMesh.position = new BABYLON.Vector3(
+                actualEdgePos.x + (-edgeNormal.x * inset),  // Move INWARD (opposite to outward normal) - PERFECT
+                actualEdgePos.y - 0.5,  // Move blade DOWN so its TOP aligns with board top
+                actualEdgePos.z + (-edgeNormal.z * inset)   // Move INWARD (opposite to outward normal) - PERFECT
+            );
+            
+            // Determine rotation based on edge normal direction
+            // The blade needs to face OPPOSITE to the normal (toward the board)
+            if (Math.abs(edgeNormal.x) > 0.5) {
+                // Edge normal points in X direction
+                if (edgeNormal.x > 0) {
+                    // Normal points +X, blade should face -X
+                    cutterMesh.rotation.y = Math.PI/2;  // 90 degrees
+                    console.log('Edge normal +X: blade faces -X (inward)');
+                } else {
+                    // Normal points -X, blade should face +X
+                    cutterMesh.rotation.y = -Math.PI/2;  // -90 degrees
+                    console.log('Edge normal -X: blade faces +X (inward)');
+                }
+            } else if (Math.abs(edgeNormal.z) > 0.5) {
+                // Edge normal points in Z direction
+                if (edgeNormal.z > 0) {
+                    // Normal points +Z, blade should face -Z
+                    cutterMesh.rotation.y = 0;  // No rotation
+                    console.log('Edge normal +Z: blade faces -Z (inward)');
+                } else {
+                    // Normal points -Z, blade should face +Z
+                    cutterMesh.rotation.y = Math.PI;  // 180 degrees
+                    console.log('Edge normal -Z: blade faces +Z (inward)');
+                }
+            }
+            
+            cutterMesh.computeWorldMatrix(true); // Force matrix update
+            console.log('Positioned cutter at:', cutterMesh.position, 'with rotation:', cutterMesh.rotation.y);
+                
             
             // Force update world matrix after rotation
             cutterMesh.computeWorldMatrix(true);

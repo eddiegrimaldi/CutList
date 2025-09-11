@@ -161,12 +161,10 @@
                         <span class="tool-icon">🔧</span>
                         <span class="tool-label">Plane</span>
                     </button>
-                    <!-- ROUTER TOOL COMMENTED OUT - REMOVE FRUSTRATION SOURCE
-                    <button data-tool="router" class="tool-btn" title="Router - Shape edges with router bits">
-                        <span class="tool-icon">ud83dudd04</span>
-                        <span class="tool-label">Router</span>
-                    </button>
-                    END ROUTER TOOL COMMENT -->
+<!-- OLD ROUTER TOOL - DO NOT USE                     <button data-tool="router" class="tool-btn" title="Router - Shape edges with router bits"> -->
+<!-- OLD ROUTER TOOL - DO NOT USE                         <span class="tool-icon">🔄</span> -->
+<!-- OLD ROUTER TOOL - DO NOT USE                         <span class="tool-label">Router</span> -->
+<!-- OLD ROUTER TOOL - DO NOT USE                     </button> -->
                     <button data-tool="scroll-cut" class="tool-btn" title="Scroll Cutting - Freehand and geometric cutting patterns">
                         <span class="tool-icon">📜</span>
                         <span class="tool-label">Scroll Cut</span>
@@ -346,7 +344,6 @@
                 </div>
             </div>
         </div>
-    <!-- ROUTER BIT SELECTION MODAL COMMENTED OUT - REMOVE FRUSTRATION SOURCE
     <div id="router-bit-modal" class="modal-overlay" style="display: none;">
         <div class="modal-content router-bit-modal">
             <div class="modal-header">
@@ -456,6 +453,7 @@
         </div>
     </div>
     
+<script src="modules/RouterBitLibrary.js"></script>
     <script type="module" src="drawing-world.js?v=<?php echo time(); ?>&force=<?php echo rand(1000, 9999); ?>&edge=20250724001"></script>
     <script>
 
@@ -1635,7 +1633,6 @@
         </div>
     </div>
     
-    <!-- QUICK TOOLS AND ALL ROUTER FUNCTIONS COMMENTED OUT - REMOVE FRUSTRATION SOURCE
     <div id="quick-tools" style="position: absolute; top: 100px; left: 10px; background: rgba(0,0,0,0.8); color: white; padding: 10px; border-radius: 5px; z-index: 1000; display: none;">
         <h4>Quick Tools (Router Functions Disabled)</h4>
         <p style="color: #ff6b6b;">Router functionality has been temporarily disabled to focus on core CutList features.</p>
@@ -1703,5 +1700,347 @@ window.selectEdgeForRouting = function() {
     
     canvas.addEventListener('click', clickHandler);
 }</script>
-</body>
+<!-- Router Bit Selector Panel -->
+<!-- This replaces the commented-out modal with a better interface -->
+
+<div id="router-bit-selector-panel" class="router-bit-panel" style="display: none;">
+    <div class="router-bit-header">
+        <h3>Select Router Bit Profile</h3>
+        <button class="close-btn" id="close-router-selector">&times;</button>
+    </div>
+    
+    <!-- Router Bit Icons as Radio Buttons -->
+    <div class="router-bit-icons">
+        <!-- Chamfer Bits -->
+        <div class="bit-group">
+            <label class="bit-option">
+                <input type="radio" name="router-bit" value="chamfer_quarter_inch_precise" data-name="1/4&quot; Chamfer">
+                <div class="bit-icon" title="1/4&quot; Chamfer - 45° bevel">
+                    <svg viewBox="0 0 40 40" class="bit-svg">
+                        <rect x="0" y="0" width="40" height="10" fill="#f0f0f0"/>
+                        <polygon points="30,10 30,30 10,30" fill="#333"/>
+                        <rect x="0" y="30" width="40" height="10" fill="#f0f0f0"/>
+                    </svg>
+                    <span class="bit-label">1/4" Chamfer</span>
+                </div>
+            </label>
+            
+            <label class="bit-option">
+                <input type="radio" name="router-bit" value="chamfer_half_inch_precise" data-name="1/2&quot; Chamfer">
+                <div class="bit-icon" title="1/2&quot; Chamfer - 45° bevel">
+                    <svg viewBox="0 0 40 40" class="bit-svg">
+                        <rect x="0" y="0" width="40" height="10" fill="#f0f0f0"/>
+                        <polygon points="35,10 35,35 5,35" fill="#333"/>
+                        <rect x="0" y="35" width="40" height="5" fill="#f0f0f0"/>
+                    </svg>
+                    <span class="bit-label">1/2" Chamfer</span>
+                </div>
+            </label>
+        </div>
+        
+        <!-- Roundover Bits -->
+        <div class="bit-group">
+            <label class="bit-option">
+                <input type="radio" name="router-bit" value="roundover_quarter_inch_precise" data-name="1/4&quot; Roundover">
+                <div class="bit-icon" title="1/4&quot; Roundover - Smooth rounded edge">
+                    <svg viewBox="0 0 40 40" class="bit-svg">
+                        <rect x="0" y="0" width="40" height="10" fill="#f0f0f0"/>
+                        <path d="M 30 10 Q 30 30 10 30" fill="none" stroke="#333" stroke-width="8"/>
+                        <rect x="0" y="30" width="40" height="10" fill="#f0f0f0"/>
+                    </svg>
+                    <span class="bit-label">1/4" Round</span>
+                </div>
+            </label>
+            
+            <label class="bit-option">
+                <input type="radio" name="router-bit" value="roundover_half_inch_precise" data-name="1/2&quot; Roundover">
+                <div class="bit-icon" title="1/2&quot; Roundover - Smooth rounded edge">
+                    <svg viewBox="0 0 40 40" class="bit-svg">
+                        <rect x="0" y="0" width="40" height="5" fill="#f0f0f0"/>
+                        <path d="M 35 5 Q 35 35 5 35" fill="none" stroke="#333" stroke-width="6"/>
+                        <rect x="0" y="35" width="40" height="5" fill="#f0f0f0"/>
+                    </svg>
+                    <span class="bit-label">1/2" Round</span>
+                </div>
+            </label>
+        </div>
+        
+        <!-- Original Library Bits -->
+        <div class="bit-group">
+            <label class="bit-option">
+                <input type="radio" name="router-bit" value="cove_quarter" data-name="1/4&quot; Cove">
+                <div class="bit-icon" title="1/4&quot; Cove - Concave curve">
+                    <svg viewBox="0 0 40 40" class="bit-svg">
+                        <rect x="0" y="0" width="40" height="10" fill="#f0f0f0"/>
+                        <path d="M 10 10 Q 10 30 30 30" fill="#333"/>
+                        <rect x="0" y="30" width="40" height="10" fill="#f0f0f0"/>
+                    </svg>
+                    <span class="bit-label">1/4" Cove</span>
+                </div>
+            </label>
+            
+            <label class="bit-option">
+                <input type="radio" name="router-bit" value="ogee_classic" data-name="Classical Ogee">
+                <div class="bit-icon" title="Classical Ogee - S-curve">
+                    <svg viewBox="0 0 40 40" class="bit-svg">
+                        <rect x="0" y="0" width="40" height="10" fill="#f0f0f0"/>
+                        <path d="M 30 10 Q 25 20 30 25 Q 35 30 25 35 L 10 35 L 10 10 Z" fill="#333"/>
+                        <rect x="0" y="35" width="40" height="5" fill="#f0f0f0"/>
+                    </svg>
+                    <span class="bit-label">Ogee</span>
+                </div>
+            </label>
+        </div>
+    </div>
+    
+    <!-- Profile Preview -->
+    <div class="profile-preview">
+        <h4>Profile Preview</h4>
+        <div class="preview-container">
+            <canvas id="router-profile-canvas" width="200" height="150"></canvas>
+            <div class="preview-info">
+                <span id="bit-name-display">Select a bit</span>
+                <span id="bit-description"></span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Apply Button -->
+    <div class="router-bit-actions">
+        <button id="apply-router-bit" class="btn-primary" disabled>Apply to Selected Edges</button>
+        <button id="cancel-router-bit" class="btn-secondary">Cancel</button>
+    </div>
+</div>
+
+<style>
+/* Router Bit Selector Styles */
+.router-bit-panel {
+    position: fixed;
+    top: 100px;
+    right: 20px;
+    width: 320px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 1000;
+    padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.router-bit-header {
+    padding: 12px 16px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 8px 8px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.router-bit-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.router-bit-header .close-btn {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.8;
+    transition: opacity 0.2s;
+}
+
+.router-bit-header .close-btn:hover {
+    opacity: 1;
+}
+
+.router-bit-icons {
+    padding: 16px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.bit-group {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.bit-group:last-child {
+    margin-bottom: 0;
+}
+
+.bit-option {
+    flex: 1;
+    cursor: pointer;
+}
+
+.bit-option input[type="radio"] {
+    display: none;
+}
+
+.bit-icon {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px;
+    border: 2px solid #e0e0e0;
+    border-radius: 6px;
+    background: white;
+    transition: all 0.2s;
+}
+
+.bit-option input[type="radio"]:checked + .bit-icon {
+    border-color: #667eea;
+    background: #f0f4ff;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.bit-option:hover .bit-icon {
+    border-color: #a0a0a0;
+    transform: translateY(-2px);
+}
+
+.bit-svg {
+    width: 50px;
+    height: 50px;
+    margin-bottom: 4px;
+}
+
+.bit-label {
+    font-size: 11px;
+    text-align: center;
+    color: #555;
+    font-weight: 500;
+}
+
+.profile-preview {
+    padding: 16px;
+    background: #f8f9fa;
+}
+
+.profile-preview h4 {
+    margin: 0 0 12px 0;
+    font-size: 14px;
+    color: #555;
+    font-weight: 600;
+}
+
+.preview-container {
+    background: white;
+    border-radius: 6px;
+    padding: 12px;
+    border: 1px solid #e0e0e0;
+}
+
+#router-profile-canvas {
+    width: 100%;
+    height: 120px;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    background: white;
+}
+
+.preview-info {
+    margin-top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+#bit-name-display {
+    font-weight: 600;
+    color: #333;
+    font-size: 14px;
+}
+
+#bit-description {
+    font-size: 12px;
+    color: #666;
+}
+
+.router-bit-actions {
+    padding: 16px;
+    display: flex;
+    gap: 8px;
+}
+
+.router-bit-actions button {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-secondary {
+    background: #f0f0f0;
+    color: #555;
+}
+
+.btn-secondary:hover {
+    background: #e0e0e0;
+}
+<script src="router_table_selector.js"></script>
+<script src="router_bit_selector.js"></script>
+</style></body>
 </html>
+
+<script>
+// Add event handler for Apply button
+document.addEventListener('DOMContentLoaded', function() {
+    const applyButton = document.getElementById('apply-router-bit');
+    if (applyButton) {
+        applyButton.addEventListener('click', function() {
+            console.log('Apply button clicked');
+            
+            // Get selected router bit
+            const selectedBit = document.querySelector('input[name="router-bit"]:checked');
+            if (!selectedBit) {
+                alert('Please select a router bit first');
+                return;
+            }
+            
+            // Check if router table is open
+            if (!window.routerTable) {
+                alert('Router table not initialized');
+                return;
+            }
+            
+            // Select the bit
+            const bitValue = selectedBit.value;
+            console.log('Applying bit:', bitValue);
+            window.routerTable.selectBit(bitValue);
+            
+            // Route the selected edge
+            window.routerTable.routeSelectedEdge();
+        });
+    }
+});
+</script>

@@ -3431,7 +3431,11 @@ class DrawingWorld {
             this.updateToolButtonStates();
             
             // Activate router bit system with default roundover profile
-            this.routerBitSystem.activate('roundover');
+            this.routerBitSystem.activate('roundover_quarter_inch_precise');
+            // Show router bit selector
+            if (window.routerBitSelector) {
+                window.routerBitSelector.show();
+            }
             
             // If a part is already selected, focus edge detection on that part
             if (this.selectedPart) {

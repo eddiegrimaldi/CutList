@@ -1010,8 +1010,8 @@ class TheRouterTable {
                     
                     cutterMesh.position = new BABYLON.Vector3(
                         0,
-                        size.y/2 - cutterHeight/2,            // Top of cutter at top of board
-                        -size.z/2 + cutterDepth/2             // Rear at back edge
+                        size.y/2 - cutterHeight/2,  // Top of cutter at top of board
+                        -size.z/2                    // At back edge, not offset
                     );
                 } else if (selectedEdge === 'top-left') {
                     cutterMesh = BABYLON.MeshBuilder.CreateBox('testCutter', {
@@ -1033,8 +1033,8 @@ class TheRouterTable {
                     }, this.routerScene);
                     
                     cutterMesh.position = new BABYLON.Vector3(
-                        size.x/2 - cutterDepth/2,             // Rear at right edge
-                        size.y/2 - cutterHeight/2,            // Top of cutter at top of board
+                        size.x/2 + cutterDepth/2,   // Blade edge at board edge
+                        size.y/2 - cutterHeight/2,  // Top of cutter at top of board
                         0
                     );
                 }
@@ -1465,6 +1465,48 @@ class TheRouterTable {
         cutterMat.alpha = 0.5; // Semi-transparent
         cutterMesh.material = cutterMat;
         
+        } else if (this.routerBit === 'ogee') {
+            // Ogee - simple box for now
+            const ogeeSize = this.bitDepth * 2;
+            cutterMesh = BABYLON.MeshBuilder.CreateBox('ogeeCutter', {
+                width: selectedEdge.includes('front') || selectedEdge.includes('back') ? size.x + 10 : ogeeSize,
+                height: ogeeSize,
+                depth: selectedEdge.includes('left') || selectedEdge.includes('right') ? size.z + 10 : ogeeSize
+            }, this.routerScene);
+            
+            // Position based on edge
+            if (selectedEdge === 'top-front') {
+                cutterMesh.position = new BABYLON.Vector3(0, size.y/2, size.z/2);
+            } else if (selectedEdge === 'top-back') {
+                cutterMesh.position = new BABYLON.Vector3(0, size.y/2, -size.z/2);
+            } else if (selectedEdge === 'top-left') {
+                cutterMesh.position = new BABYLON.Vector3(-size.x/2, size.y/2, 0);
+            } else if (selectedEdge === 'top-right') {
+                cutterMesh.position = new BABYLON.Vector3(size.x/2, size.y/2, 0);
+            }
+            
+        } else {
+            // Default fallback for any undefined bit type
+            console.log('Using default cutter for bit type:', this.routerBit);
+            const defaultSize = this.bitDepth * 2;
+            cutterMesh = BABYLON.MeshBuilder.CreateBox('defaultCutter', {
+                width: selectedEdge.includes('front') || selectedEdge.includes('back') ? size.x + 10 : defaultSize,
+                height: defaultSize,
+                depth: selectedEdge.includes('left') || selectedEdge.includes('right') ? size.z + 10 : defaultSize
+            }, this.routerScene);
+            
+            // Position based on edge
+            if (selectedEdge === 'top-front') {
+                cutterMesh.position = new BABYLON.Vector3(0, size.y/2, size.z/2);
+            } else if (selectedEdge === 'top-back') {
+                cutterMesh.position = new BABYLON.Vector3(0, size.y/2, -size.z/2);
+            } else if (selectedEdge === 'top-left') {
+                cutterMesh.position = new BABYLON.Vector3(-size.x/2, size.y/2, 0);
+            } else if (selectedEdge === 'top-right') {
+                cutterMesh.position = new BABYLON.Vector3(size.x/2, size.y/2, 0);
+            }
+        }
+        
         // Store the cutter for later reference
         this.routerCutters.push(cutterMesh);
 
@@ -1799,8 +1841,6 @@ class TheRouterTable {
         
         console.log('Edge routed successfully - material preserved!');
     }
-    }
-    
     keepRoutedBoard() {
         if (!this.currentBoard) return;
         

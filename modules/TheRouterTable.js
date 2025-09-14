@@ -1021,8 +1021,8 @@ class TheRouterTable {
                     }, this.routerScene);
                     
                     cutterMesh.position = new BABYLON.Vector3(
-                        -size.x/2 + cutterDepth/2,            // Rear at left edge
-                        size.y/2 - cutterHeight/2,            // Top of cutter at top of board
+                        -size.x/2 + cutterDepth/2,   // Blade center at board edge (half blade overlaps)
+                        size.y/2 - cutterHeight/2,    // Top of cutter at top of board
                         0
                     );
                 } else if (selectedEdge === 'top-right') {
@@ -1033,8 +1033,8 @@ class TheRouterTable {
                     }, this.routerScene);
                     
                     cutterMesh.position = new BABYLON.Vector3(
-                        size.x/2 + cutterDepth/2,   // Blade edge at board edge
-                        size.y/2 - cutterHeight/2,  // Top of cutter at top of board
+                        size.x/2,                    // Blade at right edge
+                        size.y/2 - cutterHeight/2,   // Top of cutter at top of board
                         0
                     );
                 }
@@ -1223,7 +1223,7 @@ class TheRouterTable {
                 cutterMesh.computeWorldMatrix(true);
                 }
             }
-            } else if (this.routerBit === 'roundover') {
+            } else if (this.routerBit && this.routerBit.includes('roundover')) {
             // Create a roundover profile using box minus cylinder
             const radius = this.bitDepth * 2; // Roundover radius
             
@@ -1465,26 +1465,6 @@ class TheRouterTable {
         cutterMat.alpha = 0.5; // Semi-transparent
         cutterMesh.material = cutterMat;
         
-        } else if (this.routerBit === 'ogee') {
-            // Ogee - simple box for now
-            const ogeeSize = this.bitDepth * 2;
-            cutterMesh = BABYLON.MeshBuilder.CreateBox('ogeeCutter', {
-                width: selectedEdge.includes('front') || selectedEdge.includes('back') ? size.x + 10 : ogeeSize,
-                height: ogeeSize,
-                depth: selectedEdge.includes('left') || selectedEdge.includes('right') ? size.z + 10 : ogeeSize
-            }, this.routerScene);
-            
-            // Position based on edge
-            if (selectedEdge === 'top-front') {
-                cutterMesh.position = new BABYLON.Vector3(0, size.y/2, size.z/2);
-            } else if (selectedEdge === 'top-back') {
-                cutterMesh.position = new BABYLON.Vector3(0, size.y/2, -size.z/2);
-            } else if (selectedEdge === 'top-left') {
-                cutterMesh.position = new BABYLON.Vector3(-size.x/2, size.y/2, 0);
-            } else if (selectedEdge === 'top-right') {
-                cutterMesh.position = new BABYLON.Vector3(size.x/2, size.y/2, 0);
-            }
-            
         } else {
             // Default fallback for any undefined bit type
             console.log('Using default cutter for bit type:', this.routerBit);

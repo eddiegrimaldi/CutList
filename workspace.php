@@ -12,6 +12,8 @@
     <script src="https://cdn.babylonjs.com/babylon.physics.js"></script>
     <script src="https://cdn.babylonjs.com/materialsLibrary/babylonjs.materials.min.js"></script>
     <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
+    <script src="https://cdn.babylonjs.com/babylon.csg.min.js"></script>
+    <script src="/modules/RouterTable.js"></script>
     <script src="MaterialsLibrary.js?v=<?php echo time(); ?>"></script>
     <script src="Board.js?v=<?php echo time(); ?>"></script>
     <script src="BoardFactory.js?v=<?php echo time(); ?>"></script>
@@ -1336,52 +1338,71 @@
                     return;
                 }
                 
-                console.log('Sending to Router Table:', this.selectedPart.materialName);
+                console.log('Sending to Router Table:', this.selectedPart);
                 
-                // Get the mesh
-                let partMesh = this.selectedMesh || this.selectedPart.mesh;
-                
-                if (!partMesh) {
-                    const scene = window.drawingWorld.scene;
-                    partMesh = scene.getMeshByName(this.selectedPart.id);
-                }
-                
-                if (!partMesh) {
-                    console.error('Could not find mesh for router:', this.selectedPart);
+                // Check if RouterTable class is available
+                if (typeof RouterTable === 'undefined') {
+                    console.error('RouterTable class not loaded. Make sure RouterTable.js is included.');
+                    alert('Router Table module not loaded. Please refresh the page.');
                     return;
                 }
                 
-                // Hide from workbench
-                partMesh.isVisible = false;
-                console.log('Board sent to router and hidden from workbench');
-                
-                // Open Router Table
-                if (window.drawingWorld.theRouterTable) {
-                    console.log('Opening router table with mesh:', partMesh);
-                    try {
-                        window.drawingWorld.theRouterTable.openRouterTable(partMesh, 'route');
-                        console.log('Router table opened successfully');
-                    } catch (error) {
-                        console.error('Error opening router table:', error);
-                    }
-                } else {
-                    console.error('Router Table System not initialized');
-                    console.log('Available:', Object.keys(window.drawingWorld));
+                // Initialize RouterTable if not exists
+                if (!window.drawingWorld.routerTable) {
+                    window.drawingWorld.routerTable = new RouterTable(window.drawingWorld.scene, window.drawingWorld.canvas);
+                    
+                    // Override accept method for Prime Directive compliance
+                    const originalAccept = window.drawingWorld.routerTable.accept.bind(window.drawingWorld.routerTable);
+                    window.drawingWorld.routerTable.accept = function() {
+                        if (this.board && this.originalBoard) {
+                            // Update Part instance (single source of truth)
+                            this.originalBoard.mesh.dispose();
+                            this.originalBoard.mesh = this.board.clone();
+                            this.originalBoard.mesh.isVisible = true;
+                            
+                            // Maintain mesh->part linkage
+                            this.originalBoard.mesh.partInstance = this.originalBoard;
+                            this.originalBoard.mesh.partData = this.originalBoard;
+                            this.originalBoard.mesh.isWorkBenchPart = true;
+                            
+                            // Update Part dimensions
+                            const boundingInfo = this.originalBoard.mesh.getBoundingInfo();
+                            const size = boundingInfo.boundingBox.extendSizeWorld.scale(2);
+                            this.originalBoard.width = size.x;
+                            this.originalBoard.length = size.z;
+                            this.originalBoard.thickness = size.y;
+                            
+                            // Mark as modified
+                            this.originalBoard.lastModified = Date.now();
+                            this.originalBoard.hasRouting = true;
+                            
+                            console.log('Part instance updated with routed geometry');
+                            
+                            // Update workbench display
+                            if (window.drawingWorld.updateWorkBenchList) {
+                                window.drawingWorld.updateWorkBenchList();
+                            }
+                        }
+                        this.cleanup();
+                    };
                 }
+                
+                // Activate RouterTable with Part instance
+                window.drawingWorld.routerTable.activate(this.selectedPart);
+
             },
-            
+
             showProperties() {
                 if (!this.selectedPart) return;
-                
+
                 const part = this.selectedPart;
                 this.updatePropertiesPanel(part);
             },
-            
+
             updatePropertiesPanel(part) {
-                const propertiesContent = document.querySelector('.properties-content');
+                const propertiesContent = document.querySelector(".properties-content");
                 if (!propertiesContent) return;
-                
-                // Clear existing content and add part properties
+
                 propertiesContent.innerHTML = `
                     <div class="property-group">
                         <h4>Part Information</h4>
@@ -2007,9 +2028,8 @@ window.selectEdgeForRouting = function() {
 .btn-secondary:hover {
     background: #e0e0e0;
 }
-<script src="router_table_selector.js"></script>
-<script src="router_bit_selector.js"></script>
-</style></body>
+    <script src="https://cdn.babylonjs.com/babylon.csg.min.js"></script>
+</body>
 </html>
 
 <script>
@@ -2044,3 +2064,5 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+</body>
+</html>

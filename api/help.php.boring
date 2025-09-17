@@ -1,0 +1,77 @@
+<?php
+header('Content-Type: application/json');
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: POST, GET, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type');
+
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    exit(0);
+}
+
+$API_KEY = 'YOUR_API_KEY_HERE';
+
+$SYSTEM_PROMPT = "You are the CutList Help Assistant. CutList is a professional woodworking CAD application.
+
+KEY FEATURES:
+- Router Table: Edge routing with profile selection. Enter/Exit router mode properly to maintain controls
+- Mill System: Rip and cross-cut operations with 600x500x300 separators for clean cuts  
+- Board Management: Create, position, and manipulate lumber pieces
+- Materials Library: Wood types with realistic grain textures
+- Prime Directive: 'A Board Is A Board Is A Board' - Part class is single source of truth
+
+RECENT FIXES:
+- Edge selection after routing: Click zones are re-parented to new mesh after CSG operations
+- Router pointer events: Fixed by removing only router's observer, not all observers
+- Mill separator depth: Changed from 100 to 300 for proper cutting
+- Kept pieces pivot: Reset to piece's own center, not original board's center
+
+Be helpful, specific, and reference actual features. Keep responses concise.";
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $input = json_decode(file_get_contents('php://input'), true);
+    $question = $input['question'] ?? '';
+    
+    if (empty($question)) {
+        echo json_encode(['success' => false, 'answer' => 'Please ask a question.']);
+        exit;
+    }
+    
+    $ch = curl_init('https://api.anthropic.com/v1/messages');
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'x-api-key: ' . $API_KEY,
+        'anthropic-version: 2023-06-01',
+        'content-type: application/json'
+    ]);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
+        'model' => 'claude-3-haiku-20240307',
+        'max_tokens' => 300,
+        'temperature' => 0.3,
+        'system' => $SYSTEM_PROMPT,  // System as top-level parameter
+        'messages' => [
+            ['role' => 'user', 'content' => $question]  // Only user messages in array
+        ]
+    ]));
+    
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    
+    if ($httpCode === 200) {
+        $data = json_decode($response, true);
+        echo json_encode([
+            'success' => true,
+            'answer' => $data['content'][0]['text'] ?? 'I could not generate a response.'
+        ]);
+    } else {
+        $error = json_decode($response, true);
+        echo json_encode([
+            'success' => false,
+            'answer' => 'Error: ' . ($error['error']['message'] ?? 'Unknown error')
+        ]);
+    }
+} else {
+    echo json_encode(['status' => 'CutList Help Bot API is running']);
+}
+?>

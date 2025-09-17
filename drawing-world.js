@@ -831,6 +831,16 @@ class DrawingWorld {
     constructor() {
         this.canvas = document.getElementById('renderCanvas');
         this.engine = null;
+        
+        // Create CutList help button
+        if (!document.getElementById("cutlist-help-float")) {
+            const helpBtn = document.createElement("div");
+            helpBtn.id = "cutlist-help-float";
+            helpBtn.innerHTML = "?";
+            helpBtn.style.cssText = "position:fixed;bottom:30px;right:30px;width:70px;height:70px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);border-radius:50%;cursor:pointer;z-index:2147483647;color:white;font-size:35px;font-weight:bold;border:3px solid white;box-shadow:0 4px 20px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;";
+            helpBtn.onclick = () => window.open("/help.html", "CutListHelp", "width=650,height=600");
+            document.body.appendChild(helpBtn);
+        }
         this.scene = null;
         this.camera = null;
         this.grid = null;

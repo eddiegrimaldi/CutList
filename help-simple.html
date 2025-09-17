@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CutList Help Widget - Simple</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        
+        /* Big visible test div first */
+        .test-visible {
+            background: red;
+            color: white;
+            padding: 20px;
+            margin: 20px;
+            font-size: 20px;
+        }
+        
+        /* Help Button - Should be visible! */
+        #help-button {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 80px;
+            height: 80px;
+            background: #8B5CF6;
+            border-radius: 50%;
+            cursor: pointer;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 40px;
+            font-weight: bold;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        
+        #help-button:hover {
+            background: #7C3AED;
+            transform: scale(1.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="test-visible">
+        If you can see this RED BOX, the page is loading correctly!
+    </div>
+    
+    <h1>CutList Help Test - Simplified</h1>
+    <p>You should see a purple circle with a "?" in the bottom-right corner.</p>
+    <p>Scroll down to test if it stays fixed...</p>
+    
+    <div style="height: 2000px; background: linear-gradient(white, #f0f0f0);">
+        <p>Long content area for scrolling test...</p>
+    </div>
+    
+    <!-- Simplified Help Button -->
+    <div id="help-button" onclick="alert('Help button clicked! It works!')">
+        ?
+    </div>
+</body>
+</html>

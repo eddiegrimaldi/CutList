@@ -2066,3 +2066,31 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 </body>
 </html>
+
+<!-- CutList Help Button -->
+<style>
+#cutlist-help-btn {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 70px;
+    height: 70px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 2147483647;
+    color: white;
+    font-size: 35px;
+    font-weight: bold;
+    border: 3px solid white;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+#cutlist-help-btn:hover {
+    transform: scale(1.1);
+}
+</style>
+
+<div id="cutlist-help-btn" onclick="window.open('/help-widget-fixed.html', 'CutListHelp', 'width=420,height=600')">?</div>

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CutList Help Bot Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .test-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            opacity: 0.9;
+        }
+        #api-response {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f0f0f0;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔨 CutList Help Bot Test Page</h1>
+    
+    <div class="test-section">
+        <h2>Quick Test Without API Key</h2>
+        <p>This tests the frontend widget interface (no real responses yet):</p>
+        <button class="test-button" onclick="window.open('/help-widget.html', '_blank')">Open Help Widget</button>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test API Directly (Simulated)</h2>
+        <p>Click these to simulate questions users might ask:</p>
+        <button class="test-button" onclick="testQuestion('How do I use the router table?')">Test Router Question</button>
+        <button class="test-button" onclick="testQuestion('What is the Prime Directive?')">Test Prime Directive</button>
+        <button class="test-button" onclick="testQuestion('How do I cut a board in half?')">Test Cutting Question</button>
+        <button class="test-button" onclick="testQuestion('Why cant I select edges after routing?')">Test Edge Selection</button>
+        
+        <div id="api-response"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Simulated Responses (What the bot would say)</h2>
+        <p>Since we don't have the API key yet, here's what I would respond:</p>
+        <ul>
+            <li><b>Router Table:</b> "Enter router mode, select an edge, choose a profile from the right panel, then click 'Route Edge'. Exit router mode when done to restore normal controls."</li>
+            <li><b>Prime Directive:</b> "A Board Is A Board Is A Board - meaning the Part class is the single source of truth for all board data, maintaining consistency across operations."</li>
+            <li><b>Cutting:</b> "Use the Mill system for rip cuts (along grain) or cross cuts. The blade with 300-unit deep separators ensures clean cuts without fragments."</li>
+            <li><b>Edge Selection:</b> "After routing, edges remain selectable because click zones are re-parented to the new board mesh after CSG operations."</li>
+        </ul>
+    </div>
+    
+    <script>
+        function testQuestion(question) {
+            const responseDiv = document.getElementById('api-response');
+            
+            // Simulate what the real API would return
+            const simulatedResponses = {
+                'How do I use the router table?': 'To use the router table:\n1. Click "Enter Router" button\n2. Select an edge by clicking on it (edge will highlight)\n3. Choose a router profile from the right panel\n4. Click "Route Edge" to apply the profile\n5. Click "Exit Router" when finished to restore normal controls\n\nNote: Always exit router mode properly to maintain pointer controls.',
+                
+                'What is the Prime Directive?': 'The Prime Directive in CutList is: "A Board Is A Board Is A Board"\n\nThis means the Part class instance is the single source of truth for all board data. The mesh is just a visual representation. All operations must preserve this relationship to maintain data consistency.',
+                
+                'How do I cut a board in half?': 'To cut a board:\n1. Select the board by clicking on it\n2. Choose either "Rip Cut" (along the grain/length) or "Cross Cut" (across the width)\n3. Position your mouse where you want the cut\n4. Click to execute the cut\n\nThe mill system uses a blade with 300-unit deep separators to ensure clean cuts.',
+                
+                'Why cant I select edges after routing?': 'Edge selection after routing works! We fixed this by re-parenting the click zones to the new board mesh after CSG operations complete. If you\'re having issues, make sure to properly exit router mode using the "Exit Router" button.'
+            };
+            
+            responseDiv.innerHTML = `<div class="success">Question:</div>${question}\n\n<div class="success">Bot Response:</div>${simulatedResponses[question] || 'I can help with that! [This would connect to Claude API for a real answer]'}`;
+        }
+    </script>
+</body>
+</html>

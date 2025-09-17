@@ -145,8 +145,8 @@ class RouterTable {
             '</div>' +
             '<hr style="margin: 15px 0; border: none; border-top: 1px solid #ddd;">' +
             '<div style="display: flex; flex-direction: column; gap: 10px;">' +
-            '<button onclick="routerTable.accept()" style="padding: 12px; border: none; background: #4CAF50; color: white; border-radius: 4px; cursor: pointer; font-weight: bold;">Accept & Return</button>' +
-            '<button onclick="routerTable.cancel()" style="padding: 12px; border: none; background: #757575; color: white; border-radius: 4px; cursor: pointer;">Cancel</button>' +
+            '<button onclick="window.drawingWorld.routerTable.accept()" style="padding: 12px; border: none; background: #4CAF50; color: white; border-radius: 4px; cursor: pointer; font-weight: bold;">Accept & Return</button>' +
+            '<button onclick="window.drawingWorld.routerTable.cancel()" style="padding: 12px; border: none; background: #757575; color: white; border-radius: 4px; cursor: pointer;">Cancel</button>' +
             '</div>';
         
         document.body.appendChild(this.uiContainer);
@@ -160,7 +160,7 @@ class RouterTable {
         this.createEdgeHighlights();
         
         // Add click handler
-        this.scene.onPointerObservable.add((pointerInfo) => {
+        this.pointerObserver = this.scene.onPointerObservable.add((pointerInfo) => {
             switch (pointerInfo.type) {
                 case BABYLON.PointerEventTypes.POINTERMOVE:
                     this.handleMouseMove(pointerInfo);
@@ -200,6 +200,7 @@ class RouterTable {
         rightClickZone.edgeType = 'right';
         rightClickZone.isVisible = false;  // Invisible
         rightClickZone.isPickable = true;
+        rightClickZone.parent = this.board;
         
         // Right edge highlight (visible on hover only)
         const rightEdge = BABYLON.MeshBuilder.CreateBox('rightEdgeHighlight', {
@@ -222,6 +223,7 @@ class RouterTable {
         leftClickZone.edgeType = 'left';
         leftClickZone.isVisible = false;
         leftClickZone.isPickable = true;
+        leftClickZone.parent = this.board;
         
         // Left edge highlight
         const leftEdge = BABYLON.MeshBuilder.CreateBox('leftEdgeHighlight', {
@@ -244,6 +246,7 @@ class RouterTable {
         frontClickZone.edgeType = 'front';
         frontClickZone.isVisible = false;
         frontClickZone.isPickable = true;
+        frontClickZone.parent = this.board;
         
         // Front edge highlight
         const frontEdge = BABYLON.MeshBuilder.CreateBox('frontEdgeHighlight', {
@@ -266,6 +269,7 @@ class RouterTable {
         backClickZone.edgeType = 'back';
         backClickZone.isVisible = false;
         backClickZone.isPickable = true;
+        backClickZone.parent = this.board;
         
         // Back edge highlight
         const backEdge = BABYLON.MeshBuilder.CreateBox('backEdgeHighlight', {
@@ -277,6 +281,70 @@ class RouterTable {
         backEdge.isPickable = false;
         backEdge.isVisible = false;
         backClickZone.highlight = backEdge;
+        
+        // Check for 45-degree edges by examining mesh geometry
+        // This is a hack but will work for common miter cuts
+        const positions = this.board.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+        if (positions) {
+            const vertices = [];
+            for (let i = 0; i < positions.length; i += 3) {
+                vertices.push({
+                    x: positions[i],
+                    y: positions[i + 1],
+                    z: positions[i + 2]
+                });
+            }
+            
+            // Look for diagonal edges in the XZ plane (common for miters)
+            // Check if we have vertices that suggest 45-degree cuts
+            const uniqueX = [...new Set(vertices.map(v => Math.round(v.x * 100) / 100))].sort((a,b) => a-b);
+            const uniqueZ = [...new Set(vertices.map(v => Math.round(v.z * 100) / 100))].sort((a,b) => a-b);
+            
+            // Northeast miter (45 degree from front-right corner)  
+            const neMiterCheck = vertices.filter(v => 
+                Math.abs(v.y - boardTop) < 0.01 && 
+                (v.x + v.z) > ((boardRight + boardFront) * 0.9)
+            );
+            
+            if (neMiterCheck.length >= 2) {
+                const neMiterClickZone = BABYLON.MeshBuilder.CreateBox('neMiterClickZone', {
+                    width: Math.sqrt(2) * clickZoneThickness * 2,
+                    height: clickZoneHeight,
+                    depth: Math.sqrt(2) * clickZoneThickness * 2
+                }, this.scene);
+                
+                neMiterClickZone.position.set(
+                    boardRight - clickZoneThickness,
+                    boardTop + clickZoneHeight/2,
+                    boardFront - clickZoneThickness
+                );
+                neMiterClickZone.rotation.y = Math.PI/4; // 45 degrees
+                neMiterClickZone.edgeType = 'neMiter';
+                neMiterClickZone.isVisible = false;
+                neMiterClickZone.isPickable = true;
+                neMiterClickZone.parent = this.board;
+                
+                const neMiterEdge = BABYLON.MeshBuilder.CreateBox('neMiterEdgeHighlight', {
+                    width: Math.sqrt(Math.pow(boardRight - boardLeft, 2) + Math.pow(boardFront - boardBack, 2)) * 0.5,
+                    height: edgeHeight,
+                    depth: edgeThickness
+                }, this.scene);
+                
+                neMiterEdge.position.set(
+                    (boardRight * 0.75 + boardLeft * 0.25),
+                    boardTop + edgeHeight/2,
+                    (boardFront * 0.75 + boardBack * 0.25)
+                );
+                neMiterEdge.rotation.y = Math.PI/4;
+                neMiterEdge.isPickable = false;
+                neMiterEdge.isVisible = false;
+                neMiterEdge.parent = this.board;
+                neMiterClickZone.highlight = neMiterEdge;
+                
+                this.edgeClickZones.push(neMiterClickZone);
+                this.edgeHighlights.push(neMiterEdge);
+            }
+        }
         
         // Store click zones (these are what we interact with)
         this.edgeHighlights = [rightClickZone, leftClickZone, frontClickZone, backClickZone];
@@ -466,6 +534,18 @@ class RouterTable {
             // Replace board with routed version
             this.board.dispose();
             this.board = routedBoard;
+            
+            // Re-parent all click zones and highlights to the new board
+            this.edgeClickZones.forEach(zone => {
+                if (zone && !zone.isDisposed()) {
+                    zone.parent = this.board;
+                }
+            });
+            this.edgeHighlights.forEach(highlight => {
+                if (highlight && !highlight.isDisposed()) {
+                    highlight.parent = this.board;
+                }
+            });
             
             // Dispose of blade
             blade.dispose();
@@ -657,7 +737,11 @@ class RouterTable {
         this.hideUI();
         
         // Remove event handlers
-        this.scene.onPointerObservable.clear();
+        // Remove only our pointer observer, not all of them!
+        if (this.pointerObserver) {
+            this.scene.onPointerObservable.remove(this.pointerObserver);
+            this.pointerObserver = null;
+        }
         
         // Reset state
         this.isActive = false;

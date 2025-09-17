@@ -1929,20 +1929,20 @@ class TheMillSystem {
             const leftSeparator = BABYLON.MeshBuilder.CreateBox('leftSeparator', {
                 width: 600,
                 height: 500,
-                depth: 100
+                depth: 300
             }, this.millScene);
             
             const rightSeparator = BABYLON.MeshBuilder.CreateBox('rightSeparator', {
                 width: 600,
                 height: 500,
-                depth: 100
+                depth: 300
             }, this.millScene);
             
             // Position separators BEFORE rotation - relative to origin
             // Separators split at blade edges - kerf removed from right piece
-            leftSeparator.position.z = -50.15875;  // Inner edge at -0.15875cm (left blade edge)
+            leftSeparator.position.z = -150.15875;  // Inner edge at -0.15875cm (left blade edge)
             // Right separator inner edge at +0.0625, so center at +50.0625
-            rightSeparator.position.z = 50.15875;   // Inner edge at +0.15875cm (right blade edge)
+            rightSeparator.position.z = 150.15875;   // Inner edge at +0.15875cm (right blade edge)
             
             // Bake initial positions
             leftSeparator.bakeCurrentTransformIntoVertices();
@@ -3577,6 +3577,20 @@ class TheMillSystem {
             // Position at origin on workbench
             keptMesh.position = new BABYLON.Vector3(0, 0, 0);
             keptMesh.rotation = new BABYLON.Vector3(0, 0, 0);
+            // CRITICAL: Bake transform and reset pivot to prevent Prime Directive violation
+            keptMesh.bakeCurrentTransformIntoVertices();
+            
+            // Reset the pivot to the mesh's own center, not the original board's center
+            keptMesh.refreshBoundingInfo();
+            const boundingBox = keptMesh.getBoundingInfo().boundingBox;
+            const center = boundingBox.center;
+            keptMesh.setPivotPoint(center);
+            
+            // Compensate position for the new pivot
+            keptMesh.position = center.scale(-1);
+            keptMesh.bakeCurrentTransformIntoVertices();
+            keptMesh.position = new BABYLON.Vector3(0, 0.9525, 0);  // Place on workbench
+            
             
             // Apply texture from material
             if (materialToUse) {

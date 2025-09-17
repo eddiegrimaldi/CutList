@@ -31,3 +31,4 @@ backups/
 html-backup-*.tar.gz
 EOF
 
+api/config.php
